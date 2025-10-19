@@ -1,0 +1,648 @@
+-- =====================================================
+-- BARAKAH.SOCIAL - SAFE PRODUCTION MIGRATION
+-- =====================================================
+-- This script safely handles existing database objects
+-- Run this in Supabase SQL Editor
+-- =====================================================
+
+-- =====================================================
+-- SAFE EXTENSION SETUP
+-- =====================================================
+
+-- Enable required extensions (safe to run multiple times)
+DO $$ 
+BEGIN
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+    CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+    CREATE EXTENSION IF NOT EXISTS "unaccent";
+EXCEPTION
+    WHEN OTHERS THEN
+        -- Extensions might already exist, continue
+        NULL;
+END $$;
+
+-- =====================================================
+-- SAFE ENUM CREATION
+-- =====================================================
+
+-- Create ENUM types only if they don't exist
+DO $$ 
+BEGIN
+    -- Core system ENUMs
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') THEN
+        CREATE TYPE user_role AS ENUM ('user', 'moderator', 'admin', 'scholar');
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'post_type') THEN
+        CREATE TYPE post_type AS ENUM ('text', 'image', 'video', 'link', 'poll', 'question');
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'halaqa_status') THEN
+        CREATE TYPE halaqa_status AS ENUM ('active', 'inactive', 'archived');
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'halaqa_type') THEN
+        CREATE TYPE halaqa_type AS ENUM ('study', 'discussion', 'memorization', 'recitation', 'general');
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'membership_status') THEN
+        CREATE TYPE membership_status AS ENUM ('pending', 'approved', 'rejected', 'banned');
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'membership_role') THEN
+        CREATE TYPE membership_role AS ENUM ('member', 'moderator', 'admin');
+    END IF;
+    
+    -- Companion system ENUMs
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'companion_status') THEN
+        CREATE TYPE companion_status AS ENUM ('pending', 'accepted', 'declined', 'blocked');
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'connection_strength') THEN
+        CREATE TYPE connection_strength AS ENUM ('weak', 'moderate', 'strong', 'very_strong');
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'personality_trait') THEN
+        CREATE TYPE personality_trait AS ENUM ('patient', 'grateful', 'humble', 'generous', 'kind', 'wise', 'supportive', 'encouraging');
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'companion_type') THEN
+        CREATE TYPE companion_type AS ENUM ('study_partner', 'mentor', 'mentee', 'friend', 'spiritual_guide');
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'interaction_type') THEN
+        CREATE TYPE interaction_type AS ENUM ('message', 'study_session', 'halaqa_together', 'beneficial_content', 'prayer_reminder');
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'notification_type') THEN
+        CREATE TYPE notification_type AS ENUM ('connection_request', 'connection_accepted', 'study_invitation', 'content_shared', 'reminder');
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'study_preference') THEN
+        CREATE TYPE study_preference AS ENUM ('quran', 'hadith', 'fiqh', 'aqeedah', 'spirituality', 'general');
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'availability_status') THEN
+        CREATE TYPE availability_status AS ENUM ('available', 'busy', 'away', 'offline');
+    END IF;
+END $$;
+
+-- =====================================================
+-- SAFE TABLE CREATION
+-- =====================================================
+
+-- Create profiles table
+CREATE TABLE IF NOT EXISTS profiles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    username VARCHAR(50) UNIQUE NOT NULL,
+    full_name VARCHAR(100) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    avatar_url TEXT,
+    cover_url TEXT,
+    bio TEXT,
+    location VARCHAR(100),
+    website TEXT,
+    birth_date DATE,
+    gender VARCHAR(20),
+    madhab_preference VARCHAR(50),
+    interests TEXT[],
+    beneficial_count INTEGER DEFAULT 0,
+    companion_score INTEGER DEFAULT 0,
+    is_available_for_connections BOOLEAN DEFAULT TRUE,
+    connection_capacity INTEGER DEFAULT 50,
+    last_active TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    personality_traits personality_trait[],
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Create posts table
+CREATE TABLE IF NOT EXISTS posts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    post_type post_type DEFAULT 'text',
+    image_url TEXT,
+    video_url TEXT,
+    link_url TEXT,
+    link_title TEXT,
+    link_description TEXT,
+    link_image TEXT,
+    poll_question TEXT,
+    poll_options JSONB,
+    poll_end_date TIMESTAMP WITH TIME ZONE,
+    is_public BOOLEAN DEFAULT TRUE,
+    is_beneficial BOOLEAN DEFAULT FALSE,
+    beneficial_count INTEGER DEFAULT 0,
+    comment_count INTEGER DEFAULT 0,
+    share_count INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Create halaqas table
+CREATE TABLE IF NOT EXISTS halaqas (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    image_url TEXT,
+    creator_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+    status halaqa_status DEFAULT 'active',
+    halaqa_type halaqa_type DEFAULT 'general',
+    is_public BOOLEAN DEFAULT TRUE,
+    max_members INTEGER DEFAULT 50,
+    current_members INTEGER DEFAULT 0,
+    beneficial_count INTEGER DEFAULT 0,
+    enable_companion_discovery BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Create halaqa_memberships table
+CREATE TABLE IF NOT EXISTS halaqa_memberships (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    halaqa_id UUID REFERENCES halaqas(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+    status membership_status DEFAULT 'pending',
+    role membership_role DEFAULT 'member',
+    joined_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    UNIQUE(halaqa_id, user_id)
+);
+
+-- Create comments table
+CREATE TABLE IF NOT EXISTS comments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    post_id UUID REFERENCES posts(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    parent_id UUID REFERENCES comments(id) ON DELETE CASCADE,
+    is_beneficial BOOLEAN DEFAULT FALSE,
+    beneficial_count INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Create beneficial_marks table
+CREATE TABLE IF NOT EXISTS beneficial_marks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+    post_id UUID REFERENCES posts(id) ON DELETE CASCADE,
+    comment_id UUID REFERENCES comments(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    UNIQUE(user_id, post_id),
+    UNIQUE(user_id, comment_id),
+    CHECK ((post_id IS NOT NULL AND comment_id IS NULL) OR (post_id IS NULL AND comment_id IS NOT NULL))
+);
+
+-- Create bookmarks table
+CREATE TABLE IF NOT EXISTS bookmarks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+    post_id UUID REFERENCES posts(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    UNIQUE(user_id, post_id)
+);
+
+-- Create follows table
+CREATE TABLE IF NOT EXISTS follows (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    follower_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+    following_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    UNIQUE(follower_id, following_id)
+);
+
+-- Create notifications table
+CREATE TABLE IF NOT EXISTS notifications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+    type VARCHAR(50) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    data JSONB,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Create reports table
+CREATE TABLE IF NOT EXISTS reports (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    reporter_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+    post_id UUID REFERENCES posts(id) ON DELETE CASCADE,
+    comment_id UUID REFERENCES comments(id) ON DELETE CASCADE,
+    reason VARCHAR(100) NOT NULL,
+    description TEXT,
+    status VARCHAR(20) DEFAULT 'pending',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- =====================================================
+-- COMPANION SYSTEM TABLES
+-- =====================================================
+
+-- Create companion_connections table
+CREATE TABLE IF NOT EXISTS companion_connections (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    requester_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+    recipient_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+    status companion_status DEFAULT 'pending',
+    strength connection_strength DEFAULT 'moderate',
+    connection_type companion_type DEFAULT 'friend',
+    message TEXT,
+    shared_interests TEXT[],
+    mutual_halaqas TEXT[],
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    UNIQUE(requester_id, recipient_id)
+);
+
+-- Create companion_interactions table
+CREATE TABLE IF NOT EXISTS companion_interactions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    connection_id UUID REFERENCES companion_connections(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+    interaction_type interaction_type NOT NULL,
+    content TEXT,
+    metadata JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Create companion_notifications table
+CREATE TABLE IF NOT EXISTS companion_notifications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+    connection_id UUID REFERENCES companion_connections(id) ON DELETE CASCADE,
+    notification_type notification_type NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Create companion_preferences table
+CREATE TABLE IF NOT EXISTS companion_preferences (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+    study_preferences study_preference[],
+    preferred_connection_types companion_type[],
+    max_connections INTEGER DEFAULT 50,
+    auto_accept_connections BOOLEAN DEFAULT FALSE,
+    notification_preferences JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    UNIQUE(user_id)
+);
+
+-- Create companion_analytics table
+CREATE TABLE IF NOT EXISTS companion_analytics (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+    total_connections INTEGER DEFAULT 0,
+    active_connections INTEGER DEFAULT 0,
+    study_sessions INTEGER DEFAULT 0,
+    content_shared INTEGER DEFAULT 0,
+    last_activity TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    UNIQUE(user_id)
+);
+
+-- =====================================================
+-- ADD MISSING COLUMNS TO EXISTING TABLES
+-- =====================================================
+
+-- Add companion fields to profiles table if they don't exist
+DO $$ 
+BEGIN
+    -- Add companion_score column
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'profiles' AND column_name = 'companion_score') THEN
+        ALTER TABLE profiles ADD COLUMN companion_score INTEGER DEFAULT 0;
+    END IF;
+    
+    -- Add is_available_for_connections column
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'profiles' AND column_name = 'is_available_for_connections') THEN
+        ALTER TABLE profiles ADD COLUMN is_available_for_connections BOOLEAN DEFAULT TRUE;
+    END IF;
+    
+    -- Add connection_capacity column
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'profiles' AND column_name = 'connection_capacity') THEN
+        ALTER TABLE profiles ADD COLUMN connection_capacity INTEGER DEFAULT 50;
+    END IF;
+    
+    -- Add last_active column
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'profiles' AND column_name = 'last_active') THEN
+        ALTER TABLE profiles ADD COLUMN last_active TIMESTAMP WITH TIME ZONE DEFAULT now();
+    END IF;
+    
+    -- Add personality_traits column
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'profiles' AND column_name = 'personality_traits') THEN
+        ALTER TABLE profiles ADD COLUMN personality_traits personality_trait[];
+    END IF;
+END $$;
+
+-- Add companion discovery to halaqas table if it doesn't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'halaqas' AND column_name = 'enable_companion_discovery') THEN
+        ALTER TABLE halaqas ADD COLUMN enable_companion_discovery BOOLEAN DEFAULT FALSE;
+    END IF;
+END $$;
+
+-- =====================================================
+-- CREATE INDEXES (SAFE)
+-- =====================================================
+
+-- Core system indexes
+CREATE INDEX IF NOT EXISTS idx_posts_user ON posts(user_id);
+CREATE INDEX IF NOT EXISTS idx_posts_created ON posts(created_at);
+CREATE INDEX IF NOT EXISTS idx_posts_beneficial ON posts(is_beneficial);
+CREATE INDEX IF NOT EXISTS idx_halaqas_creator ON halaqas(creator_id);
+CREATE INDEX IF NOT EXISTS idx_halaqas_status ON halaqas(status);
+CREATE INDEX IF NOT EXISTS idx_halaqa_memberships_halaqa ON halaqa_memberships(halaqa_id);
+CREATE INDEX IF NOT EXISTS idx_halaqa_memberships_user ON halaqa_memberships(user_id);
+CREATE INDEX IF NOT EXISTS idx_comments_post ON comments(post_id);
+CREATE INDEX IF NOT EXISTS idx_comments_user ON comments(user_id);
+CREATE INDEX IF NOT EXISTS idx_beneficial_marks_user ON beneficial_marks(user_id);
+CREATE INDEX IF NOT EXISTS idx_beneficial_marks_post ON beneficial_marks(post_id);
+CREATE INDEX IF NOT EXISTS idx_bookmarks_user ON bookmarks(user_id);
+CREATE INDEX IF NOT EXISTS idx_follows_follower ON follows(follower_id);
+CREATE INDEX IF NOT EXISTS idx_follows_following ON follows(following_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(is_read);
+
+-- Companion system indexes
+CREATE INDEX IF NOT EXISTS idx_companion_connections_requester ON companion_connections(requester_id);
+CREATE INDEX IF NOT EXISTS idx_companion_connections_recipient ON companion_connections(recipient_id);
+CREATE INDEX IF NOT EXISTS idx_companion_connections_status ON companion_connections(status);
+CREATE INDEX IF NOT EXISTS idx_companion_connections_strength ON companion_connections(strength);
+CREATE INDEX IF NOT EXISTS idx_companion_interactions_connection ON companion_interactions(connection_id);
+CREATE INDEX IF NOT EXISTS idx_companion_interactions_user ON companion_interactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_companion_interactions_type ON companion_interactions(interaction_type);
+CREATE INDEX IF NOT EXISTS idx_companion_notifications_user ON companion_notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_companion_notifications_read ON companion_notifications(is_read);
+CREATE INDEX IF NOT EXISTS idx_companion_preferences_user ON companion_preferences(user_id);
+CREATE INDEX IF NOT EXISTS idx_companion_analytics_user ON companion_analytics(user_id);
+
+-- =====================================================
+-- ENABLE RLS (SAFE)
+-- =====================================================
+
+-- Enable RLS on all tables
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE posts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE halaqas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE halaqa_memberships ENABLE ROW LEVEL SECURITY;
+ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE beneficial_marks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE bookmarks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE follows ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
+ALTER TABLE companion_connections ENABLE ROW LEVEL SECURITY;
+ALTER TABLE companion_interactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE companion_notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE companion_preferences ENABLE ROW LEVEL SECURITY;
+ALTER TABLE companion_analytics ENABLE ROW LEVEL SECURITY;
+
+-- =====================================================
+-- CREATE RLS POLICIES (SAFE)
+-- =====================================================
+
+-- Drop existing policies if they exist and recreate
+DO $$ 
+BEGIN
+    -- Core system policies
+    DROP POLICY IF EXISTS "Enable read access for all users" ON profiles;
+    DROP POLICY IF EXISTS "Enable update for own profile" ON profiles;
+    DROP POLICY IF EXISTS "Enable read access for all users" ON posts;
+    DROP POLICY IF EXISTS "Enable insert for authenticated users" ON posts;
+    DROP POLICY IF EXISTS "Enable update for own posts" ON posts;
+    DROP POLICY IF EXISTS "Enable delete for own posts" ON posts;
+    DROP POLICY IF EXISTS "Enable read access for all users" ON halaqas;
+    DROP POLICY IF EXISTS "Enable insert for authenticated users" ON halaqas;
+    DROP POLICY IF EXISTS "Enable update for halaqa creators" ON halaqas;
+    DROP POLICY IF EXISTS "Enable read access for all users" ON halaqa_memberships;
+    DROP POLICY IF EXISTS "Enable insert for authenticated users" ON halaqa_memberships;
+    DROP POLICY IF EXISTS "Enable update for own memberships" ON halaqa_memberships;
+    DROP POLICY IF EXISTS "Enable read access for all users" ON comments;
+    DROP POLICY IF EXISTS "Enable insert for authenticated users" ON comments;
+    DROP POLICY IF EXISTS "Enable update for own comments" ON comments;
+    DROP POLICY IF EXISTS "Enable delete for own comments" ON comments;
+    DROP POLICY IF EXISTS "Enable read access for all users" ON beneficial_marks;
+    DROP POLICY IF EXISTS "Enable insert for authenticated users" ON beneficial_marks;
+    DROP POLICY IF EXISTS "Enable delete for own beneficial marks" ON beneficial_marks;
+    DROP POLICY IF EXISTS "Enable read access for own bookmarks" ON bookmarks;
+    DROP POLICY IF EXISTS "Enable insert for authenticated users" ON bookmarks;
+    DROP POLICY IF EXISTS "Enable delete for own bookmarks" ON bookmarks;
+    DROP POLICY IF EXISTS "Enable read access for own follows" ON follows;
+    DROP POLICY IF EXISTS "Enable insert for authenticated users" ON follows;
+    DROP POLICY IF EXISTS "Enable delete for own follows" ON follows;
+    DROP POLICY IF EXISTS "Enable read access for own notifications" ON notifications;
+    DROP POLICY IF EXISTS "Enable insert for system" ON notifications;
+    DROP POLICY IF EXISTS "Enable update for own notifications" ON notifications;
+    DROP POLICY IF EXISTS "Enable read access for all users" ON reports;
+    DROP POLICY IF EXISTS "Enable insert for authenticated users" ON reports;
+    
+    -- Companion system policies
+    DROP POLICY IF EXISTS "Enable read access for connection participants" ON companion_connections;
+    DROP POLICY IF EXISTS "Enable insert for authenticated users" ON companion_connections;
+    DROP POLICY IF EXISTS "Enable update for connection participants" ON companion_connections;
+    DROP POLICY IF EXISTS "Enable delete for connection participants" ON companion_connections;
+    DROP POLICY IF EXISTS "Enable read access for connection participants" ON companion_interactions;
+    DROP POLICY IF EXISTS "Enable insert for connection participants" ON companion_interactions;
+    DROP POLICY IF EXISTS "Enable update for own interactions" ON companion_interactions;
+    DROP POLICY IF EXISTS "Enable delete for own interactions" ON companion_interactions;
+    DROP POLICY IF EXISTS "Enable read access for own notifications" ON companion_notifications;
+    DROP POLICY IF EXISTS "Enable insert for system" ON companion_notifications;
+    DROP POLICY IF EXISTS "Enable update for own notifications" ON companion_notifications;
+    DROP POLICY IF EXISTS "Enable delete for own notifications" ON companion_notifications;
+    DROP POLICY IF EXISTS "Enable read access for own preferences" ON companion_preferences;
+    DROP POLICY IF EXISTS "Enable insert for own preferences" ON companion_preferences;
+    DROP POLICY IF EXISTS "Enable update for own preferences" ON companion_preferences;
+    DROP POLICY IF EXISTS "Enable delete for own preferences" ON companion_preferences;
+    DROP POLICY IF EXISTS "Enable read access for own analytics" ON companion_analytics;
+    DROP POLICY IF EXISTS "Enable insert for own analytics" ON companion_analytics;
+    DROP POLICY IF EXISTS "Enable update for own analytics" ON companion_analytics;
+    DROP POLICY IF EXISTS "Enable delete for own analytics" ON companion_analytics;
+EXCEPTION
+    WHEN OTHERS THEN
+        -- Continue if policies don't exist
+        NULL;
+END $$;
+
+-- Create core system policies
+CREATE POLICY "Enable read access for all users" ON profiles FOR SELECT USING (TRUE);
+CREATE POLICY "Enable update for own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Enable read access for all users" ON posts FOR SELECT USING (TRUE);
+CREATE POLICY "Enable insert for authenticated users" ON posts FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Enable update for own posts" ON posts FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Enable delete for own posts" ON posts FOR DELETE USING (auth.uid() = user_id);
+CREATE POLICY "Enable read access for all users" ON halaqas FOR SELECT USING (TRUE);
+CREATE POLICY "Enable insert for authenticated users" ON halaqas FOR INSERT WITH CHECK (auth.uid() = creator_id);
+CREATE POLICY "Enable update for halaqa creators" ON halaqas FOR UPDATE USING (auth.uid() = creator_id);
+CREATE POLICY "Enable read access for all users" ON halaqa_memberships FOR SELECT USING (TRUE);
+CREATE POLICY "Enable insert for authenticated users" ON halaqa_memberships FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Enable update for own memberships" ON halaqa_memberships FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Enable read access for all users" ON comments FOR SELECT USING (TRUE);
+CREATE POLICY "Enable insert for authenticated users" ON comments FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Enable update for own comments" ON comments FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Enable delete for own comments" ON comments FOR DELETE USING (auth.uid() = user_id);
+CREATE POLICY "Enable read access for all users" ON beneficial_marks FOR SELECT USING (TRUE);
+CREATE POLICY "Enable insert for authenticated users" ON beneficial_marks FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Enable delete for own beneficial marks" ON beneficial_marks FOR DELETE USING (auth.uid() = user_id);
+CREATE POLICY "Enable read access for own bookmarks" ON bookmarks FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Enable insert for authenticated users" ON bookmarks FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Enable delete for own bookmarks" ON bookmarks FOR DELETE USING (auth.uid() = user_id);
+CREATE POLICY "Enable read access for own follows" ON follows FOR SELECT USING (auth.uid() = follower_id OR auth.uid() = following_id);
+CREATE POLICY "Enable insert for authenticated users" ON follows FOR INSERT WITH CHECK (auth.uid() = follower_id);
+CREATE POLICY "Enable delete for own follows" ON follows FOR DELETE USING (auth.uid() = follower_id);
+CREATE POLICY "Enable read access for own notifications" ON notifications FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Enable insert for system" ON notifications FOR INSERT WITH CHECK (TRUE);
+CREATE POLICY "Enable update for own notifications" ON notifications FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Enable read access for all users" ON reports FOR SELECT USING (TRUE);
+CREATE POLICY "Enable insert for authenticated users" ON reports FOR INSERT WITH CHECK (auth.uid() = reporter_id);
+
+-- Create companion system policies
+CREATE POLICY "Enable read access for connection participants" ON companion_connections FOR SELECT USING (auth.uid() = requester_id OR auth.uid() = recipient_id);
+CREATE POLICY "Enable insert for authenticated users" ON companion_connections FOR INSERT WITH CHECK (auth.uid() = requester_id);
+CREATE POLICY "Enable update for connection participants" ON companion_connections FOR UPDATE USING (auth.uid() = requester_id OR auth.uid() = recipient_id);
+CREATE POLICY "Enable delete for connection participants" ON companion_connections FOR DELETE USING (auth.uid() = requester_id OR auth.uid() = recipient_id);
+
+CREATE POLICY "Enable read access for connection participants" ON companion_interactions FOR SELECT USING (
+    EXISTS (SELECT 1 FROM companion_connections WHERE id = connection_id AND (requester_id = auth.uid() OR recipient_id = auth.uid()))
+);
+CREATE POLICY "Enable insert for connection participants" ON companion_interactions FOR INSERT WITH CHECK (
+    auth.uid() = user_id AND
+    EXISTS (SELECT 1 FROM companion_connections WHERE id = connection_id AND (requester_id = auth.uid() OR recipient_id = auth.uid()))
+);
+CREATE POLICY "Enable update for own interactions" ON companion_interactions FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Enable delete for own interactions" ON companion_interactions FOR DELETE USING (auth.uid() = user_id);
+
+CREATE POLICY "Enable read access for own notifications" ON companion_notifications FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Enable insert for system" ON companion_notifications FOR INSERT WITH CHECK (TRUE);
+CREATE POLICY "Enable update for own notifications" ON companion_notifications FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Enable delete for own notifications" ON companion_notifications FOR DELETE USING (auth.uid() = user_id);
+
+CREATE POLICY "Enable read access for own preferences" ON companion_preferences FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Enable insert for own preferences" ON companion_preferences FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Enable update for own preferences" ON companion_preferences FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Enable delete for own preferences" ON companion_preferences FOR DELETE USING (auth.uid() = user_id);
+
+CREATE POLICY "Enable read access for own analytics" ON companion_analytics FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Enable insert for own analytics" ON companion_analytics FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Enable update for own analytics" ON companion_analytics FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Enable delete for own analytics" ON companion_analytics FOR DELETE USING (auth.uid() = user_id);
+
+-- =====================================================
+-- CREATE HELPER FUNCTIONS (SAFE)
+-- =====================================================
+
+-- Create or replace companion analytics function
+CREATE OR REPLACE FUNCTION update_companion_analytics()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Update analytics when connection status changes
+    IF NEW.status = 'accepted' AND OLD.status != 'accepted' THEN
+        -- Update requester analytics
+        INSERT INTO companion_analytics (user_id, total_connections, active_connections)
+        VALUES (NEW.requester_id, 1, 1)
+        ON CONFLICT (user_id)
+        DO UPDATE SET
+            total_connections = companion_analytics.total_connections + 1,
+            active_connections = companion_analytics.active_connections + 1,
+            updated_at = now();
+        
+        -- Update recipient analytics
+        INSERT INTO companion_analytics (user_id, total_connections, active_connections)
+        VALUES (NEW.recipient_id, 1, 1)
+        ON CONFLICT (user_id)
+        DO UPDATE SET
+            total_connections = companion_analytics.total_connections + 1,
+            active_connections = companion_analytics.active_connections + 1,
+            updated_at = now();
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create or replace trigger
+DROP TRIGGER IF EXISTS update_companion_analytics_trigger ON companion_connections;
+CREATE TRIGGER update_companion_analytics_trigger
+    AFTER UPDATE ON companion_connections
+    FOR EACH ROW
+    EXECUTE FUNCTION update_companion_analytics();
+
+-- =====================================================
+-- CREATE ADDITIONAL TABLES (SAFE)
+-- =====================================================
+
+-- Create content_categories table if it doesn't exist
+CREATE TABLE IF NOT EXISTS content_categories (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(100) UNIQUE NOT NULL,
+    description TEXT,
+    parent_id UUID REFERENCES content_categories(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Create search_synonyms table if it doesn't exist
+CREATE TABLE IF NOT EXISTS search_synonyms (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    word VARCHAR(100) NOT NULL,
+    synonyms TEXT[] NOT NULL,
+    language VARCHAR(10) DEFAULT 'en',
+    category VARCHAR(50),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- =====================================================
+-- INSERT DEFAULT DATA (SAFE)
+-- =====================================================
+
+-- Insert default content categories if they don't exist
+INSERT INTO content_categories (name, description) 
+SELECT 'Quran', 'Quranic studies and recitation'
+WHERE NOT EXISTS (SELECT 1 FROM content_categories WHERE name = 'Quran');
+
+INSERT INTO content_categories (name, description) 
+SELECT 'Hadith', 'Prophetic traditions and sayings'
+WHERE NOT EXISTS (SELECT 1 FROM content_categories WHERE name = 'Hadith');
+
+INSERT INTO content_categories (name, description) 
+SELECT 'Fiqh', 'Islamic jurisprudence and law'
+WHERE NOT EXISTS (SELECT 1 FROM content_categories WHERE name = 'Fiqh');
+
+INSERT INTO content_categories (name, description) 
+SELECT 'Aqeedah', 'Islamic creed and belief'
+WHERE NOT EXISTS (SELECT 1 FROM content_categories WHERE name = 'Aqeedah');
+
+INSERT INTO content_categories (name, description) 
+SELECT 'Spirituality', 'Spiritual development and character'
+WHERE NOT EXISTS (SELECT 1 FROM content_categories WHERE name = 'Spirituality');
+
+INSERT INTO content_categories (name, description) 
+SELECT 'Practical', 'Practical Islamic guidance'
+WHERE NOT EXISTS (SELECT 1 FROM content_categories WHERE name = 'Practical');
+
+-- Insert default search synonyms if they don't exist
+INSERT INTO search_synonyms (word, synonyms, language, category) 
+SELECT 'prayer', ARRAY['salah', 'namaz', 'worship'], 'en', 'worship'
+WHERE NOT EXISTS (SELECT 1 FROM search_synonyms WHERE word = 'prayer');
+
+INSERT INTO search_synonyms (word, synonyms, language, category) 
+SELECT 'fasting', ARRAY['sawm', 'roza', 'abstinence'], 'en', 'worship'
+WHERE NOT EXISTS (SELECT 1 FROM search_synonyms WHERE word = 'fasting');
+
+INSERT INTO search_synonyms (word, synonyms, language, category) 
+SELECT 'charity', ARRAY['zakat', 'sadaqah', 'donation'], 'en', 'worship'
+WHERE NOT EXISTS (SELECT 1 FROM search_synonyms WHERE word = 'charity');
+
+INSERT INTO search_synonyms (word, synonyms, language, category) 
+SELECT 'pilgrimage', ARRAY['hajj', 'umrah', 'journey'], 'en', 'worship'
+WHERE NOT EXISTS (SELECT 1 FROM search_synonyms WHERE word = 'pilgrimage');
+
+-- =====================================================
+-- COMPLETION MESSAGE
+-- =====================================================
+SELECT 'Barakah.social database setup completed successfully! 🎉' as status;

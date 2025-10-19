@@ -1,0 +1,34 @@
+# robots.txt for Barakah.Social
+
+# Allow all crawlers
+User-agent: *
+Allow: /
+
+# Disallow private pages
+Disallow: /admin/
+Disallow: /api/
+Disallow: /settings
+Disallow: /profile/edit
+
+# Sitemap location
+Sitemap: https://barakah.social/sitemap.xml
+
+# Crawl-delay for respectful crawling
+Crawl-delay: 1
+
+# Specific bot instructions
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+# Block bad bots
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
