@@ -48,7 +48,28 @@ vercel
 # - Override settings? No
 ```
 
-### **Step 3: Configure Environment Variables**
+### **Step 3: Update Supabase Configuration**
+
+**⚠️ IMPORTANT: Update your Supabase project settings before deployment!**
+
+1. **Go to your Supabase Dashboard:**
+   - Navigate to **Authentication** → **URL Configuration**
+
+2. **Update Site URL:**
+   ```
+   From: http://localhost:3000
+   To: https://your-app-name.vercel.app
+   ```
+
+3. **Update Redirect URLs:**
+   ```
+   Add these URLs:
+   - https://your-app-name.vercel.app/auth/callback
+   - https://your-app-name.vercel.app/auth/signin
+   - https://your-app-name.vercel.app/auth/signup
+   ```
+
+### **Step 4: Configure Environment Variables**
 
 In your Vercel dashboard, go to **Settings > Environment Variables** and add:
 
@@ -57,7 +78,7 @@ In your Vercel dashboard, go to **Settings > Environment Variables** and add:
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url_here
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key_here
-NEXTAUTH_SECRET=your_nextauth_secret_here
+NEXTAUTH_SECRET=mbpA6mxXQTpzsSZr8heXrMKqoLc4w2GLsMAoyw1kgkc=
 NEXTAUTH_URL=https://your-project.vercel.app
 ```
 
