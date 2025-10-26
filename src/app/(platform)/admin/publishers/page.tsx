@@ -29,43 +29,26 @@ export default function PublishersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  // Mock data for now
+  // Load publishers from database
   useEffect(() => {
-    const mockPublishers: Publisher[] = [
-      {
-        id: '1',
-        name: 'Dr. Ahmad Al-Mahmoud',
-        email: 'ahmad@example.com',
-        status: 'approved',
-        verificationLevel: 'scholar',
-        createdAt: '2024-01-15',
-        contentCount: 45,
-        followers: 1250
-      },
-      {
-        id: '2',
-        name: 'Islamic Knowledge Center',
-        email: 'info@ikc.org',
-        status: 'pending',
-        verificationLevel: 'basic',
-        createdAt: '2024-01-20',
-        contentCount: 12,
-        followers: 340
-      },
-      {
-        id: '3',
-        name: 'Sheikh Yusuf Al-Qaradawi',
-        email: 'yusuf@example.com',
-        status: 'approved',
-        verificationLevel: 'scholar',
-        createdAt: '2024-01-10',
-        contentCount: 78,
-        followers: 2100
+    const loadPublishers = async () => {
+      try {
+        setLoading(true);
+        // TODO: Replace with actual API call
+        // const response = await fetch('/api/admin/publishers');
+        // const data = await response.json();
+        // setPublishers(data);
+        
+        // For now, start with empty array
+        setPublishers([]);
+      } catch (error) {
+        console.error('Failed to load publishers:', error);
+      } finally {
+        setLoading(false);
       }
-    ];
-    
-    setPublishers(mockPublishers);
-    setLoading(false);
+    };
+
+    loadPublishers();
   }, []);
 
   const filteredPublishers = publishers.filter(publisher => {

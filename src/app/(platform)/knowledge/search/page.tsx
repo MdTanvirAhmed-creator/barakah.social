@@ -185,82 +185,8 @@ export default function KnowledgeSearchPage() {
     autoRefresh: true
   });
 
-  // Mock data for demonstration
-  // TODO: Replace with real search results
-  const mockResults: SearchResult[] = [
-    {
-      id: '1',
-      title: 'The Five Pillars of Islam: A Comprehensive Guide',
-      description: 'An in-depth exploration of the fundamental practices that form the foundation of Islamic faith and practice.',
-      author: 'Dr. Ahmad Al-Rashid',
-      authorId: 'author-1',
-      format: 'article',
-      category: 'Fundamentals',
-      difficulty: 'beginner',
-      estimatedTime: 15,
-      tags: ['islam', 'pillars', 'fundamentals', 'faith'],
-      thumbnail: '/images/five-pillars.jpg',
-      publishedAt: '2024-01-15',
-      viewCount: 1250,
-      beneficialCount: 89,
-      bookmarkCount: 45,
-      score: 0.95,
-      highlights: {
-        title: ['Five', 'Pillars', 'Islam'],
-        description: ['fundamental', 'practices', 'foundation'],
-        content: ['prayer', 'charity', 'fasting', 'pilgrimage']
-      },
-      reason: 'Highly relevant to your search for Islamic fundamentals'
-    },
-    {
-      id: '2',
-      title: 'Understanding Salah: The Complete Prayer Guide',
-      description: 'Step-by-step instructions for performing the five daily prayers with proper recitation and movements.',
-      author: 'Sheikh Fatima Al-Zahra',
-      authorId: 'author-2',
-      format: 'video',
-      category: 'Worship',
-      difficulty: 'beginner',
-      estimatedTime: 25,
-      tags: ['prayer', 'salah', 'worship', 'guidance'],
-      thumbnail: '/images/salah-guide.jpg',
-      publishedAt: '2024-01-10',
-      viewCount: 2100,
-      beneficialCount: 156,
-      bookmarkCount: 78,
-      score: 0.92,
-      highlights: {
-        title: ['Salah', 'Prayer', 'Guide'],
-        description: ['step-by-step', 'daily', 'prayers'],
-        content: ['recitation', 'movements', 'worship']
-      },
-      reason: 'Perfect match for prayer-related content'
-    },
-    {
-      id: '3',
-      title: 'Quranic Arabic: Essential Vocabulary for Beginners',
-      description: 'Learn the most important Arabic words and phrases found in the Quran with pronunciation guides.',
-      author: 'Ustadh Muhammad Al-Hakim',
-      authorId: 'author-3',
-      format: 'course',
-      category: 'Language',
-      difficulty: 'beginner',
-      estimatedTime: 45,
-      tags: ['arabic', 'quran', 'vocabulary', 'language'],
-      thumbnail: '/images/arabic-course.jpg',
-      publishedAt: '2024-01-08',
-      viewCount: 890,
-      beneficialCount: 67,
-      bookmarkCount: 34,
-      score: 0.88,
-      highlights: {
-        title: ['Arabic', 'Vocabulary', 'Beginners'],
-        description: ['important', 'words', 'Quran'],
-        content: ['pronunciation', 'phrases', 'language']
-      },
-      reason: 'Great for learning Quranic Arabic'
-    }
-  ];
+  // TODO: Replace with real search results from database
+  // Mock data removed for production
 
   // Search functionality
   const performSearch = useCallback(async (query: string, page: number = 1) => {
@@ -285,22 +211,9 @@ export default function KnowledgeSearchPage() {
       // Simulate search processing
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      // Filter results based on query and filters
-      let filteredResults = mockResults.filter(result => {
-        const matchesQuery = result.title.toLowerCase().includes(query.toLowerCase()) ||
-                           result.description.toLowerCase().includes(query.toLowerCase()) ||
-                           result.tags.some(tag => tag.toLowerCase().includes(query.toLowerCase()));
-        
-        const matchesFilters = (
-          filters.category.length === 0 || filters.category.includes(result.category)
-        ) && (
-          filters.format.length === 0 || filters.format.includes(result.format)
-        ) && (
-          filters.difficulty.length === 0 || filters.difficulty.includes(result.difficulty)
-        );
-
-        return matchesQuery && matchesFilters;
-      });
+      // TODO: Replace with real search results from database
+      // For now, return empty results
+      let filteredResults: SearchResult[] = [];
 
       // Sort results
       filteredResults.sort((a, b) => {

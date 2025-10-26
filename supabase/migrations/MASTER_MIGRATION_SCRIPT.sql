@@ -2616,25 +2616,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Insert some default content sources for verified scholars
-INSERT INTO content_sources (name, type, source_url, scholar_id, auto_approve, quality_score) VALUES
-  ('Dr. Yasir Qadhi YouTube', 'youtube_channel', 'https://www.youtube.com/@YasirQadhi', 
-   (SELECT id FROM profiles WHERE username = 'yasir_qadhi' LIMIT 1), true, 95),
-  ('Shaykh Abdul Nasir Jangda YouTube', 'youtube_channel', 'https://www.youtube.com/@ShaykhAbdulNasirJangda',
-   (SELECT id FROM profiles WHERE username = 'abdul_nasir' LIMIT 1), true, 92),
-  ('SeekersGuidance RSS', 'rss_feed', 'https://seekersguidance.org/feed/',
-   (SELECT id FROM profiles WHERE username = 'seekers_guidance' LIMIT 1), true, 98),
-  ('Yaqeen Institute RSS', 'rss_feed', 'https://yaqeeninstitute.org/feed/',
-   (SELECT id FROM profiles WHERE username = 'yaqeen_institute' LIMIT 1), true, 96);
+-- Content sources will be added by admins through the admin panel
+-- No default content sources inserted
 
--- Create a default content pipeline for RSS feeds
-INSERT INTO content_pipelines (name, type, config, schedule, status) VALUES
-  ('Islamic RSS Feeds', 'rss', 
-   '{"feeds": ["https://seekersguidance.org/feed/", "https://yaqeeninstitute.org/feed/"]}', 
-   'daily', 'active'),
-  ('Scholar YouTube Channels', 'youtube',
-   '{"channels": ["UCxqXjFh7iQ1Q2Q3Q4Q5Q6Q7", "UCyqYjGh8iQ2Q3Q4Q5Q6Q7Q8"]}',
-   'daily', 'active');
+-- Content pipelines will be configured by admins through the admin panel
+-- No default content pipelines inserted
 
 -- Add comments for documentation
 COMMENT ON TABLE content_pipelines IS 'Automated content import pipelines for various sources';

@@ -37,57 +37,26 @@ export default function ScholarsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [levelFilter, setLevelFilter] = useState<string>('all');
 
-  // Mock data for now
+  // Load scholars from database
   useEffect(() => {
-    const mockScholars: Scholar[] = [
-      {
-        id: '1',
-        name: 'Dr. Ahmad Al-Mahmoud',
-        email: 'ahmad@example.com',
-        status: 'approved',
-        qualifications: ['PhD in Islamic Studies', 'MA in Arabic Literature'],
-        specializations: ['Aqeedah', 'Fiqh', 'Hadith'],
-        experience: 15,
-        institution: 'Al-Azhar University',
-        submittedAt: '2024-01-15',
-        reviewer: 'Admin User',
-        verificationLevel: 'scholar',
-        contentCount: 45,
-        followers: 1250
-      },
-      {
-        id: '2',
-        name: 'Sheikh Yusuf Al-Qaradawi',
-        email: 'yusuf@example.com',
-        status: 'pending',
-        qualifications: ['PhD in Sharia', 'Certified Mufti'],
-        specializations: ['Fiqh', 'Usul al-Fiqh', 'Contemporary Issues'],
-        experience: 20,
-        institution: 'International Union of Muslim Scholars',
-        submittedAt: '2024-01-20',
-        verificationLevel: 'scholar',
-        contentCount: 78,
-        followers: 2100
-      },
-      {
-        id: '3',
-        name: 'Dr. Fatima Al-Zahra',
-        email: 'fatima@example.com',
-        status: 'approved',
-        qualifications: ['PhD in Quranic Studies', 'MA in Tafsir'],
-        specializations: ['Quran', 'Tafsir', 'Arabic Language'],
-        experience: 12,
-        institution: 'King Saud University',
-        submittedAt: '2024-01-10',
-        reviewer: 'Admin User',
-        verificationLevel: 'scholar',
-        contentCount: 32,
-        followers: 890
+    const loadScholars = async () => {
+      try {
+        setLoading(true);
+        // TODO: Replace with actual API call
+        // const response = await fetch('/api/admin/scholars');
+        // const data = await response.json();
+        // setScholars(data);
+        
+        // For now, start with empty array
+        setScholars([]);
+      } catch (error) {
+        console.error('Failed to load scholars:', error);
+      } finally {
+        setLoading(false);
       }
-    ];
-    
-    setScholars(mockScholars);
-    setLoading(false);
+    };
+
+    loadScholars();
   }, []);
 
   const filteredScholars = scholars.filter(scholar => {

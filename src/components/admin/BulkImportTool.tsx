@@ -220,11 +220,11 @@ const IMPORT_TEMPLATES: ImportTemplate[] = [
     fields: ["title", "content", "author", "category", "tags", "language", "targetAudience"],
     sampleData: [
       {
-        title: "The Importance of Seeking Knowledge",
-        content: "In Islam, seeking knowledge is considered a religious obligation...",
-        author: "Dr. Ahmad Al-Rashid",
-        category: "Aqeedah",
-        tags: "knowledge,islam,education",
+        title: "Sample Article Title",
+        content: "Sample article content...",
+        author: "Author Name",
+        category: "Category",
+        tags: "tag1,tag2,tag3",
         language: "en",
         targetAudience: "intermediate"
       }
@@ -237,12 +237,12 @@ const IMPORT_TEMPLATES: ImportTemplate[] = [
     fields: ["title", "description", "videoUrl", "author", "category", "tags", "language"],
     sampleData: [
       {
-        title: "Tafsir of Surah Al-Fatiha",
-        description: "Detailed explanation of the opening chapter",
-        videoUrl: "https://youtube.com/watch?v=example",
-        author: "Shaykh Abdul Nasir Jangda",
-        category: "Quran",
-        tags: "tafsir,quran,explanation",
+        title: "Sample Video Title",
+        description: "Sample video description",
+        videoUrl: "https://example.com/video",
+        author: "Author Name",
+        category: "Category",
+        tags: "tag1,tag2,tag3",
         language: "en"
       }
     ]
@@ -254,13 +254,13 @@ const IMPORT_TEMPLATES: ImportTemplate[] = [
     fields: ["title", "author", "description", "category", "tags", "language", "isbn"],
     sampleData: [
       {
-        title: "The Book of Knowledge by Imam Al-Ghazali",
-        author: "Imam Al-Ghazali",
-        description: "Classic work on Islamic epistemology",
-        category: "Classics",
-        tags: "al-ghazali,knowledge,classics",
+        title: "Sample Book Title",
+        author: "Author Name",
+        description: "Sample book description",
+        category: "Category",
+        tags: "tag1,tag2,tag3",
         language: "en",
-        isbn: "978-1234567890"
+        isbn: "978-0000000000"
       }
     ]
   },
@@ -271,12 +271,12 @@ const IMPORT_TEMPLATES: ImportTemplate[] = [
     fields: ["title", "content", "originalLanguage", "targetLanguage", "translator", "category"],
     sampleData: [
       {
-        title: "Translation of Sahih Bukhari",
-        content: "Translated hadith collection...",
+        title: "Sample Translation Title",
+        content: "Sample translated content...",
         originalLanguage: "ar",
         targetLanguage: "en",
-        translator: "Muhammad Muhsin Khan",
-        category: "Hadith"
+        translator: "Translator Name",
+        category: "Category"
       }
     ]
   }

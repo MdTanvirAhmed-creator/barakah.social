@@ -33,48 +33,26 @@ export default function ContentReviewPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
 
-  // Mock data for now
+  // Load content reviews from database
   useEffect(() => {
-    const mockReviews: ContentReview[] = [
-      {
-        id: '1',
-        title: 'Understanding the Five Pillars of Islam',
-        author: 'Dr. Ahmad Al-Mahmoud',
-        type: 'article',
-        status: 'pending',
-        submittedAt: '2024-01-20',
-        priority: 'high',
-        category: 'Aqeedah',
-        tags: ['islam', 'pillars', 'foundation']
-      },
-      {
-        id: '2',
-        title: 'The Life of Prophet Muhammad (PBUH)',
-        author: 'Islamic Knowledge Center',
-        type: 'video',
-        status: 'needs_revision',
-        submittedAt: '2024-01-18',
-        reviewer: 'Sheikh Yusuf',
-        priority: 'medium',
-        category: 'Seerah',
-        tags: ['prophet', 'biography', 'history']
-      },
-      {
-        id: '3',
-        title: 'Arabic Grammar for Beginners',
-        author: 'Language Institute',
-        type: 'book',
-        status: 'approved',
-        submittedAt: '2024-01-15',
-        reviewer: 'Dr. Fatima',
-        priority: 'low',
-        category: 'Arabic',
-        tags: ['grammar', 'language', 'learning']
+    const loadReviews = async () => {
+      try {
+        setLoading(true);
+        // TODO: Replace with actual API call
+        // const response = await fetch('/api/admin/content-reviews');
+        // const data = await response.json();
+        // setReviews(data);
+        
+        // For now, start with empty array
+        setReviews([]);
+      } catch (error) {
+        console.error('Failed to load content reviews:', error);
+      } finally {
+        setLoading(false);
       }
-    ];
-    
-    setReviews(mockReviews);
-    setLoading(false);
+    };
+
+    loadReviews();
   }, []);
 
   const filteredReviews = reviews.filter(review => {

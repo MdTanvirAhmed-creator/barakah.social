@@ -35,50 +35,26 @@ export default function ReportsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
 
-  // Mock data for now
+  // Load reports from database
   useEffect(() => {
-    const mockReports: Report[] = [
-      {
-        id: '1',
-        type: 'spam',
-        reporter: 'user123',
-        reportedContent: 'Suspicious promotional content',
-        reportedUser: 'spammer456',
-        status: 'pending',
-        priority: 'high',
-        createdAt: '2024-01-20',
-        description: 'User is posting promotional content repeatedly across multiple posts'
-      },
-      {
-        id: '2',
-        type: 'inappropriate',
-        reporter: 'moderator789',
-        reportedContent: 'Inappropriate language in discussion',
-        reportedUser: 'user456',
-        status: 'reviewed',
-        priority: 'medium',
-        createdAt: '2024-01-18',
-        description: 'User used inappropriate language in a religious discussion',
-        reviewer: 'Admin User',
-        resolution: 'Content removed, user warned'
-      },
-      {
-        id: '3',
-        type: 'misinformation',
-        reporter: 'scholar123',
-        reportedContent: 'Incorrect hadith citation',
-        reportedUser: 'user789',
-        status: 'resolved',
-        priority: 'high',
-        createdAt: '2024-01-15',
-        description: 'User shared a hadith with incorrect chain of narration',
-        reviewer: 'Dr. Ahmad',
-        resolution: 'Content corrected, proper citation provided'
+    const loadReports = async () => {
+      try {
+        setLoading(true);
+        // TODO: Replace with actual API call
+        // const response = await fetch('/api/admin/reports');
+        // const data = await response.json();
+        // setReports(data);
+        
+        // For now, start with empty array
+        setReports([]);
+      } catch (error) {
+        console.error('Failed to load reports:', error);
+      } finally {
+        setLoading(false);
       }
-    ];
-    
-    setReports(mockReports);
-    setLoading(false);
+    };
+
+    loadReports();
   }, []);
 
   const filteredReports = reports.filter(report => {

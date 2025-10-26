@@ -60,7 +60,7 @@ export function SalamModal({
   const [sent, setSent] = useState(false);
 
   const defaultSalamMessages = [
-    `Assalamu alaikum ${companion.full_name.split(" ")[0]}! I noticed we share similar interests. Would love to connect!`,
+    `Assalamu alaikum! I noticed we share similar interests. Would love to connect!`,
     `السلام عليكم! I came across your profile and would like to be companions on this journey of knowledge.`,
     `Assalamu alaikum! May Allah bless you. I'd like to connect as we seem to have common interests in Islamic studies.`,
   ];
