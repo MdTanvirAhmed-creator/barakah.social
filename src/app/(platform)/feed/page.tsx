@@ -40,11 +40,6 @@ export default function FeedPage() {
   const [showDailySuggestion, setShowDailySuggestion] = useState(false);
   const supabase = createClient();
 
-  // Load daily companion suggestion
-  useEffect(() => {
-    loadDailySuggestion();
-  }, []);
-
   const loadDailySuggestion = async () => {
     try {
       // Check if user has already seen today's suggestion
@@ -100,6 +95,10 @@ export default function FeedPage() {
       console.error('Error loading daily suggestion:', error);
     }
   };
+
+  // Load daily companion suggestion
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { loadDailySuggestion(); }, []);
 
   const handleDismissSuggestion = () => {
     // Mark as seen for today
