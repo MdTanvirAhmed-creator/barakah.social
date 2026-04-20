@@ -25,7 +25,9 @@ jobs:
         run: npm ci
 
       - name: Run ESLint
-        run: npm run lint
+        run: npx eslint src
+        env:
+          ESLINT_USE_FLAT_CONFIG: 'false'
 
       - name: Type check
         run: npx tsc --noEmit
