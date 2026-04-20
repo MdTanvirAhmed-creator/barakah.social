@@ -36,7 +36,7 @@ export default function ScholarsPage() {
   async function loadScholars() {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('profiles')
         .select('id, username, full_name, bio, avatar_url, is_verified_scholar, beneficial_count, interests, joined_at')
         .eq('is_verified_scholar', true)

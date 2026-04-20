@@ -78,16 +78,18 @@ export default function AdminDashboard() {
 
   async function loadStats() {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sb = supabase as any;
       const [
         { count: totalUsers },
         { count: totalPosts },
         { count: pendingReports },
         { count: verifiedPublishers },
       ] = await Promise.all([
-        supabase.from('profiles').select('id', { count: 'exact', head: true }),
-        supabase.from('posts').select('id', { count: 'exact', head: true }).eq('is_deleted', false),
-        supabase.from('reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-        supabase.from('trusted_publishers').select('id', { count: 'exact', head: true }).eq('verification_status', 'approved'),
+        sb.from('profiles').select('id', { count: 'exact', head: true }),
+        sb.from('posts').select('id', { count: 'exact', head: true }).eq('is_deleted', false),
+        sb.from('reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+        sb.from('trusted_publishers').select('id', { count: 'exact', head: true }).eq('verification_status', 'approved'),
       ]);
 
       setStats({

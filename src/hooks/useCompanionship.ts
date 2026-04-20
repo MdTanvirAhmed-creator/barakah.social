@@ -59,7 +59,7 @@ export function useCompanionship() {
       }
 
       // Fetch all connections for this user
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("companion_connections")
         .select(`
           *,
@@ -87,15 +87,15 @@ export function useCompanionship() {
 
       // Categorize connections
       const pending = data?.filter(
-        (conn) => conn.status === "pending" && conn.recipient_id === user.id
+        (conn: any) => conn.status === "pending" && conn.recipient_id === user.id
       ) || [];
 
       const sent = data?.filter(
-        (conn) => conn.status === "pending" && conn.requester_id === user.id
+        (conn: any) => conn.status === "pending" && conn.requester_id === user.id
       ) || [];
 
       const accepted = data?.filter(
-        (conn) => conn.status === "accepted"
+        (conn: any) => conn.status === "accepted"
       ) || [];
 
       setState({
@@ -120,7 +120,7 @@ export function useCompanionship() {
   // Accept a connection request
   const acceptConnection = useCallback(async (connectionId: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("companion_connections")
         .update({
           status: "accepted",
@@ -131,7 +131,7 @@ export function useCompanionship() {
       if (error) throw error;
 
       // Create welcome interaction
-      await supabase
+      await (supabase as any)
         .from("companion_interactions")
         .insert({
           companion_connection_id: connectionId,
@@ -158,7 +158,7 @@ export function useCompanionship() {
   // Decline a connection request
   const declineConnection = useCallback(async (connectionId: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("companion_connections")
         .update({
           status: "declined",
@@ -195,7 +195,7 @@ export function useCompanionship() {
       }
 
       // Check for existing connection
-      const { data: existing } = await supabase
+      const { data: existing } = await (supabase as any)
         .from("companion_connections")
         .select("id, status")
         .or(`and(requester_id.eq.${user.id},recipient_id.eq.${recipientId}),and(requester_id.eq.${recipientId},recipient_id.eq.${user.id})`)
@@ -213,7 +213,7 @@ export function useCompanionship() {
       }
 
       // Create new connection
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("companion_connections")
         .insert({
           requester_id: user.id,
@@ -245,7 +245,7 @@ export function useCompanionship() {
     newStrength: number
   ) => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("companion_connections")
         .update({
           connection_strength: Math.max(0, Math.min(100, newStrength)), // Clamp 0-100
@@ -272,7 +272,7 @@ export function useCompanionship() {
   ) => {
     try {
       // Create interaction record
-      await supabase
+      await (supabase as any)
         .from("companion_interactions")
         .insert({
           companion_connection_id: connectionId,
@@ -311,7 +311,7 @@ export function useCompanionship() {
     try {
       // This would integrate with your feed algorithm
       // For now, we'll just update the last_interaction timestamp
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("companion_connections")
         .update({
           last_interaction: new Date().toISOString(),

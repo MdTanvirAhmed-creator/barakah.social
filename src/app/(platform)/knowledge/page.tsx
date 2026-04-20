@@ -94,7 +94,7 @@ export default function KnowledgePage() {
     setLoading(true);
     try {
       // Load published paths
-      const { data: paths, error } = await supabase
+      const { data: paths, error } = await (supabase as any)
         .from("learning_paths")
         .select("id, title, description, image_url, difficulty, category, estimated_duration, status")
         .eq("status", "published")
@@ -108,7 +108,7 @@ export default function KnowledgePage() {
       }
 
       // Count total published paths
-      const { count } = await supabase
+      const { count } = await (supabase as any)
         .from("learning_paths")
         .select("id", { count: "exact", head: true })
         .eq("status", "published");
@@ -118,7 +118,7 @@ export default function KnowledgePage() {
 
       // Load lessons for all paths
       const { data: allLessons } = pathIds.length
-        ? await supabase
+        ? await (supabase as any)
             .from("learning_path_lessons")
             .select("id, path_id, title, content_type, duration, order_index")
             .in("path_id", pathIds)
@@ -128,7 +128,7 @@ export default function KnowledgePage() {
       // Load user's progress for these paths
       const progressMap: Record<string, number> = {};
       if (user && pathIds.length) {
-        const { data: progresses } = await supabase
+        const { data: progresses } = await (supabase as any)
           .from("learning_path_progress")
           .select("path_id, progress_percentage")
           .eq("user_id", user.id)

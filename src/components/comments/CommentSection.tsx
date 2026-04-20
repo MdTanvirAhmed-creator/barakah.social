@@ -74,7 +74,7 @@ export function CommentSection({ postId, commentCount, isExpanded = false }: Com
     setIsLoading(true);
     try {
       // Load top-level comments
-      const { data: topLevel, error } = await supabase
+      const { data: topLevel, error } = await (supabase as any)
         .from("comments")
         .select(`
           id, content, beneficial_count, created_at, parent_comment_id,
@@ -94,7 +94,7 @@ export function CommentSection({ postId, commentCount, isExpanded = false }: Com
       // Load replies for all top-level comments at once
       const topIds = (topLevel as { id: string }[]).map((c) => c.id);
       const { data: replies } = topIds.length
-        ? await supabase
+        ? await (supabase as any)
             .from("comments")
             .select(`
               id, content, beneficial_count, created_at, parent_comment_id,

@@ -200,7 +200,7 @@ export default function VerificationDashboard() {
 
   const loadVerifications = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('content_verifications')
         .select(`
           *,
@@ -221,7 +221,7 @@ export default function VerificationDashboard() {
 
   const loadReviewers = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('profiles')
         .select(`
           id, username, full_name, avatar_url, beneficial_count, role, is_verified, expertise_areas,

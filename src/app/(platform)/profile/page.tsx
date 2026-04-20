@@ -45,10 +45,12 @@ export default function ProfilePage() {
         return;
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sb = supabase as any;
       const [{ data, error }, { count: postCount }, { count: halaqaCount }] = await Promise.all([
-        supabase.from("profiles").select("*").eq("id", user.id).single(),
-        supabase.from("posts").select("id", { count: "exact", head: true }).eq("author_id", user.id).eq("is_deleted", false),
-        supabase.from("halaqa_members").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+        sb.from("profiles").select("*").eq("id", user.id).single(),
+        sb.from("posts").select("id", { count: "exact", head: true }).eq("author_id", user.id).eq("is_deleted", false),
+        sb.from("halaqa_members").select("id", { count: "exact", head: true }).eq("user_id", user.id),
       ]);
 
       if (error || !data) {

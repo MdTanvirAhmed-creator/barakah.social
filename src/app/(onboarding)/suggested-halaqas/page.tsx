@@ -108,7 +108,7 @@ export default function HalaqasPage() {
       if (joinedHalaqas.length > 0) {
         // In production, you would save joined halaqas to database
         // const supabase = createClient();
-        // await supabase.from('halaqa_members').insert(...)
+        // await (supabase as any).from('halaqa_members').insert(...)
         success(`Joined ${joinedHalaqas.length} Halaqas!`);
       }
 

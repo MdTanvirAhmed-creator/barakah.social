@@ -36,7 +36,7 @@ export function DailyCompanionCard({ suggestion, onDismiss }: DailyCompanionCard
       if (!user) return;
 
       // Create connection request
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('companion_connections')
         .insert({
           requester_id: user.id,

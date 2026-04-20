@@ -160,7 +160,7 @@ export function SendSalam({
       }
 
       // Check for existing connection
-      const { data: existing } = await supabase
+      const { data: existing } = await (supabase as any)
         .from("companion_connections")
         .select("id, status")
         .or(`and(requester_id.eq.${user.id},recipient_id.eq.${recipient.id}),and(requester_id.eq.${recipient.id},recipient_id.eq.${user.id})`)
@@ -179,7 +179,7 @@ export function SendSalam({
       }
 
       // Create connection request
-      const { error: connectionError } = await supabase
+      const { error: connectionError } = await (supabase as any)
         .from("companion_connections")
         .insert({
           requester_id: user.id,
@@ -193,7 +193,7 @@ export function SendSalam({
       if (connectionError) throw connectionError;
 
       // Create interaction record
-      await supabase
+      await (supabase as any)
         .from("companion_interactions")
         .insert({
           companion_connection_id: null, // Will be updated when accepted

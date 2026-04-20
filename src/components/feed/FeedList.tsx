@@ -148,7 +148,7 @@ export function FeedList({ feedType = "for-you", onRefresh }: FeedListProps) {
 
   async function resolveAuthorIds(userId: string | undefined): Promise<string[] | null> {
     if (feedType === "verified") {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("profiles")
         .select("id")
         .eq("is_verified_scholar", true);
@@ -156,7 +156,7 @@ export function FeedList({ feedType = "for-you", onRefresh }: FeedListProps) {
     }
 
     if (feedType === "halaqas" && userId) {
-      const { data: memberships } = await supabase
+      const { data: memberships } = await (supabase as any)
         .from("halaqa_members")
         .select("halaqa_id")
         .eq("user_id", userId);
@@ -164,7 +164,7 @@ export function FeedList({ feedType = "for-you", onRefresh }: FeedListProps) {
       if (!memberships?.length) return [];
 
       const halaqaIds = (memberships as { halaqa_id: string }[]).map((m) => m.halaqa_id);
-      const { data: members } = await supabase
+      const { data: members } = await (supabase as any)
         .from("halaqa_members")
         .select("user_id")
         .in("halaqa_id", halaqaIds)
@@ -174,7 +174,7 @@ export function FeedList({ feedType = "for-you", onRefresh }: FeedListProps) {
     }
 
     if (feedType === "companions" && userId) {
-      const { data: connections } = await supabase
+      const { data: connections } = await (supabase as any)
         .from("companion_connections")
         .select("requester_id, recipient_id")
         .or(`requester_id.eq.${userId},recipient_id.eq.${userId}`)
@@ -202,7 +202,7 @@ export function FeedList({ feedType = "for-you", onRefresh }: FeedListProps) {
       return { posts: [], hasMore: false };
     }
 
-    let query = supabase
+    let query = (supabase as any)
       .from("posts")
       .select(
         `
@@ -233,12 +233,12 @@ export function FeedList({ feedType = "for-you", onRefresh }: FeedListProps) {
 
     if (user && postIds.length > 0) {
       const [{ data: marks }, { data: bookmarks }] = await Promise.all([
-        supabase
+        (supabase as any)
           .from("beneficial_marks")
           .select("post_id")
           .eq("user_id", user.id)
           .in("post_id", postIds),
-        supabase
+        (supabase as any)
           .from("bookmarks")
           .select("post_id")
           .eq("user_id", user.id)

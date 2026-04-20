@@ -321,7 +321,7 @@ export default function HalaqaDetailPage({ params }: HalaqaDetailPageProps) {
 
   const loadPosts = async () => {
     try {
-      const { data: postsData, error } = await supabase
+      const { data: postsData, error } = await (supabase as any)
         .from('posts')
         .select(`
           *,
@@ -371,7 +371,7 @@ export default function HalaqaDetailPage({ params }: HalaqaDetailPageProps) {
     }
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('posts')
         .delete()
         .eq('id', postId);

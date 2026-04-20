@@ -58,7 +58,7 @@ export function BookmarksList() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("bookmarks")
         .select(
           `id, post_id, created_at,
@@ -83,7 +83,7 @@ export function BookmarksList() {
       const postIds = active.map((b: any) => b.posts.id);
       const markedIds = new Set<string>();
       if (postIds.length) {
-        const { data: marks } = await supabase
+        const { data: marks } = await (supabase as any)
           .from("beneficial_marks")
           .select("post_id")
           .eq("user_id", user.id)

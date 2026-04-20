@@ -105,6 +105,8 @@ function SearchPageContent() {
 
   const { user } = useSupabaseAuth();
   const supabase = createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any;
 
   const [activeTab, setActiveTab] = useState<TabType>("all");
   const [isLoading, setIsLoading] = useState(false);
@@ -158,7 +160,7 @@ function SearchPageContent() {
     // If verified-only filter, resolve author IDs first
     let verifiedIds: string[] | null = null;
     if (f.verified === "verified") {
-      const { data: vp } = await supabase
+      const { data: vp } = await sb
         .from("profiles")
         .select("id")
         .eq("is_verified_scholar", true);
@@ -166,7 +168,7 @@ function SearchPageContent() {
       if (!verifiedIds.length) return [];
     }
 
-    let query = supabase
+    let query = sb
       .from("posts")
       .select(
         `id, content, tags, media_urls, beneficial_count, created_at, author_id,
@@ -191,8 +193,8 @@ function SearchPageContent() {
 
     if (user && postIds.length) {
       const [{ data: marks }, { data: bookmarks }] = await Promise.all([
-        supabase.from("beneficial_marks").select("post_id").eq("user_id", user.id).in("post_id", postIds),
-        supabase.from("bookmarks").select("post_id").eq("user_id", user.id).in("post_id", postIds),
+        (supabase as any).from("beneficial_marks").select("post_id").eq("user_id", user.id).in("post_id", postIds),
+        (supabase as any).from("bookmarks").select("post_id").eq("user_id", user.id).in("post_id", postIds),
       ]);
       (marks as { post_id: string }[] | null)?.forEach((m) => markedIds.add(m.post_id));
       (bookmarks as { post_id: string }[] | null)?.forEach((b) => bookmarkedIds.add(b.post_id));
@@ -219,7 +221,7 @@ function SearchPageContent() {
   }
 
   async function searchUsers(q: string, f: SearchFilterState): Promise<UserResult[]> {
-    let query = supabase
+    let query = sb
       .from("profiles")
       .select("id, username, full_name, avatar_url, bio, is_verified_scholar, beneficial_count")
       .or(`full_name.ilike.%${q}%,username.ilike.%${q}%`)
@@ -237,7 +239,7 @@ function SearchPageContent() {
   async function searchHalaqas(q: string, f: SearchFilterState): Promise<HalaqaResult[]> {
     const cutoff = dateRangeCutoff(f.dateRange);
 
-    let query = supabase
+    let query = sb
       .from("halaqas")
       .select("id, name, description, category, member_count, is_public, avatar_url, rules, created_at, updated_at")
       .or(`name.ilike.%${q}%,description.ilike.%${q}%`)
@@ -259,13 +261,13 @@ function SearchPageContent() {
 
     if (halaqaIds.length) {
       const [{ data: members }, { data: memberships }] = await Promise.all([
-        supabase
+        sb
           .from("halaqa_members")
           .select("halaqa_id, user_id, profiles!halaqa_members_user_id_fkey(id, full_name, avatar_url)")
           .in("halaqa_id", halaqaIds)
           .limit(halaqaIds.length * 3),
         user
-          ? supabase.from("halaqa_members").select("halaqa_id, role").eq("user_id", user.id).in("halaqa_id", halaqaIds)
+          ? (supabase as any).from("halaqa_members").select("halaqa_id, role").eq("user_id", user.id).in("halaqa_id", halaqaIds)
           : Promise.resolve({ data: [] }),
       ]);
 

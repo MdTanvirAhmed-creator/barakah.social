@@ -19,7 +19,7 @@ export async function GET(request: Request) {
       
       if (user) {
         // Check if profile exists
-        const { data: profile } = await supabase
+        const { data: profile } = await (supabase as any)
           .from('profiles')
           .select('*')
           .eq('id', user.id)
@@ -27,7 +27,7 @@ export async function GET(request: Request) {
 
         if (!profile) {
           // Create profile if it doesn't exist
-          await supabase
+          await (supabase as any)
             .from('profiles')
             .insert({
               id: user.id,

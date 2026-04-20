@@ -278,7 +278,7 @@ export default function SmartSearch() {
   // Load search history
   const loadSearchHistory = async () => {
     try {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from('user_search_history')
         .select('*')
         .order('created_at', { ascending: false })
@@ -293,7 +293,7 @@ export default function SmartSearch() {
   // Load saved queries
   const loadSavedQueries = async () => {
     try {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from('saved_searches')
         .select('*')
         .order('created_at', { ascending: false });
@@ -308,21 +308,21 @@ export default function SmartSearch() {
   const loadRecommendations = async () => {
     try {
       // Get trending content
-      const { data: trending } = await supabase
+      const { data: trending } = await (supabase as any)
         .from('content')
         .select('*')
         .order('view_count', { ascending: false })
         .limit(5);
 
       // Get recently viewed
-      const { data: recent } = await supabase
+      const { data: recent } = await (supabase as any)
         .from('user_content_views')
         .select('content_id, content(*)')
         .order('viewed_at', { ascending: false })
         .limit(5);
 
       // Get editorial picks
-      const { data: editorial } = await supabase
+      const { data: editorial } = await (supabase as any)
         .from('content')
         .select('*')
         .eq('is_featured', true)
@@ -330,7 +330,7 @@ export default function SmartSearch() {
         .limit(5);
 
       const recs: Recommendation[] = [
-        ...(trending || []).map((item, index) => ({
+        ...(trending || []).map((item: any, index: number) => ({
           id: `trending-${item.id}`,
           title: item.title,
           reason: 'Trending in your community',
@@ -338,7 +338,7 @@ export default function SmartSearch() {
           score: 100 - index * 10,
           content: item as SearchResult
         })),
-        ...(recent || []).map((item, index) => ({
+        ...(recent || []).map((item: any, index: number) => ({
           id: `recent-${item.content_id}`,
           title: item.content?.title || '',
           reason: 'Recently viewed',
@@ -346,7 +346,7 @@ export default function SmartSearch() {
           score: 80 - index * 5,
           content: item.content as SearchResult
         })),
-        ...(editorial || []).map((item, index) => ({
+        ...(editorial || []).map((item: any, index: number) => ({
           id: `editorial-${item.id}`,
           title: item.title,
           reason: 'Scholar recommended',
@@ -460,7 +460,7 @@ export default function SmartSearch() {
       }
       
       // Perform full-text search
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('content')
         .select(`
           *,
@@ -476,7 +476,7 @@ export default function SmartSearch() {
       setSearchResults(data || []);
       
       // Save to search history
-      await supabase
+      await (supabase as any)
         .from('user_search_history')
         .insert({
           search_query: query,
@@ -532,7 +532,7 @@ export default function SmartSearch() {
     if (!searchQuery.trim()) return;
     
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('saved_searches')
         .insert({
           name: `Search: ${searchQuery.substring(0, 50)}...`,

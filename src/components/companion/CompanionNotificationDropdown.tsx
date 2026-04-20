@@ -44,7 +44,7 @@ export function CompanionNotificationDropdown({
 
   const handleAccept = async (connectionId: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('companion_connections')
         .update({ status: 'accepted' })
         .eq('id', connectionId);
@@ -61,7 +61,7 @@ export function CompanionNotificationDropdown({
 
   const handleDecline = async (connectionId: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('companion_connections')
         .update({ status: 'declined' })
         .eq('id', connectionId);

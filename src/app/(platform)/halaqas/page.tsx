@@ -67,7 +67,7 @@ export default function HalaqasPage() {
     try {
       if (activeTab === "my-halaqas") {
         // Get user's memberships with roles
-        const { data: memberships, error: memberError } = await supabase
+        const { data: memberships, error: memberError } = await (supabase as any)
           .from("halaqa_members")
           .select("halaqa_id, role")
           .eq("user_id", user.id);
@@ -88,7 +88,7 @@ export default function HalaqasPage() {
         );
         const halaqaIds = Object.keys(roleMap);
 
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
           .from("halaqas")
           .select("id, name, description, category, member_count, is_public, avatar_url, rules, created_at, updated_at")
           .in("id", halaqaIds)
@@ -123,7 +123,7 @@ export default function HalaqasPage() {
         setHalaqas(transformed);
       } else {
         // Discover: all public active halaqas
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
           .from("halaqas")
           .select("id, name, description, category, member_count, is_public, avatar_url, rules, created_at, updated_at")
           .eq("is_public", true)
@@ -137,7 +137,7 @@ export default function HalaqasPage() {
         }
 
         // Check which ones user is already in
-        const { data: memberships } = await supabase
+        const { data: memberships } = await (supabase as any)
           .from("halaqa_members")
           .select("halaqa_id, role")
           .eq("user_id", user.id);
@@ -180,7 +180,7 @@ export default function HalaqasPage() {
   ): Promise<Record<string, Array<{ id: string; name: string; avatar: string | null }>>> {
     if (!halaqaIds.length) return {};
 
-    const { data } = await supabase
+    const { data } = await (supabase as any)
       .from("halaqa_members")
       .select("halaqa_id, user_id, profiles!halaqa_members_user_id_fkey(id, full_name, avatar_url)")
       .in("halaqa_id", halaqaIds)

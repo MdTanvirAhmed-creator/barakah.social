@@ -98,7 +98,7 @@ export function SalamReceived({
       const supabase = createClient();
 
       // Update connection status to accepted
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("companion_connections")
         .update({
           status: "accepted",
@@ -109,7 +109,7 @@ export function SalamReceived({
       if (error) throw error;
 
       // Create interaction record
-      await supabase
+      await (supabase as any)
         .from("companion_interactions")
         .insert({
           companion_connection_id: request.id,
@@ -147,7 +147,7 @@ export function SalamReceived({
       const supabase = createClient();
 
       // Update connection status to declined
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("companion_connections")
         .update({
           status: "declined",

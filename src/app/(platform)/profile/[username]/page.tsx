@@ -90,8 +90,10 @@ export default function UserProfilePage() {
   async function loadProfile() {
     setIsLoading(true);
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sb = supabase as any;
       const [{ data: profileData, error: profileError }, { data: { user } }] = await Promise.all([
-        supabase
+        sb
           .from("profiles")
           .select("id, username, full_name, bio, avatar_url, is_verified_scholar, madhab_preference, interests, joined_at, beneficial_count")
           .eq("username", username)
@@ -111,7 +113,7 @@ export default function UserProfilePage() {
 
       // Load posts + stats in parallel
       const [postsResult, postCount, halaqaCount] = await Promise.all([
-        supabase
+        sb
           .from("posts")
           .select(
             `id, content, tags, media_urls, beneficial_count, created_at,
@@ -122,8 +124,8 @@ export default function UserProfilePage() {
           .eq("is_deleted", false)
           .order("created_at", { ascending: false })
           .limit(20),
-        supabase.from("posts").select("id", { count: "exact", head: true }).eq("author_id", p.id).eq("is_deleted", false),
-        supabase.from("halaqa_members").select("id", { count: "exact", head: true }).eq("user_id", p.id),
+        sb.from("posts").select("id", { count: "exact", head: true }).eq("author_id", p.id).eq("is_deleted", false),
+        sb.from("halaqa_members").select("id", { count: "exact", head: true }).eq("user_id", p.id),
       ]);
 
       setStats({
@@ -139,8 +141,8 @@ export default function UserProfilePage() {
 
       if (user && postIds.length) {
         const [{ data: marks }, { data: bkmarks }] = await Promise.all([
-          supabase.from("beneficial_marks").select("post_id").eq("user_id", user.id).in("post_id", postIds),
-          supabase.from("bookmarks").select("post_id").eq("user_id", user.id).in("post_id", postIds),
+          sb.from("beneficial_marks").select("post_id").eq("user_id", user.id).in("post_id", postIds),
+          sb.from("bookmarks").select("post_id").eq("user_id", user.id).in("post_id", postIds),
         ]);
         (marks as { post_id: string }[] | null)?.forEach((m) => markedIds.add(m.post_id));
         (bkmarks as { post_id: string }[] | null)?.forEach((b) => bookmarkedIds.add(b.post_id));

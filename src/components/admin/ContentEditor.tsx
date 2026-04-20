@@ -110,9 +110,6 @@ import {
   Flower,
   Leaf,
   Sprout,
-  Seedling,
-  Cactus,
-  PalmTree,
   Mountain,
   Waves,
   Fish,
@@ -121,84 +118,9 @@ import {
   Dog,
   Rabbit,
   Squirrel,
-  Butterfly,
-  Bee,
-  Ant,
-  Spider,
-  Ladybug,
-  Dragonfly,
-  Firefly,
   Snail,
   Turtle,
-  Frog,
-  Lizard,
-  Snake,
   Mouse,
-  Hamster,
-  GuineaPig,
-  Hedgehog,
-  Fox,
-  Wolf,
-  Bear,
-  Lion,
-  Tiger,
-  Elephant,
-  Giraffe,
-  Zebra,
-  Horse,
-  Cow,
-  Pig,
-  Sheep,
-  Goat,
-  Chicken,
-  Duck,
-  Goose,
-  Turkey,
-  Peacock,
-  Owl,
-  Eagle,
-  Hawk,
-  Falcon,
-  Parrot,
-  Toucan,
-  Flamingo,
-  Penguin,
-  Seal,
-  Whale,
-  Dolphin,
-  Shark,
-  Octopus,
-  Jellyfish,
-  Crab,
-  Lobster,
-  Shrimp,
-  Clam,
-  Oyster,
-  Snail as SnailIcon,
-  Starfish,
-  SeaUrchin,
-  Coral,
-  Seaweed,
-  Algae,
-  Moss,
-  Fern,
-  Bamboo,
-  Cactus as CactusIcon,
-  PalmTree as PalmTreeIcon,
-  TreePine as TreePineIcon,
-  TreeDeciduous as TreeDeciduousIcon,
-  Flower as FlowerIcon,
-  Leaf as LeafIcon,
-  Sprout as SproutIcon,
-  Seedling as SeedlingIcon,
-  Cactus as CactusIcon2,
-  PalmTree as PalmTreeIcon2,
-  TreePine as TreePineIcon2,
-  TreeDeciduous as TreeDeciduousIcon2,
-  Flower as FlowerIcon2,
-  Leaf as LeafIcon2,
-  Sprout as SproutIcon2,
-  Seedling as SeedlingIcon2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -406,7 +328,7 @@ export default function ContentEditor({ content, onSave, onClose, isOpen = true 
 
   useEffect(() => {
     if (editorContent.content) {
-      const words = editorContent.content.split(/\s+/).filter(word => word.length > 0).length;
+      const words = editorContent.content.split(/\s+/).filter((word: string) => word.length > 0).length;
       const chars = editorContent.content.length;
       const readingTime = Math.ceil(words / 200); // Average reading speed: 200 words per minute
       
@@ -474,7 +396,7 @@ export default function ContentEditor({ content, onSave, onClose, isOpen = true 
   };
 
   const handleApplyTemplate = (template: any) => {
-    setEditorContent(prev => ({
+    setEditorContent((prev: any) => ({
       ...prev,
       content: template.content
     }));
@@ -586,7 +508,7 @@ export default function ContentEditor({ content, onSave, onClose, isOpen = true 
                 </label>
                 <select
                   value={editorContent.type}
-                  onChange={(e) => setEditorContent(prev => ({ ...prev, type: e.target.value as any }))}
+                  onChange={(e) => setEditorContent((prev: any) => ({ ...prev, type: e.target.value as any }))}
                   className="w-full px-3 py-2 border border-border rounded-md bg-background"
                 >
                   <option value="article">Article</option>
@@ -603,7 +525,7 @@ export default function ContentEditor({ content, onSave, onClose, isOpen = true 
                 </label>
                 <Input
                   value={editorContent.title}
-                  onChange={(e) => setEditorContent(prev => ({ ...prev, title: e.target.value }))}
+                  onChange={(e) => setEditorContent((prev: any) => ({ ...prev, title: e.target.value }))}
                   placeholder="Enter content title"
                 />
               </div>
@@ -615,7 +537,7 @@ export default function ContentEditor({ content, onSave, onClose, isOpen = true 
                 </label>
                 <Input
                   value={editorContent.category}
-                  onChange={(e) => setEditorContent(prev => ({ ...prev, category: e.target.value }))}
+                  onChange={(e) => setEditorContent((prev: any) => ({ ...prev, category: e.target.value }))}
                   placeholder="e.g., Aqeedah, Fiqh, Quran"
                 />
               </div>
@@ -627,7 +549,7 @@ export default function ContentEditor({ content, onSave, onClose, isOpen = true 
                 </label>
                 <select
                   value={editorContent.language}
-                  onChange={(e) => setEditorContent(prev => ({ ...prev, language: e.target.value }))}
+                  onChange={(e) => setEditorContent((prev: any) => ({ ...prev, language: e.target.value }))}
                   className="w-full px-3 py-2 border border-border rounded-md bg-background"
                 >
                   <option value="en">English</option>
@@ -645,7 +567,7 @@ export default function ContentEditor({ content, onSave, onClose, isOpen = true 
                 </label>
                 <select
                   value={editorContent.targetAudience}
-                  onChange={(e) => setEditorContent(prev => ({ ...prev, targetAudience: e.target.value as any }))}
+                  onChange={(e) => setEditorContent((prev: any) => ({ ...prev, targetAudience: e.target.value as any }))}
                   className="w-full px-3 py-2 border border-border rounded-md bg-background"
                 >
                   <option value="beginner">Beginner</option>
@@ -939,7 +861,7 @@ export default function ContentEditor({ content, onSave, onClose, isOpen = true 
                   }}
                   onInput={(e) => {
                     const content = e.currentTarget.innerHTML;
-                    setEditorContent(prev => ({ ...prev, content }));
+                    setEditorContent((prev: any) => ({ ...prev, content }));
                   }}
                   dangerouslySetInnerHTML={{ __html: editorContent.content }}
                 />
@@ -953,7 +875,7 @@ export default function ContentEditor({ content, onSave, onClose, isOpen = true 
                     </label>
                     <Input
                       value={editorContent.seoTitle}
-                      onChange={(e) => setEditorContent(prev => ({ ...prev, seoTitle: e.target.value }))}
+                      onChange={(e) => setEditorContent((prev: any) => ({ ...prev, seoTitle: e.target.value }))}
                       placeholder="SEO optimized title"
                     />
                   </div>
@@ -963,7 +885,7 @@ export default function ContentEditor({ content, onSave, onClose, isOpen = true 
                     </label>
                     <Textarea
                       value={editorContent.seoDescription}
-                      onChange={(e) => setEditorContent(prev => ({ ...prev, seoDescription: e.target.value }))}
+                      onChange={(e) => setEditorContent((prev: any) => ({ ...prev, seoDescription: e.target.value }))}
                       placeholder="SEO meta description"
                       rows={3}
                     />
@@ -974,7 +896,7 @@ export default function ContentEditor({ content, onSave, onClose, isOpen = true 
                     </label>
                     <Input
                       value={editorContent.featuredImage}
-                      onChange={(e) => setEditorContent(prev => ({ ...prev, featuredImage: e.target.value }))}
+                      onChange={(e) => setEditorContent((prev: any) => ({ ...prev, featuredImage: e.target.value }))}
                       placeholder="https://example.com/image.jpg"
                     />
                   </div>
