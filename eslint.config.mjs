@@ -4,6 +4,7 @@ import hooksPlugin from 'eslint-plugin-react-hooks';
 
 export default [
   {
+    files: ['**/*.{js,jsx,ts,tsx}'],
     plugins: {
       react: reactPlugin,
       'react-hooks': hooksPlugin,
