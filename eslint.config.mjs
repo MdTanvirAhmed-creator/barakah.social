@@ -31,6 +31,7 @@ export default [
       ...nextPlugin.configs['core-web-vitals'].rules,
       'react/react-in-jsx-scope': 'off',
       'react/no-unescaped-entities': 'off',
+      'react/prop-types': 'off',
       'react-hooks/exhaustive-deps': 'warn',
       '@next/next/no-img-element': 'warn',
       '@typescript-eslint/no-explicit-any': 'warn',
