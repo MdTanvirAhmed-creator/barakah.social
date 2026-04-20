@@ -635,7 +635,7 @@ export default function ContributePage() {
                         onClick={() => setFormData(prev => ({ ...prev, targetAudience: level as any }))}
                         className={`p-4 rounded-lg border-2 text-left transition-all ${
                           formData.targetAudience === level
-                            ? `${config.bgColor} ${config.borderColor} border-2`
+                            ? `${config.bgColor} ${(config as any).borderColor} border-2`
                             : "border-border hover:border-primary-200"
                         }`}
                       >

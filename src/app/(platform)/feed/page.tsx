@@ -55,12 +55,13 @@ export default function FeedPage() {
       if (!user) return;
 
       // Get a high-quality match
-      const { data: profiles } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: profiles } = await (supabase as any)
         .from('profiles')
         .select('*')
         .eq('is_available_for_connections', true)
         .neq('id', user.id)
-        .limit(10);
+        .limit(10) as { data: any[] | null };
 
       if (!profiles || profiles.length === 0) return;
 
@@ -68,11 +69,12 @@ export default function FeedPage() {
       const randomProfile = profiles[Math.floor(Math.random() * profiles.length)];
 
       // Get user's interests for comparison
-      const { data: userProfile } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: userProfile } = await (supabase as any)
         .from('profiles')
         .select('interests')
         .eq('id', user.id)
-        .single();
+        .single() as { data: { interests: string[] } | null };
 
       const sharedInterests = randomProfile.interests?.filter((interest: string) =>
         userProfile?.interests?.includes(interest)

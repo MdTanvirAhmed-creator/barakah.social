@@ -115,7 +115,8 @@ export default function HalaqasPage() {
       // Mark onboarding as complete
       const supabase = createClient();
       if (user) {
-        await supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any)
           .from("profiles")
           .update({
             updated_at: new Date().toISOString(),

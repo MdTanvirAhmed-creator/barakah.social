@@ -125,7 +125,8 @@ export default function SignupPage() {
       // Update profile with additional info
       if (authData?.user) {
         const supabase = createClient();
-        const { error: profileError } = await supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error: profileError } = await (supabase as any)
           .from("profiles")
           .update({
             username: completeData.username,
