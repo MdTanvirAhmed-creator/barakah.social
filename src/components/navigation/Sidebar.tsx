@@ -38,7 +38,6 @@ const NAVIGATION_ITEMS = [
     href: "/halaqas",
     icon: Users,
     description: "Study circles",
-    badge: 3, // Number of unread notifications
   },
   {
     name: "Al-Hikmah",

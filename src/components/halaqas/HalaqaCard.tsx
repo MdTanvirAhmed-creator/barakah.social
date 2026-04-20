@@ -18,6 +18,8 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatRelativeTime } from "@/lib/date";
 import { useToast } from "@/hooks/useToast";
+import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
+import { createClient } from "@/lib/supabase/client";
 
 interface HalaqaCardProps {
   halaqa: {
@@ -26,17 +28,17 @@ interface HalaqaCardProps {
     description: string;
     category: string;
     member_count: number;
-    max_members: number;
     is_public: boolean;
-    cover_image?: string | null;
+    avatar_url?: string | null;
     rules: string[];
     created_at: string;
-    last_activity: string;
+    updated_at: string;
     members: Array<{ id: string; name: string; avatar?: string | null }>;
     is_member: boolean;
     role?: "admin" | "moderator" | "member" | null;
   };
   viewMode: "grid" | "list";
+  onMembershipChange?: () => void;
 }
 
 const CATEGORY_COLORS = {
@@ -61,10 +63,13 @@ const CATEGORY_ICONS = {
   Finance: "💰",
 };
 
-export function HalaqaCard({ halaqa, viewMode }: HalaqaCardProps) {
+export function HalaqaCard({ halaqa, viewMode, onMembershipChange }: HalaqaCardProps) {
   const { success, error: showError } = useToast();
+  const { user } = useSupabaseAuth();
+  const supabase = createClient();
   const [isJoining, setIsJoining] = useState(false);
   const [isMember, setIsMember] = useState(halaqa.is_member);
+  const [memberCount, setMemberCount] = useState(halaqa.member_count);
 
   const gradientClass = CATEGORY_COLORS[halaqa.category as keyof typeof CATEGORY_COLORS] || "from-gray-500 to-slate-600";
   const categoryIcon = CATEGORY_ICONS[halaqa.category as keyof typeof CATEGORY_ICONS] || "📚";
@@ -79,22 +84,57 @@ export function HalaqaCard({ halaqa, viewMode }: HalaqaCardProps) {
   };
 
   const handleJoinLeave = async () => {
+    if (!user) {
+      showError("You must be logged in to join a Halaqa");
+      return;
+    }
+
     setIsJoining(true);
-    
+    const joining = !isMember;
+
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
-      setIsMember(!isMember);
-      success(isMember ? "Left Halaqa successfully" : "Joined Halaqa successfully!");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sb = supabase as any;
+      if (joining) {
+        const { error } = await sb
+          .from("halaqa_members")
+          .insert({ halaqa_id: halaqa.id, user_id: user.id, role: "member" });
+        if (error) throw error;
+
+        await sb
+          .from("halaqas")
+          .update({ member_count: memberCount + 1 })
+          .eq("id", halaqa.id);
+
+        setIsMember(true);
+        setMemberCount((c) => c + 1);
+        success("Joined Halaqa successfully!");
+      } else {
+        const { error } = await sb
+          .from("halaqa_members")
+          .delete()
+          .eq("halaqa_id", halaqa.id)
+          .eq("user_id", user.id);
+        if (error) throw error;
+
+        await sb
+          .from("halaqas")
+          .update({ member_count: Math.max(0, memberCount - 1) })
+          .eq("id", halaqa.id);
+
+        setIsMember(false);
+        setMemberCount((c) => Math.max(0, c - 1));
+        success("Left Halaqa successfully");
+      }
+
+      onMembershipChange?.();
     } catch (err) {
+      console.error("Membership error:", err);
       showError("Failed to update membership. Please try again.");
     } finally {
       setIsJoining(false);
     }
   };
-
-  const isFull = halaqa.member_count >= halaqa.max_members;
 
   if (viewMode === "list") {
     return (
@@ -159,13 +199,13 @@ export function HalaqaCard({ halaqa, viewMode }: HalaqaCardProps) {
                   {/* Members */}
                   <div className="flex items-center gap-2">
                     <Users className="w-4 h-4" />
-                    <span>{halaqa.member_count}/{halaqa.max_members}</span>
+                    <span>{memberCount} members</span>
                   </div>
 
                   {/* Last Activity */}
                   <div className="flex items-center gap-1">
                     <Activity className="w-4 h-4" />
-                    <span>{formatRelativeTime(halaqa.last_activity)}</span>
+                    <span>{formatRelativeTime(halaqa.updated_at)}</span>
                   </div>
                 </div>
 
@@ -175,25 +215,15 @@ export function HalaqaCard({ halaqa, viewMode }: HalaqaCardProps) {
                     e.preventDefault();
                     handleJoinLeave();
                   }}
-                  disabled={isJoining || (!isMember && isFull)}
+                  disabled={isJoining}
                   size="sm"
-                  className={`
-                    ${isMember 
-                      ? "bg-secondary-600 hover:bg-secondary-700 text-white" 
+                  className={
+                    isMember
+                      ? "bg-secondary-600 hover:bg-secondary-700 text-white"
                       : "bg-primary-600 hover:bg-primary-700 text-white"
-                    }
-                    ${isFull && !isMember ? "opacity-50 cursor-not-allowed" : ""}
-                  `}
+                  }
                 >
-                  {isJoining ? (
-                    "Processing..."
-                  ) : isMember ? (
-                    "Leave"
-                  ) : isFull ? (
-                    "Full"
-                  ) : (
-                    "Join"
-                  )}
+                  {isJoining ? "Processing..." : isMember ? "Leave" : "Join"}
                 </Button>
               </div>
             </div>
@@ -267,15 +297,15 @@ export function HalaqaCard({ halaqa, viewMode }: HalaqaCardProps) {
                     </AvatarFallback>
                   </Avatar>
                 ))}
-                {halaqa.member_count > 3 && (
+                {memberCount > 3 && (
                   <div className="w-8 h-8 rounded-full bg-muted border-2 border-background flex items-center justify-center text-xs font-medium">
-                    +{halaqa.member_count - 3}
+                    +{memberCount - 3}
                   </div>
                 )}
               </div>
               <div className="text-sm text-muted-foreground">
                 <Users className="w-4 h-4 inline mr-1" />
-                {halaqa.member_count}/{halaqa.max_members}
+                {memberCount}
               </div>
             </div>
           </div>
@@ -283,7 +313,7 @@ export function HalaqaCard({ halaqa, viewMode }: HalaqaCardProps) {
           {/* Last Activity */}
           <div className="flex items-center gap-1 text-xs text-muted-foreground mb-4">
             <Activity className="w-3 h-3" />
-            <span>Active {formatRelativeTime(halaqa.last_activity)}</span>
+            <span>Active {formatRelativeTime(halaqa.updated_at)}</span>
           </div>
 
           {/* Action Button */}
@@ -292,22 +322,14 @@ export function HalaqaCard({ halaqa, viewMode }: HalaqaCardProps) {
               e.preventDefault();
               handleJoinLeave();
             }}
-            disabled={isJoining || (!isMember && isFull)}
+            disabled={isJoining}
             className={`w-full ${
-              isMember 
-                ? "bg-secondary-600 hover:bg-secondary-700 text-white" 
+              isMember
+                ? "bg-secondary-600 hover:bg-secondary-700 text-white"
                 : "bg-primary-600 hover:bg-primary-700 text-white"
-            } ${isFull && !isMember ? "opacity-50 cursor-not-allowed" : ""}`}
+            }`}
           >
-            {isJoining ? (
-              "Processing..."
-            ) : isMember ? (
-              "Leave Halaqa"
-            ) : isFull ? (
-              "Halaqa is Full"
-            ) : (
-              "Join Halaqa"
-            )}
+            {isJoining ? "Processing..." : isMember ? "Leave Halaqa" : "Join Halaqa"}
           </Button>
         </div>
       </motion.div>
