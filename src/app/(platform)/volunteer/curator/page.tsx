@@ -160,11 +160,12 @@ export default function CuratorPage() {
       if (!user) return;
 
       // Check if user has curator application
-      const { data: applicationData } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: applicationData } = await (supabase as any)
         .from('curator_applications')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .single() as { data: { status: string; [key: string]: unknown } | null };
 
       if (applicationData) {
         setApplication(applicationData);

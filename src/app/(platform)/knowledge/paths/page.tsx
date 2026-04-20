@@ -84,7 +84,6 @@ import {
   GraduationCap,
   Trophy,
   Medal,
-  Certificate,
   Flag,
   BookmarkPlus,
   BookmarkMinus,
@@ -261,7 +260,8 @@ export default function LearningPathsPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const { error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
         .from('learning_path_progress')
         .insert({
           user_id: user.id,
@@ -290,7 +290,8 @@ export default function LearningPathsPage() {
       if (!user) throw new Error('User not authenticated');
 
       // Update lesson progress
-      const { error: lessonError } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: lessonError } = await (supabase as any)
         .from('lesson_progress')
         .upsert({
           user_id: user.id,
@@ -308,7 +309,8 @@ export default function LearningPathsPage() {
         const path = paths.find(p => p.id === pathId);
         const progressPercentage = path ? (updatedCompleted.length / path.lessons_count) * 100 : 0;
 
-        const { error: pathError } = await supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error: pathError } = await (supabase as any)
           .from('learning_path_progress')
           .update({
             completed_lessons: updatedCompleted,
@@ -339,7 +341,8 @@ export default function LearningPathsPage() {
           ? progress.bookmarks.filter(id => id !== lessonId)
           : [...progress.bookmarks, lessonId];
 
-        const { error } = await supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error } = await (supabase as any)
           .from('learning_path_progress')
           .update({ bookmarks: updatedBookmarks })
           .eq('user_id', user.id)
@@ -1008,7 +1011,8 @@ function PathCreatorForm({ onClose }: { onClose: () => void }) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const { error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
         .from('learning_paths')
         .insert({
           title: formData.title,

@@ -52,7 +52,7 @@ interface ReviewItem {
   targetAudience: "beginner" | "intermediate" | "advanced";
   content: string;
   sources: string[];
-  status: "submitted" | "community_review" | "scholar_review";
+  status: "submitted" | "community_review" | "scholar_review" | "approved" | "rejected";
   reviewStage: number;
   communityFlags: number;
   beneficialMarks: number;
