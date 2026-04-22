@@ -152,7 +152,7 @@ export default function ContentAnalytics() {
       setLoading(true);
       
       // Load content analytics
-      const { data: contentData } = await supabase
+      const { data: contentData } = await (supabase as any)
         .from('content_analytics')
         .select(`
           *,
@@ -167,7 +167,7 @@ export default function ContentAnalytics() {
       }
 
       // Load content gaps analysis
-      const { data: gapsData } = await supabase
+      const { data: gapsData } = await (supabase as any)
         .from('content_gaps_analysis')
         .select('*')
         .single();

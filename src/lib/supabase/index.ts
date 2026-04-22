@@ -33,10 +33,10 @@ export * from "./queries";
 
 // Storage utilities
 export {
-  uploadFile,
   deleteFile,
   uploadAvatar,
   uploadPostImage,
+  uploadHalaqaAvatar,
   getPublicUrl,
   type UploadResult,
 } from "./storage";

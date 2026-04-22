@@ -211,7 +211,8 @@ export default function HalaqaDetailPage({ params }: HalaqaDetailPageProps) {
       setLoading(true);
       
       // Fetch Halaqa data
-      const { data: halaqaData, error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: halaqaData, error } = await (supabase as any)
         .from('halaqas')
         .select(`
           *,
@@ -234,7 +235,8 @@ export default function HalaqaDetailPage({ params }: HalaqaDetailPageProps) {
       }
 
       // Fetch members
-      const { data: membersData } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: membersData } = await (supabase as any)
         .from('halaqa_members')
         .select(`
           *,
@@ -295,7 +297,8 @@ export default function HalaqaDetailPage({ params }: HalaqaDetailPageProps) {
     try {
       setIsDeleting(true);
       
-      const { error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
         .from('halaqas')
         .delete()
         .eq('id', halaqa?.id);
@@ -318,7 +321,7 @@ export default function HalaqaDetailPage({ params }: HalaqaDetailPageProps) {
 
   const loadPosts = async () => {
     try {
-      const { data: postsData, error } = await supabase
+      const { data: postsData, error } = await (supabase as any)
         .from('posts')
         .select(`
           *,
@@ -346,7 +349,8 @@ export default function HalaqaDetailPage({ params }: HalaqaDetailPageProps) {
 
   const handlePinPost = async (postId: string, isPinned: boolean) => {
     try {
-      const { error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
         .from('posts')
         .update({ is_pinned: !isPinned })
         .eq('id', postId);
@@ -367,7 +371,7 @@ export default function HalaqaDetailPage({ params }: HalaqaDetailPageProps) {
     }
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('posts')
         .delete()
         .eq('id', postId);
@@ -396,7 +400,8 @@ export default function HalaqaDetailPage({ params }: HalaqaDetailPageProps) {
     try {
       setIsPosting(true);
 
-      const { error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
         .from('posts')
         .insert({
           author_id: user.id,
@@ -443,7 +448,8 @@ export default function HalaqaDetailPage({ params }: HalaqaDetailPageProps) {
     try {
       console.log("Updating halaqa:", halaqa.id, editForm);
       
-      const { data, error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
         .from('halaqas')
         .update({
           name: editForm.name.trim(),
@@ -607,7 +613,8 @@ export default function HalaqaDetailPage({ params }: HalaqaDetailPageProps) {
                             
                             try {
                               const newVisibility = !halaqa.is_public;
-                              const { error } = await supabase
+                              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                              const { error } = await (supabase as any)
                                 .from('halaqas')
                                 .update({ is_public: newVisibility })
                                 .eq('id', halaqa.id);
@@ -846,22 +853,24 @@ export default function HalaqaDetailPage({ params }: HalaqaDetailPageProps) {
                                   const isCurrentlyMarked = post.has_user_marked_beneficial;
 
                                   if (isCurrentlyMarked) {
-                                    const { error } = await supabase
+                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                    const { error } = await (supabase as any)
                                       .from('beneficial_marks')
                                       .delete()
                                       .eq('post_id', post.id)
                                       .eq('user_id', user.id);
 
                                     if (error) throw error;
-                                    
-                                    setPosts(posts.map(p => 
-                                      p.id === post.id 
+
+                                    setPosts(posts.map(p =>
+                                      p.id === post.id
                                         ? { ...p, beneficial_count: (p.beneficial_count || 1) - 1, has_user_marked_beneficial: false }
                                         : p
                                     ));
                                     success("Removed from beneficial");
                                   } else {
-                                    const { error } = await supabase
+                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                    const { error } = await (supabase as any)
                                       .from('beneficial_marks')
                                       .insert({ post_id: post.id, user_id: user.id });
 
@@ -955,22 +964,24 @@ export default function HalaqaDetailPage({ params }: HalaqaDetailPageProps) {
                                   const isCurrentlyBookmarked = post.has_user_bookmarked;
 
                                   if (isCurrentlyBookmarked) {
-                                    const { error } = await supabase
+                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                    const { error } = await (supabase as any)
                                       .from('bookmarks')
                                       .delete()
                                       .eq('post_id', post.id)
                                       .eq('user_id', user.id);
 
                                     if (error) throw error;
-                                    
-                                    setPosts(posts.map(p => 
-                                      p.id === post.id 
+
+                                    setPosts(posts.map(p =>
+                                      p.id === post.id
                                         ? { ...p, has_user_bookmarked: false }
                                         : p
                                     ));
                                     success("Removed bookmark");
                                   } else {
-                                    const { error } = await supabase
+                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                    const { error } = await (supabase as any)
                                       .from('bookmarks')
                                       .insert({ post_id: post.id, user_id: user.id });
 
@@ -1091,22 +1102,24 @@ export default function HalaqaDetailPage({ params }: HalaqaDetailPageProps) {
                                   const isCurrentlyMarked = post.has_user_marked_beneficial;
 
                                   if (isCurrentlyMarked) {
-                                    const { error } = await supabase
+                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                    const { error } = await (supabase as any)
                                       .from('beneficial_marks')
                                       .delete()
                                       .eq('post_id', post.id)
                                       .eq('user_id', user.id);
 
                                     if (error) throw error;
-                                    
-                                    setPosts(posts.map(p => 
-                                      p.id === post.id 
+
+                                    setPosts(posts.map(p =>
+                                      p.id === post.id
                                         ? { ...p, beneficial_count: (p.beneficial_count || 1) - 1, has_user_marked_beneficial: false }
                                         : p
                                     ));
                                     success("Removed from beneficial");
                                   } else {
-                                    const { error } = await supabase
+                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                    const { error } = await (supabase as any)
                                       .from('beneficial_marks')
                                       .insert({ post_id: post.id, user_id: user.id });
 
@@ -1200,22 +1213,24 @@ export default function HalaqaDetailPage({ params }: HalaqaDetailPageProps) {
                                   const isCurrentlyBookmarked = post.has_user_bookmarked;
 
                                   if (isCurrentlyBookmarked) {
-                                    const { error } = await supabase
+                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                    const { error } = await (supabase as any)
                                       .from('bookmarks')
                                       .delete()
                                       .eq('post_id', post.id)
                                       .eq('user_id', user.id);
 
                                     if (error) throw error;
-                                    
-                                    setPosts(posts.map(p => 
-                                      p.id === post.id 
+
+                                    setPosts(posts.map(p =>
+                                      p.id === post.id
                                         ? { ...p, has_user_bookmarked: false }
                                         : p
                                     ));
                                     success("Removed bookmark");
                                   } else {
-                                    const { error } = await supabase
+                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                    const { error } = await (supabase as any)
                                       .from('bookmarks')
                                       .insert({ post_id: post.id, user_id: user.id });
 

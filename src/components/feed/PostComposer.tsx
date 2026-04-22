@@ -16,20 +16,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { useToast } from "@/hooks/useToast";
 import { createClient } from "@/lib/supabase/client";
+import { uploadPostImage } from "@/lib/supabase/storage";
 
 const MAX_CONTENT_LENGTH = 2000;
+const MAX_IMAGES = 4;
 
 const SUGGESTED_TAGS = [
-  "Quran",
-  "Hadith",
-  "Fiqh",
-  "Tafsir",
-  "Seerah",
-  "Aqeedah",
-  "Dhikr",
-  "Dua",
-  "Islamic History",
-  "Contemporary Issues",
+  "Quran", "Hadith", "Fiqh", "Tafsir", "Seerah",
+  "Aqeedah", "Dhikr", "Dua", "Islamic History", "Contemporary Issues",
 ];
 
 interface PostComposerProps {
@@ -40,31 +34,30 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
   const { profile, user } = useSupabaseAuth();
   const { success, error: showError } = useToast();
   const supabase = createClient();
-  
+
   const [isExpanded, setIsExpanded] = useState(false);
   const [content, setContent] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [addBismillah, setAddBismillah] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
   const [showTagSelector, setShowTagSelector] = useState(false);
-  
+
+  // Image state
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   const getInitials = (name?: string) => {
     if (!name) return "U";
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
+    return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
   };
 
   const handleExpand = () => {
     setIsExpanded(true);
-    setTimeout(() => {
-      textareaRef.current?.focus();
-    }, 100);
+    setTimeout(() => textareaRef.current?.focus(), 100);
   };
 
   const toggleTag = (tag: string) => {
@@ -73,63 +66,100 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
     );
   };
 
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (!files.length) return;
+
+    const remaining = MAX_IMAGES - imagePreviews.length;
+    const toProcess = files.slice(0, remaining);
+
+    for (const file of toProcess) {
+      if (file.size > 10 * 1024 * 1024) {
+        showError(`${file.name} is too large — max 10 MB`);
+        continue;
+      }
+
+      // Show local preview immediately
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreviews((prev) => [...prev, reader.result as string]);
+      };
+      reader.readAsDataURL(file);
+
+      // Upload to storage
+      setIsUploadingImage(true);
+      const { data, error } = await uploadPostImage(file);
+      setIsUploadingImage(false);
+
+      if (error || !data) {
+        showError("Failed to upload image. Please try again.");
+        setImagePreviews((prev) => prev.slice(0, -1)); // remove the pending preview
+        continue;
+      }
+
+      setImageUrls((prev) => [...prev, data.publicUrl]);
+    }
+
+    // Reset input so same file can be re-selected if needed
+    e.target.value = "";
+  };
+
+  const removeImage = (index: number) => {
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
+    setImageUrls((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handlePost = async () => {
     if (!content.trim()) {
       showError("Please write something to share");
       return;
     }
-
     if (content.length > MAX_CONTENT_LENGTH) {
       showError(`Content is too long (max ${MAX_CONTENT_LENGTH} characters)`);
       return;
     }
-
     if (!user) {
       showError("You must be logged in to post");
       return;
     }
+    if (isUploadingImage) {
+      showError("Please wait for image upload to finish");
+      return;
+    }
 
+    setIsPosting(true);
     try {
-      setIsPosting(true);
-
       const finalContent = addBismillah
         ? `بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيْمِ\n\n${content}`
         : content;
 
-      // Save to database
-      const { data, error } = await supabase
-        .from('posts')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
+        .from("posts")
         .insert({
           author_id: user.id,
           content: finalContent,
-          post_type: 'standard',
+          post_type: "standard",
           tags: selectedTags,
-          beneficial_count: 0
-        })
-        .select()
-        .single();
+          media_urls: imageUrls,
+          beneficial_count: 0,
+        });
 
       if (error) {
-        console.error("Error creating post:", error);
-        console.error("Error details:", JSON.stringify(error, null, 2));
         showError(`Failed to share post: ${error.message || "Please try again."}`);
         return;
       }
 
       success("Post shared successfully!");
-      
-      // Reset form
       setContent("");
       setSelectedTags([]);
       setAddBismillah(false);
       setIsExpanded(false);
       setShowTagSelector(false);
-
-      if (onPostCreated) {
-        onPostCreated();
-      }
-    } catch (err) {
-      console.error("Error:", err);
+      setImagePreviews([]);
+      setImageUrls([]);
+      onPostCreated?.();
+    } catch {
       showError("Failed to share post. Please try again.");
     } finally {
       setIsPosting(false);
@@ -153,7 +183,6 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
 
         {/* Input Area */}
         <div className="flex-1">
-          {/* Textarea */}
           {!isExpanded ? (
             <button
               onClick={handleExpand}
@@ -176,6 +205,32 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
                 disabled={isPosting}
               />
 
+              {/* Image Previews */}
+              {imagePreviews.length > 0 && (
+                <div className={`grid gap-2 ${imagePreviews.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
+                  {imagePreviews.map((src, i) => (
+                    <div key={i} className="relative rounded-lg overflow-hidden bg-muted aspect-video">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={src} alt="" className="w-full h-full object-cover" />
+                      {/* uploading indicator for last image if still uploading */}
+                      {isUploadingImage && i === imagePreviews.length - 1 && (
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                          <Loader2 className="w-6 h-6 text-white animate-spin" />
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeImage(i)}
+                        disabled={isPosting}
+                        className="absolute top-2 right-2 w-6 h-6 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center transition-colors"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {/* Character Counter */}
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2">
@@ -191,11 +246,13 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
                   )}
                 </div>
                 <span
-                  className={`
-                    ${isOverLimit ? "text-error font-semibold" : ""}
-                    ${isNearLimit && !isOverLimit ? "text-warning" : ""}
-                    ${!isNearLimit ? "text-muted-foreground" : ""}
-                  `}
+                  className={
+                    isOverLimit
+                      ? "text-destructive font-semibold"
+                      : isNearLimit
+                      ? "text-yellow-600 dark:text-yellow-400"
+                      : "text-muted-foreground"
+                  }
                 >
                   {charactersRemaining.toLocaleString()}
                 </span>
@@ -207,13 +264,23 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
                   {/* Image Upload */}
                   <button
                     type="button"
-                    className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground"
-                    title="Add image (coming soon)"
+                    onClick={() => imageInputRef.current?.click()}
+                    disabled={isPosting || imagePreviews.length >= MAX_IMAGES}
+                    className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed"
+                    title={imagePreviews.length >= MAX_IMAGES ? `Max ${MAX_IMAGES} images` : "Add image"}
                   >
                     <ImageIcon className="w-5 h-5" />
                   </button>
+                  <input
+                    ref={imageInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    multiple
+                    onChange={handleImageChange}
+                    className="hidden"
+                  />
 
-                  {/* Poll */}
+                  {/* Poll — coming soon */}
                   <button
                     type="button"
                     className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground"
@@ -252,7 +319,6 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {/* Cancel */}
                   <Button
                     type="button"
                     variant="ghost"
@@ -263,16 +329,17 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
                       setSelectedTags([]);
                       setShowTagSelector(false);
                       setAddBismillah(false);
+                      setImagePreviews([]);
+                      setImageUrls([]);
                     }}
                     disabled={isPosting}
                   >
                     Cancel
                   </Button>
 
-                  {/* Post Button */}
                   <Button
                     onClick={handlePost}
-                    disabled={!content.trim() || isOverLimit || isPosting}
+                    disabled={!content.trim() || isOverLimit || isPosting || isUploadingImage}
                     size="sm"
                     className="bg-primary-600 hover:bg-primary-700"
                   >
@@ -302,13 +369,8 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
                   >
                     <div className="p-4 bg-muted rounded-lg space-y-3">
                       <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium text-foreground">
-                          Add tags (max 5)
-                        </p>
-                        <button
-                          onClick={() => setShowTagSelector(false)}
-                          className="text-muted-foreground hover:text-foreground"
-                        >
+                        <p className="text-sm font-medium text-foreground">Add tags (max 5)</p>
+                        <button onClick={() => setShowTagSelector(false)} className="text-muted-foreground hover:text-foreground">
                           <X className="w-4 h-4" />
                         </button>
                       </div>
@@ -319,9 +381,7 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
                             <button
                               key={tag}
                               onClick={() => toggleTag(tag)}
-                              disabled={
-                                !isSelected && selectedTags.length >= 5
-                              }
+                              disabled={!isSelected && selectedTags.length >= 5}
                               className={`px-3 py-1 rounded-full text-sm transition-all ${
                                 isSelected
                                   ? "bg-primary-600 text-white"
@@ -364,4 +424,3 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
     </div>
   );
 }
-

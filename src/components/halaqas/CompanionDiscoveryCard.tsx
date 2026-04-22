@@ -59,7 +59,7 @@ export function CompanionDiscoveryCard({
       if (!user) return;
 
       // Check if connection already exists
-      const { data: existing } = await supabase
+      const { data: existing } = await (supabase as any)
         .from('companion_connections')
         .select('id, status')
         .or(`and(requester_id.eq.${user.id},recipient_id.eq.${userId}),and(requester_id.eq.${userId},recipient_id.eq.${user.id})`)
@@ -77,7 +77,7 @@ export function CompanionDiscoveryCard({
       }
 
       // Create connection request
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('companion_connections')
         .insert({
           requester_id: user.id,

@@ -160,18 +160,20 @@ export default function CuratorPage() {
       if (!user) return;
 
       // Check if user has curator application
-      const { data: applicationData } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: applicationData } = await (supabase as any)
         .from('curator_applications')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .single() as { data: { status: string; [key: string]: unknown } | null };
 
       if (applicationData) {
-        setApplication(applicationData);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setApplication(applicationData as any);
         
         if (applicationData.status === 'approved') {
           // Load curator profile
-          const { data: profileData } = await supabase
+          const { data: profileData } = await (supabase as any)
             .from('curator_profiles')
             .select('*')
             .eq('user_id', user.id)
@@ -198,7 +200,7 @@ export default function CuratorPage() {
 
   const loadContentItems = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('content_submissions')
         .select('*')
         .eq('status', 'pending_community')
@@ -217,7 +219,7 @@ export default function CuratorPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('curator_reviews')
         .select('*')
         .eq('curator_id', user.id)
@@ -236,7 +238,7 @@ export default function CuratorPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('curator_applications')
         .insert({
           user_id: user.id,
@@ -262,7 +264,7 @@ export default function CuratorPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('curator_reviews')
         .insert({
           content_id: contentId,
@@ -276,7 +278,7 @@ export default function CuratorPage() {
       if (error) throw error;
 
       // Update content status
-      const { error: updateError } = await supabase
+      const { error: updateError } = await (supabase as any)
         .from('content_submissions')
         .update({ status: action === 'approve' ? 'approved' : 'rejected' })
         .eq('id', contentId);

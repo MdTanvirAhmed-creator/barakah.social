@@ -99,7 +99,7 @@ export function SwipeablePost({
 
         if (bookmarked) {
           // Remove bookmark
-          const { error } = await supabase
+          const { error } = await (supabase as any)
             .from("bookmarks")
             .delete()
             .eq("user_id", user.id)
@@ -111,7 +111,7 @@ export function SwipeablePost({
           toast.success("Bookmark removed");
         } else {
           // Add bookmark
-          const { error } = await supabase
+          const { error } = await (supabase as any)
             .from("bookmarks")
             .insert({
               user_id: user.id,

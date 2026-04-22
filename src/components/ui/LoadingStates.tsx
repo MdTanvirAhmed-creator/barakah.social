@@ -4,7 +4,8 @@ import { motion } from "framer-motion";
 import { Loader2, Upload } from "lucide-react";
 
 // Shimmer effect for skeleton loaders
-const shimmer = {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const shimmer: any = {
   hidden: { backgroundPosition: "-1000px 0" },
   visible: {
     backgroundPosition: "1000px 0",

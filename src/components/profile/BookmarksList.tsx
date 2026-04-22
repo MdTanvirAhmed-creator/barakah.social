@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Bookmark,
@@ -10,82 +10,152 @@ import {
   FileText,
   Video,
   BookOpen,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PostCard } from "@/components/feed/PostCard";
 import { useToast } from "@/hooks/useToast";
+import { createClient } from "@/lib/supabase/client";
 
-const MOCK_BOOKMARKS = [
-  {
-    id: "1",
-    type: "post" as const,
-    post: {
-      id: "post1",
-      author: {
-        id: "user2",
-        username: "sheikh_ahmad",
-        full_name: "Sheikh Ahmad Al-Maliki",
-        avatar_url: undefined,
-        is_verified_scholar: true,
-      },
-      content: "The Prophet (ﷺ) said: \"The best of people are those that bring most benefit to the rest of mankind.\" This hadith reminds us that our value isn't in what we accumulate, but in what we contribute.",
-      tags: ["Hadith", "Wisdom", "Beneficial"],
-      beneficial_count: 234,
-      comment_count: 45,
-      created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-      is_beneficial: true,
-      is_bookmarked: true,
-    },
-    bookmarked_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "2",
-    type: "post" as const,
-    post: {
-      id: "post2",
-      author: {
-        id: "user3",
-        username: "dr_fatima",
-        full_name: "Dr. Fatima Rahman",
-        avatar_url: undefined,
-        is_verified_scholar: true,
-      },
-      content: "Beautiful reminder about the importance of Tahajjud prayer. The Prophet (ﷺ) never missed it. Let's try to wake up for just 2 rakats this week. Start small, be consistent. May Allah accept from us all. 🤲",
-      tags: ["Prayer", "Spirituality", "Ramadan"],
-      beneficial_count: 156,
-      comment_count: 28,
-      created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-      is_beneficial: false,
-      is_bookmarked: true,
-    },
-    bookmarked_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-];
+interface BookmarkedPost {
+  bookmarkId: string;
+  post: {
+    id: string;
+    content: string;
+    author: {
+      id: string;
+      username: string;
+      full_name: string;
+      avatar_url?: string;
+      is_verified_scholar: boolean;
+    };
+    created_at: string;
+    beneficial_count: number;
+    comment_count: number;
+    tags: string[];
+    media_urls: string[];
+    has_user_marked_beneficial: boolean;
+    has_user_bookmarked: boolean;
+  };
+}
 
 type BookmarkType = "all" | "post" | "article" | "video" | "book";
 
 export function BookmarksList() {
-  const { success } = useToast();
-  const [bookmarks, setBookmarks] = useState(MOCK_BOOKMARKS);
+  const { success, error: showError } = useToast();
+  const supabase = createClient();
+  const [bookmarks, setBookmarks] = useState<BookmarkedPost[]>([]);
   const [filterType, setFilterType] = useState<BookmarkType>("all");
+  const [isLoading, setIsLoading] = useState(true);
 
-  const filteredBookmarks = bookmarks.filter((bookmark) => {
-    if (filterType === "all") return true;
-    return bookmark.type === filterType;
-  });
+  useEffect(() => {
+    loadBookmarks();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleRemoveBookmark = (bookmarkId: string) => {
-    setBookmarks(bookmarks.filter((b) => b.id !== bookmarkId));
-    success("Bookmark removed");
-  };
+  async function loadBookmarks() {
+    setIsLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await (supabase as any)
+        .from("bookmarks")
+        .select(
+          `id, post_id, created_at,
+           posts!bookmarks_post_id_fkey(
+             id, content, tags, media_urls, beneficial_count, created_at, is_deleted,
+             profiles!posts_author_id_fkey(id, username, full_name, avatar_url, is_verified_scholar),
+             comments!comments_post_id_fkey(count)
+           )`
+        )
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (error || !data) {
+        console.error("Error loading bookmarks:", error);
+        return;
+      }
+
+      // Filter out deleted posts
+      const active = (data as any[]).filter((b: any) => b.posts && !b.posts.is_deleted);
+
+      // Check which posts user has marked beneficial
+      const postIds = active.map((b: any) => b.posts.id);
+      const markedIds = new Set<string>();
+      if (postIds.length) {
+        const { data: marks } = await (supabase as any)
+          .from("beneficial_marks")
+          .select("post_id")
+          .eq("user_id", user.id)
+          .in("post_id", postIds);
+        (marks as { post_id: string }[] | null)?.forEach((m) => markedIds.add(m.post_id));
+      }
+
+      const transformed: BookmarkedPost[] = active.map((b: any) => ({
+        bookmarkId: b.id,
+        post: {
+          id: b.posts.id,
+          content: b.posts.content,
+          author: {
+            id: b.posts.profiles.id,
+            username: b.posts.profiles.username,
+            full_name: b.posts.profiles.full_name,
+            avatar_url: b.posts.profiles.avatar_url,
+            is_verified_scholar: b.posts.profiles.is_verified_scholar,
+          },
+          created_at: b.posts.created_at,
+          beneficial_count: b.posts.beneficial_count ?? 0,
+          comment_count: b.posts.comments?.[0]?.count ?? 0,
+          tags: b.posts.tags ?? [],
+          media_urls: b.posts.media_urls ?? [],
+          has_user_marked_beneficial: markedIds.has(b.posts.id),
+          has_user_bookmarked: true,
+        },
+      }));
+
+      setBookmarks(transformed);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleRemoveBookmark(bookmarkId: string, postId: string) {
+    // Optimistic remove
+    setBookmarks((prev) => prev.filter((b) => b.bookmarkId !== bookmarkId));
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await (supabase as any)
+      .from("bookmarks")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("post_id", postId);
+
+    if (error) {
+      console.error("Error removing bookmark:", error);
+      showError("Failed to remove bookmark");
+      loadBookmarks(); // Reload to restore state
+    } else {
+      success("Bookmark removed");
+    }
+  }
 
   const typeFilters = [
     { id: "all" as const, label: "All", icon: Bookmark, count: bookmarks.length },
-    { id: "post" as const, label: "Posts", icon: MessageCircle, count: bookmarks.filter(b => b.type === "post").length },
+    { id: "post" as const, label: "Posts", icon: MessageCircle, count: bookmarks.length },
     { id: "article" as const, label: "Articles", icon: FileText, count: 0 },
     { id: "video" as const, label: "Videos", icon: Video, count: 0 },
     { id: "book" as const, label: "Books", icon: BookOpen, count: 0 },
   ];
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-12">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -114,47 +184,40 @@ export function BookmarksList() {
         </div>
       </div>
 
-      {/* Bookmarks Grid */}
-      {filteredBookmarks.length > 0 ? (
+      {/* Bookmarks */}
+      {bookmarks.length === 0 ? (
+        <div className="text-center py-12">
+          <Bookmark className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-foreground mb-2">No Bookmarks Yet</h3>
+          <p className="text-muted-foreground mb-6">Save posts to read later</p>
+          <div className="max-w-md mx-auto bg-card rounded-lg border border-border p-4">
+            <h4 className="font-semibold text-foreground mb-2">How to Bookmark</h4>
+            <ul className="text-sm text-foreground-secondary space-y-1 text-left">
+              <li>• Look for the bookmark icon on any post</li>
+              <li>• Click to save for later</li>
+              <li>• Access all your bookmarks here</li>
+            </ul>
+          </div>
+        </div>
+      ) : (
         <div className="space-y-4">
-          {filteredBookmarks.map((bookmark) => (
+          {bookmarks.map((bookmark) => (
             <motion.div
-              key={bookmark.id}
+              key={bookmark.bookmarkId}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="relative"
             >
               <PostCard post={bookmark.post} />
               <button
-                onClick={() => handleRemoveBookmark(bookmark.id)}
-                className="absolute top-4 right-4 p-2 bg-card hover:bg-error/10 border border-border rounded-lg transition-colors group"
+                onClick={() => handleRemoveBookmark(bookmark.bookmarkId, bookmark.post.id)}
+                className="absolute top-4 right-4 p-2 bg-card hover:bg-destructive/10 border border-border rounded-lg transition-colors group"
                 title="Remove bookmark"
               >
-                <X className="w-4 h-4 text-muted-foreground group-hover:text-error" />
+                <X className="w-4 h-4 text-muted-foreground group-hover:text-destructive" />
               </button>
             </motion.div>
           ))}
-        </div>
-      ) : (
-        <div className="text-center py-12">
-          <Bookmark className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-foreground mb-2">
-            No Bookmarks Yet
-          </h3>
-          <p className="text-muted-foreground mb-6">
-            Save posts, articles, and videos to read later
-          </p>
-          <div className="max-w-md mx-auto">
-            <div className="bg-card rounded-lg border border-border p-4">
-              <h4 className="font-semibold text-foreground mb-2">How to Bookmark</h4>
-              <ul className="text-sm text-foreground-secondary space-y-1 text-left">
-                <li>• Look for the bookmark icon on any content</li>
-                <li>• Click to save for later</li>
-                <li>• Access all your bookmarks here</li>
-                <li>• Organize by type using filters</li>
-              </ul>
-            </div>
-          </div>
         </div>
       )}
     </div>

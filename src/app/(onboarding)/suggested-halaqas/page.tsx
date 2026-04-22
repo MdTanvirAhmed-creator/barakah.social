@@ -108,14 +108,15 @@ export default function HalaqasPage() {
       if (joinedHalaqas.length > 0) {
         // In production, you would save joined halaqas to database
         // const supabase = createClient();
-        // await supabase.from('halaqa_members').insert(...)
+        // await (supabase as any).from('halaqa_members').insert(...)
         success(`Joined ${joinedHalaqas.length} Halaqas!`);
       }
 
       // Mark onboarding as complete
       const supabase = createClient();
       if (user) {
-        await supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any)
           .from("profiles")
           .update({
             updated_at: new Date().toISOString(),

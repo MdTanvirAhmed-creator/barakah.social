@@ -86,7 +86,7 @@ export async function getUserProfile(
   const supabase = createClient();
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("profiles")
       .select("*")
       .eq("id", userId)
@@ -124,7 +124,7 @@ export async function updateUserProfile(
   const supabase = createClient();
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("profiles")
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq("id", userId)

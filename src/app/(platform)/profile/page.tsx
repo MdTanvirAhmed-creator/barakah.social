@@ -9,6 +9,7 @@ import { EditProfile } from "@/components/profile/EditProfile";
 import { BookmarksList } from "@/components/profile/BookmarksList";
 import Link from "next/link";
 import { Users } from "lucide-react";
+import { useToast } from "@/hooks/useToast";
 
 interface Profile {
   id: string;
@@ -19,6 +20,8 @@ interface Profile {
   interests: string[];
   madhab_preference?: string;
   beneficial_count: number;
+  postCount: number;
+  halaqaCount: number;
 }
 
 export default function ProfilePage() {
@@ -28,6 +31,7 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState<'posts' | 'about' | 'companions' | 'bookmarks'>('about');
   const router = useRouter();
   const supabase = createClient();
+  const { success: showSuccess, error: showError } = useToast();
 
   useEffect(() => {
     loadProfile();
@@ -41,18 +45,18 @@ export default function ProfilePage() {
         return;
       }
 
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sb = supabase as any;
+      const [{ data, error }, { count: postCount }, { count: halaqaCount }] = await Promise.all([
+        sb.from("profiles").select("*").eq("id", user.id).single(),
+        sb.from("posts").select("id", { count: "exact", head: true }).eq("author_id", user.id).eq("is_deleted", false),
+        sb.from("halaqa_members").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+      ]);
 
       if (error || !data) {
-        console.error("Error loading profile:", error);
-        console.error("Error details:", JSON.stringify(error, null, 2));
-        
         // Try to create a profile if it doesn't exist
-        const { data: newProfile, error: insertError } = await supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: newProfile, error: insertError } = await (supabase as any)
           .from('profiles')
           .insert({
             id: user.id,
@@ -66,8 +70,6 @@ export default function ProfilePage() {
           .single();
 
         if (insertError) {
-          console.error("Error creating profile:", insertError);
-          // Set a temporary profile
           setProfile({
             id: user.id,
             username: user.email?.split('@')[0] || 'user',
@@ -75,13 +77,15 @@ export default function ProfilePage() {
             bio: '',
             avatar_url: user.user_metadata?.avatar_url,
             interests: [],
-            beneficial_count: 0
+            beneficial_count: 0,
+            postCount: 0,
+            halaqaCount: 0,
           });
         } else {
-          setProfile(newProfile);
+          setProfile({ ...(newProfile as Profile), postCount: 0, halaqaCount: 0 });
         }
       } else {
-        setProfile(data);
+        setProfile({ ...(data as Profile), postCount: postCount ?? 0, halaqaCount: halaqaCount ?? 0 });
       }
     } catch (error) {
       console.error("Error:", error);
@@ -91,45 +95,31 @@ export default function ProfilePage() {
   };
 
   const handleSaveProfile = async (updatedProfile: Partial<Profile>) => {
-    try {
-      if (!profile?.id) {
-        alert("Profile ID not found");
-        return;
-      }
+    if (!profile?.id) return;
 
-      // Only update fields that are part of the profiles table
-      const updateData: any = {};
-      if (updatedProfile.full_name !== undefined) updateData.full_name = updatedProfile.full_name;
-      if (updatedProfile.bio !== undefined) updateData.bio = updatedProfile.bio;
-      if (updatedProfile.avatar_url !== undefined) updateData.avatar_url = updatedProfile.avatar_url;
-      if (updatedProfile.madhab_preference !== undefined) updateData.madhab_preference = updatedProfile.madhab_preference;
-      if (updatedProfile.interests !== undefined) updateData.interests = updatedProfile.interests;
+    const updateData: Record<string, unknown> = {};
+    if (updatedProfile.full_name !== undefined) updateData.full_name = updatedProfile.full_name;
+    if (updatedProfile.bio !== undefined) updateData.bio = updatedProfile.bio;
+    if (updatedProfile.avatar_url !== undefined) updateData.avatar_url = updatedProfile.avatar_url;
+    if (updatedProfile.madhab_preference !== undefined) updateData.madhab_preference = updatedProfile.madhab_preference;
+    if (updatedProfile.interests !== undefined) updateData.interests = updatedProfile.interests;
 
-      console.log("Updating profile with data:", updateData);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any)
+      .from("profiles")
+      .update(updateData)
+      .eq("id", profile.id)
+      .select()
+      .single();
 
-      const { data, error } = await supabase
-        .from("profiles")
-        .update(updateData)
-        .eq('id', profile.id)
-        .select()
-        .single();
-
-      if (error) {
-        console.error("Error updating profile:", error);
-        console.error("Error details:", JSON.stringify(error, null, 2));
-        throw new Error(error.message);
-      }
-
-      console.log("Profile updated successfully:", data);
-      
-      // Update local state with the new data
-      setProfile(data as Profile);
-      setShowEditModal(false);
-    } catch (error: any) {
-      console.error("Error:", error);
-      alert(`Failed to update profile: ${error.message || 'Unknown error'}`);
-      throw error; // Re-throw to let EditProfile handle it
+    if (error) {
+      showError("Failed to update profile. Please try again.");
+      throw new Error(error.message);
     }
+
+    setProfile({ ...(data as Profile), postCount: profile.postCount, halaqaCount: profile.halaqaCount });
+    showSuccess("Profile updated!");
+    setShowEditModal(false);
   };
 
   const getInitials = (name?: string) => {
@@ -219,17 +209,17 @@ export default function ProfilePage() {
               {/* Stats */}
               <div className="grid grid-cols-3 gap-4 mb-6">
                 <div className="text-center p-4 bg-muted rounded-lg">
-                  <p className="text-2xl font-bold text-foreground">
-                    {profile?.beneficial_count || 0}
+                  <p className="text-2xl font-bold text-primary-600">
+                    {profile?.beneficial_count ?? 0}
                   </p>
                   <p className="text-sm text-muted-foreground">Beneficial</p>
                 </div>
                 <div className="text-center p-4 bg-muted rounded-lg">
-                  <p className="text-2xl font-bold text-foreground">0</p>
+                  <p className="text-2xl font-bold text-foreground">{profile?.postCount ?? 0}</p>
                   <p className="text-sm text-muted-foreground">Posts</p>
                 </div>
                 <div className="text-center p-4 bg-muted rounded-lg">
-                  <p className="text-2xl font-bold text-foreground">0</p>
+                  <p className="text-2xl font-bold text-foreground">{profile?.halaqaCount ?? 0}</p>
                   <p className="text-sm text-muted-foreground">Halaqas</p>
                 </div>
               </div>
@@ -311,9 +301,15 @@ export default function ProfilePage() {
               )}
 
               {activeTab === 'posts' && (
-                <div>
-                  <h3 className="text-lg font-semibold text-foreground mb-3">Posts</h3>
-                  <p className="text-muted-foreground">No posts yet. Create your first post in the feed!</p>
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground mb-4">
+                    {(profile?.postCount ?? 0) > 0
+                      ? `You have ${profile.postCount} post${profile.postCount !== 1 ? "s" : ""}.`
+                      : "No posts yet. Share your first post in the feed!"}
+                  </p>
+                  <Link href={`/profile/${profile?.username}`}>
+                    <Button variant="outline">View Public Profile</Button>
+                  </Link>
                 </div>
               )}
 

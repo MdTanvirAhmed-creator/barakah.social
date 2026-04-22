@@ -106,7 +106,7 @@ export default function CompanionsPage() {
       }
 
       // Load connections with profiles in a single query (optimized)
-      const { data: connectionsData, error: connectionsError } = await supabase
+      const { data: connectionsData, error: connectionsError } = await (supabase as any)
         .from("companion_connections")
         .select(`
           id,

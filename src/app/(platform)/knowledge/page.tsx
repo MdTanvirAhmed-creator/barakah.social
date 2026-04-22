@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Search,
@@ -8,221 +8,187 @@ import {
   Video,
   FileText,
   Award,
-  Clock,
-  User,
-  Star,
   Filter,
   ChevronRight,
-  Play,
-  Download,
-  Bookmark,
-  BookmarkCheck,
+  Loader2,
+  Library,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ContentCard } from "@/components/knowledge/ContentCard";
 import { LearningPath } from "@/components/knowledge/LearningPath";
 import { FilterPanel } from "@/components/knowledge/FilterPanel";
 import { StudyTogetherBanner } from "@/components/knowledge/StudyTogetherBanner";
-import { useCompanionData } from "@/hooks/useCompanionData";
+import { createClient } from "@/lib/supabase/client";
+import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 
-// Mock data for demonstration
 const CATEGORIES = [
-  { id: "quran", name: "Quran", icon: "📖", count: 156, color: "from-emerald-500 to-teal-600" },
-  { id: "hadith", name: "Hadith", icon: "📜", count: 89, color: "from-blue-500 to-indigo-600" },
-  { id: "fiqh", name: "Fiqh", icon: "⚖️", count: 124, color: "from-purple-500 to-violet-600" },
-  { id: "aqeedah", name: "Aqeedah", icon: "🕌", count: 67, color: "from-amber-500 to-orange-600" },
-  { id: "seerah", name: "Seerah", icon: "📚", count: 45, color: "from-rose-500 to-pink-600" },
-  { id: "spirituality", name: "Spirituality", icon: "🕯️", count: 78, color: "from-indigo-500 to-purple-600" },
-  { id: "contemporary", name: "Contemporary", icon: "🌍", count: 92, color: "from-gray-500 to-slate-600" },
-  { id: "family", name: "Family", icon: "👨‍👩‍👧‍👦", count: 34, color: "from-green-500 to-emerald-600" },
-];
-
-const FEATURED_CONTENT = [
-  {
-    id: "1",
-    type: "video" as const,
-    title: "Understanding Surah Al-Fatiha: A Deep Dive",
-    author: "Sheikh Ahmad Al-Maliki",
-    authorAvatar: null,
-    thumbnail: null,
-    duration: "45:30",
-    difficulty: "beginner" as const,
-    rating: 4.8,
-    views: 12500,
-    category: "quran",
-    isSaved: false,
-    description: "A comprehensive exploration of the opening chapter of the Quran, covering its meanings, context, and practical applications.",
-    companionActivity: {
-      studiedBy: 3,
-      beneficialMarkedBy: ["Ahmad", "Fatima"],
-    },
-  },
-  {
-    id: "2",
-    type: "article" as const,
-    title: "The Five Pillars of Islam: Complete Guide",
-    author: "Dr. Fatima Rahman",
-    authorAvatar: null,
-    thumbnail: null,
-    readingTime: "12 min",
-    difficulty: "beginner" as const,
-    rating: 4.9,
-    views: 8900,
-    category: "aqeedah",
-    isSaved: true,
-    description: "An in-depth explanation of the fundamental practices that form the foundation of Islamic faith.",
-    companionActivity: {
-      studiedBy: 5,
-      beneficialMarkedBy: ["Yusuf", "Aisha", "Omar"],
-    },
-  },
-  {
-    id: "3",
-    type: "book" as const,
-    title: "The Life of Prophet Muhammad (PBUH)",
-    author: "Ibn Kathir",
-    authorAvatar: null,
-    thumbnail: null,
-    pages: 1200,
-    difficulty: "intermediate" as const,
-    rating: 4.7,
-    views: 15600,
-    category: "seerah",
-    isSaved: false,
-    description: "The definitive biography of the Prophet Muhammad, covering his life, teachings, and legacy.",
-  },
-  {
-    id: "4",
-    type: "video" as const,
-    title: "Fiqh of Prayer: Step by Step",
-    author: "Sheikh Yusuf Al-Qaradawi",
-    authorAvatar: null,
-    thumbnail: null,
-    duration: "1:25:15",
-    difficulty: "intermediate" as const,
-    rating: 4.6,
-    views: 9800,
-    category: "fiqh",
-    isSaved: false,
-    description: "Detailed explanation of prayer requirements, conditions, and common mistakes to avoid.",
-  },
-];
-
-const LEARNING_PATHS = [
-  {
-    id: "1",
-    title: "Quran for Beginners",
-    description: "Start your journey with the Holy Quran",
-    thumbnail: null,
-    progress: 65,
-    totalItems: 12,
-    completedItems: 8,
-    estimatedTime: "6 weeks",
-    difficulty: "beginner" as const,
-    category: "quran",
-    items: [
-      { id: "1", title: "Introduction to Quran", type: "video" as const, duration: "30 min", completed: true },
-      { id: "2", title: "Arabic Alphabet Basics", type: "article" as const, readingTime: "15 min", completed: true },
-      { id: "3", title: "Reading Surah Al-Fatiha", type: "video" as const, duration: "45 min", completed: true },
-      { id: "4", title: "Understanding Tafsir", type: "article" as const, readingTime: "20 min", completed: false },
-    ],
-  },
-  {
-    id: "2",
-    title: "Islamic Jurisprudence",
-    description: "Master the principles of Fiqh",
-    thumbnail: null,
-    progress: 30,
-    totalItems: 15,
-    completedItems: 5,
-    estimatedTime: "8 weeks",
-    difficulty: "intermediate" as const,
-    category: "fiqh",
-    items: [
-      { id: "1", title: "Introduction to Fiqh", type: "video" as const, duration: "40 min", completed: true },
-      { id: "2", title: "Sources of Islamic Law", type: "article" as const, readingTime: "25 min", completed: true },
-      { id: "3", title: "The Four Schools of Thought", type: "video" as const, duration: "1:15", completed: false },
-    ],
-  },
+  { id: "quran", name: "Quran", icon: "📖", color: "from-emerald-500 to-teal-600" },
+  { id: "hadith", name: "Hadith", icon: "📜", color: "from-blue-500 to-indigo-600" },
+  { id: "fiqh", name: "Fiqh", icon: "⚖️", color: "from-purple-500 to-violet-600" },
+  { id: "aqeedah", name: "Aqeedah", icon: "🕌", color: "from-amber-500 to-orange-600" },
+  { id: "seerah", name: "Seerah", icon: "📚", color: "from-rose-500 to-pink-600" },
+  { id: "spirituality", name: "Spirituality", icon: "🕯️", color: "from-indigo-500 to-purple-600" },
+  { id: "contemporary", name: "Contemporary", icon: "🌍", color: "from-gray-500 to-slate-600" },
+  { id: "family", name: "Family", icon: "👨‍👩‍👧‍👦", color: "from-green-500 to-emerald-600" },
 ];
 
 type ContentType = "all" | "article" | "video" | "book";
 type Difficulty = "all" | "beginner" | "intermediate" | "advanced";
 type SortBy = "recent" | "popular" | "rating" | "title";
 
+interface LearningPathItem {
+  id: string;
+  title: string;
+  description: string;
+  thumbnail: string | null;
+  progress: number;
+  totalItems: number;
+  completedItems: number;
+  estimatedTime: string;
+  difficulty: "beginner" | "intermediate" | "advanced";
+  category: string;
+  items: Array<{
+    id: string;
+    title: string;
+    type: "video" | "article" | "book";
+    duration?: string;
+    readingTime?: string;
+    completed: boolean;
+  }>;
+}
+
+function formatDuration(minutes: number | null): string {
+  if (!minutes) return "Self-paced";
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 40) return `${hours} hour${hours !== 1 ? "s" : ""}`;
+  const weeks = Math.round(hours / 5);
+  return `${weeks} week${weeks !== 1 ? "s" : ""}`;
+}
+
+function mapContentType(type: string | null): "video" | "article" | "book" {
+  if (type === "video") return "video";
+  if (type === "book") return "book";
+  return "article";
+}
+
 export default function KnowledgePage() {
+  const { user } = useSupabaseAuth();
+  const supabase = createClient();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [contentType, setContentType] = useState<ContentType>("all");
   const [difficulty, setDifficulty] = useState<Difficulty>("all");
   const [sortBy, setSortBy] = useState<SortBy>("popular");
   const [showFilters, setShowFilters] = useState(false);
-  const [savedContent, setSavedContent] = useState<string[]>(["2"]);
-  
-  // Fetch companion data
-  const { stats, pendingConnections } = useCompanionData();
-  
-  // Mock companions for the banner (for demo purposes - shows companion features)
-  const mockStudyingCompanions = [
-    {
-      id: '1',
-      username: 'ahmad_seeker',
-      full_name: 'Ahmad Ibn Abdullah',
-      avatar_url: undefined,
-      interests: ['Quran', 'Hadith'],
-      beneficial_count: 45,
-      companion_score: 85,
-      is_available_for_connections: true,
-      connection_capacity: 50,
-      last_active: new Date().toISOString(),
-      personality_traits: ['patient' as const, 'grateful' as const],
-    },
-    {
-      id: '2',
-      username: 'fatima_learner',
-      full_name: 'Fatima Al-Zahir',
-      avatar_url: undefined,
-      interests: ['Fiqh', 'Arabic'],
-      beneficial_count: 32,
-      companion_score: 78,
-      is_available_for_connections: true,
-      connection_capacity: 50,
-      last_active: new Date().toISOString(),
-      personality_traits: ['sincere' as const, 'kind' as const],
-    },
-    {
-      id: '3',
-      username: 'yusuf_scholar',
-      full_name: 'Yusuf Al-Hakim',
-      avatar_url: undefined,
-      interests: ['Tafsir', 'History'],
-      beneficial_count: 67,
-      companion_score: 92,
-      is_available_for_connections: true,
-      connection_capacity: 50,
-      last_active: new Date().toISOString(),
-      personality_traits: ['truthful' as const, 'humble' as const],
-    },
-  ];
+  const [learningPaths, setLearningPaths] = useState<LearningPathItem[]>([]);
+  const [pathCount, setPathCount] = useState<number>(0);
+  const [loading, setLoading] = useState(true);
 
-  const filteredContent = FEATURED_CONTENT.filter((content) => {
-    const matchesSearch = content.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         content.author.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === "all" || content.category === selectedCategory;
-    const matchesType = contentType === "all" || content.type === contentType;
-    const matchesDifficulty = difficulty === "all" || content.difficulty === difficulty;
-    
-    return matchesSearch && matchesCategory && matchesType && matchesDifficulty;
+  useEffect(() => {
+    loadLearningPaths();
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function loadLearningPaths() {
+    setLoading(true);
+    try {
+      // Load published paths
+      const { data: paths, error } = await (supabase as any)
+        .from("learning_paths")
+        .select("id, title, description, image_url, difficulty, category, estimated_duration, status")
+        .eq("status", "published")
+        .order("created_at", { ascending: false })
+        .limit(6);
+
+      if (error || !paths) {
+        console.error("Error loading learning paths:", error);
+        setLearningPaths([]);
+        return;
+      }
+
+      // Count total published paths
+      const { count } = await (supabase as any)
+        .from("learning_paths")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "published");
+      setPathCount(count ?? 0);
+
+      const pathIds = (paths as { id: string }[]).map((p) => p.id);
+
+      // Load lessons for all paths
+      const { data: allLessons } = pathIds.length
+        ? await (supabase as any)
+            .from("learning_path_lessons")
+            .select("id, path_id, title, content_type, duration, order_index")
+            .in("path_id", pathIds)
+            .order("order_index", { ascending: true })
+        : { data: [] };
+
+      // Load user's progress for these paths
+      const progressMap: Record<string, number> = {};
+      if (user && pathIds.length) {
+        const { data: progresses } = await (supabase as any)
+          .from("learning_path_progress")
+          .select("path_id, progress_percentage")
+          .eq("user_id", user.id)
+          .in("path_id", pathIds);
+        (progresses as { path_id: string; progress_percentage: number }[] | null)?.forEach((p) => {
+          progressMap[p.path_id] = p.progress_percentage ?? 0;
+        });
+      }
+
+      // Group lessons by path
+      const lessonsByPath: Record<string, any[]> = {};
+      (allLessons as any[] | null ?? []).forEach((lesson: any) => {
+        if (!lessonsByPath[lesson.path_id]) lessonsByPath[lesson.path_id] = [];
+        lessonsByPath[lesson.path_id]!.push(lesson);
+      });
+
+      const transformed: LearningPathItem[] = (paths as any[]).map((path) => {
+        const lessons = lessonsByPath[path.id] ?? [];
+        const progress = progressMap[path.id] ?? 0;
+        const totalItems = lessons.length;
+        const completedItems = Math.round((progress / 100) * totalItems);
+        const difficultyVal = (["beginner", "intermediate", "advanced"].includes(path.difficulty)
+          ? path.difficulty
+          : "beginner") as "beginner" | "intermediate" | "advanced";
+
+        return {
+          id: path.id,
+          title: path.title,
+          description: path.description ?? "",
+          thumbnail: path.image_url ?? null,
+          progress,
+          totalItems,
+          completedItems,
+          estimatedTime: formatDuration(path.estimated_duration),
+          difficulty: difficultyVal,
+          category: path.category ?? "general",
+          items: lessons.slice(0, 4).map((lesson: any) => ({
+            id: lesson.id,
+            title: lesson.title,
+            type: mapContentType(lesson.content_type),
+            duration: lesson.duration ? `${lesson.duration} min` : undefined,
+            completed: lessons.indexOf(lesson) < completedItems,
+          })),
+        };
+      });
+
+      setLearningPaths(transformed);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const filteredPaths = learningPaths.filter((path) => {
+    const matchesSearch =
+      path.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      path.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === "all" || path.category === selectedCategory;
+    const matchesDifficulty = difficulty === "all" || path.difficulty === difficulty;
+    return matchesSearch && matchesCategory && matchesDifficulty;
   });
-
-  const handleSaveContent = (contentId: string) => {
-    setSavedContent(prev => 
-      prev.includes(contentId) 
-        ? prev.filter(id => id !== contentId)
-        : [...prev, contentId]
-    );
-  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -230,9 +196,7 @@ export default function KnowledgePage() {
         {/* Hero Section */}
         <div className="mb-12">
           <div className="text-center mb-8">
-            <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
-              Al-Hikmah
-            </h1>
+            <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">Al-Hikmah</h1>
             <p className="text-xl text-foreground-secondary max-w-2xl mx-auto">
               Discover and learn from our curated collection of Islamic knowledge
             </p>
@@ -241,9 +205,9 @@ export default function KnowledgePage() {
           {/* Search Bar */}
           <div className="max-w-2xl mx-auto mb-8">
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5" />
               <Input
-                placeholder="Search articles, videos, books..."
+                placeholder="Search learning paths..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-12 pr-4 py-3 text-lg"
@@ -254,10 +218,10 @@ export default function KnowledgePage() {
           {/* Quick Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
             {[
-              { icon: BookOpen, label: "Articles", count: 456 },
-              { icon: Video, label: "Videos", count: 234 },
-              { icon: FileText, label: "Books", count: 89 },
-              { icon: Award, label: "Learning Paths", count: 12 },
+              { icon: BookOpen, label: "Articles", count: "—" },
+              { icon: Video, label: "Videos", count: "—" },
+              { icon: FileText, label: "Books", count: "—" },
+              { icon: Award, label: "Learning Paths", count: loading ? "..." : pathCount },
             ].map((stat, index) => (
               <motion.div
                 key={stat.label}
@@ -278,12 +242,27 @@ export default function KnowledgePage() {
         <div className="mb-12">
           <h2 className="text-2xl font-bold text-foreground mb-6">Browse by Category</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+            <motion.button
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              onClick={() => setSelectedCategory("all")}
+              className={`p-4 rounded-lg border-2 transition-all ${
+                selectedCategory === "all"
+                  ? "border-primary-600 bg-primary-50 dark:bg-primary-900/20"
+                  : "border-border hover:border-primary-300 hover:shadow-md"
+              }`}
+            >
+              <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center text-2xl mb-3 mx-auto">
+                ✨
+              </div>
+              <div className="text-sm font-medium text-foreground mb-1">All</div>
+            </motion.button>
             {CATEGORIES.map((category, index) => (
               <motion.button
                 key={category.id}
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: index * 0.05 }}
+                transition={{ delay: (index + 1) * 0.05 }}
                 onClick={() => setSelectedCategory(category.id)}
                 className={`p-4 rounded-lg border-2 transition-all ${
                   selectedCategory === category.id
@@ -295,27 +274,19 @@ export default function KnowledgePage() {
                   {category.icon}
                 </div>
                 <div className="text-sm font-medium text-foreground mb-1">{category.name}</div>
-                <div className="text-xs text-muted-foreground">{category.count} items</div>
               </motion.button>
             ))}
           </div>
         </div>
 
-        {/* Study Together Banner */}
-        {mockStudyingCompanions.length > 0 && (
-          <div className="mb-8">
-            <StudyTogetherBanner
-              companions={mockStudyingCompanions}
-              contentTitle="Islamic Knowledge"
-              onFormStudyGroup={() => {
-                // TODO: Implement study group formation
-                alert("Study group formation coming soon!");
-              }}
-            />
-          </div>
-        )}
+        {/* Study Together Banner — hidden when no companions */}
+        <StudyTogetherBanner
+          companions={[]}
+          contentTitle="Islamic Knowledge"
+          onFormStudyGroup={() => {}}
+        />
 
-        {/* Featured Content */}
+        {/* Featured Content — coming soon state */}
         <div className="mb-12">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-foreground">Featured Content</h2>
@@ -329,7 +300,6 @@ export default function KnowledgePage() {
             </Button>
           </div>
 
-          {/* Filters Panel */}
           {showFilters && (
             <FilterPanel
               contentType={contentType}
@@ -342,23 +312,19 @@ export default function KnowledgePage() {
             />
           )}
 
-          {/* Content Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredContent.map((content, index) => (
-              <motion.div
-                key={content.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <ContentCard
-                  content={content}
-                  isSaved={savedContent.includes(content.id)}
-                  onSave={() => handleSaveContent(content.id)}
-                />
-              </motion.div>
-            ))}
-          </div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center py-16 px-4 bg-card rounded-lg border border-border"
+          >
+            <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
+              <Library className="w-10 h-10 text-muted-foreground" />
+            </div>
+            <h3 className="text-xl font-semibold text-foreground mb-3">Content library is being built</h3>
+            <p className="text-foreground-secondary max-w-md mx-auto">
+              Our scholars and contributors are curating authentic Islamic articles, videos, and books. Check back soon.
+            </p>
+          </motion.div>
         </div>
 
         {/* Learning Paths */}
@@ -371,18 +337,44 @@ export default function KnowledgePage() {
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {LEARNING_PATHS.map((path, index) => (
-              <motion.div
-                key={path.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <LearningPath path={path} />
-              </motion.div>
-            ))}
-          </div>
+          {loading ? (
+            <div className="flex justify-center py-16">
+              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : filteredPaths.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-center py-16 px-4 bg-card rounded-lg border border-border"
+            >
+              <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
+                <Award className="w-10 h-10 text-muted-foreground" />
+              </div>
+              <h3 className="text-xl font-semibold text-foreground mb-3">
+                {searchQuery || selectedCategory !== "all" || difficulty !== "all"
+                  ? "No learning paths match your filters"
+                  : "No learning paths yet"}
+              </h3>
+              <p className="text-foreground-secondary max-w-md mx-auto">
+                {searchQuery || selectedCategory !== "all" || difficulty !== "all"
+                  ? "Try adjusting your search or filters."
+                  : "Structured learning paths are being developed. Check back soon."}
+              </p>
+            </motion.div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {filteredPaths.map((path, index) => (
+                <motion.div
+                  key={path.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                >
+                  <LearningPath path={path} />
+                </motion.div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Call to Action */}
@@ -392,10 +384,7 @@ export default function KnowledgePage() {
             Join thousands of Muslims worldwide who are deepening their understanding of Islam through our curated content.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button
-              size="lg"
-              className="bg-white text-primary-600 hover:bg-primary-50"
-            >
+            <Button size="lg" className="bg-white text-primary-600 hover:bg-primary-50">
               <BookOpen className="w-5 h-5 mr-2" />
               Browse All Content
             </Button>

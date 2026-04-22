@@ -38,7 +38,6 @@ const NAVIGATION_ITEMS = [
     href: "/halaqas",
     icon: Users,
     description: "Study circles",
-    badge: 3, // Number of unread notifications
   },
   {
     name: "Al-Hikmah",
@@ -222,9 +221,9 @@ export function Sidebar({ isCollapsed = false, onToggleCollapse }: SidebarProps)
                     }`}
                   />
                   {/* Notification Badge */}
-                  {item.badge && item.badge > 0 && (
+                  {(item as any).badge && (item as any).badge > 0 && (
                     <span className="absolute top-1 left-6 min-w-[18px] h-[18px] bg-error text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
-                      {item.badge > 9 ? "9+" : item.badge}
+                      {(item as any).badge > 9 ? "9+" : (item as any).badge}
                     </span>
                   )}
                 </div>

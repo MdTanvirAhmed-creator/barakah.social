@@ -22,6 +22,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatRelativeTime } from "@/lib/date";
 import { useToast } from "@/hooks/useToast";
 import { CommentSection } from "@/components/comments/CommentSection";
+import { createClient } from "@/lib/supabase/client";
+import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 
 interface PostCardProps {
   post: {
@@ -50,6 +52,8 @@ interface PostCardProps {
 
 export function PostCard({ post }: PostCardProps) {
   const { success } = useToast();
+  const { user } = useSupabaseAuth();
+  const supabase = createClient();
   const [isMarkedBeneficial, setIsMarkedBeneficial] = useState(
     post.has_user_marked_beneficial || false
   );
@@ -72,36 +76,60 @@ export function PostCard({ post }: PostCardProps) {
   };
 
   const handleBeneficial = async () => {
-    // Optimistic update
-    setIsMarkedBeneficial(!isMarkedBeneficial);
-    setBeneficialCount((prev) => (isMarkedBeneficial ? prev - 1 : prev + 1));
+    if (!user) return;
+
+    const marking = !isMarkedBeneficial;
+    setIsMarkedBeneficial(marking);
+    setBeneficialCount((prev) => (marking ? prev + 1 : prev - 1));
 
     try {
-      // In production, save to database
-      // await supabase.from('beneficial_marks').insert/delete
-      
-      success(
-        isMarkedBeneficial
-          ? "Removed from beneficial"
-          : "Marked as beneficial"
-      );
-    } catch (err) {
-      // Revert on error
-      setIsMarkedBeneficial(isMarkedBeneficial);
-      setBeneficialCount((prev) => (isMarkedBeneficial ? prev + 1 : prev - 1));
+      if (marking) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error } = await (supabase as any)
+          .from("beneficial_marks")
+          .insert({ user_id: user.id, post_id: post.id });
+        if (error) throw error;
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error } = await (supabase as any)
+          .from("beneficial_marks")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("post_id", post.id);
+        if (error) throw error;
+      }
+      success(marking ? "Marked as beneficial" : "Removed from beneficial");
+    } catch {
+      setIsMarkedBeneficial(!marking);
+      setBeneficialCount((prev) => (marking ? prev - 1 : prev + 1));
     }
   };
 
   const handleBookmark = async () => {
-    // Optimistic update
-    setIsBookmarked(!isBookmarked);
+    if (!user) return;
+
+    const bookmarking = !isBookmarked;
+    setIsBookmarked(bookmarking);
 
     try {
-      // In production, save to database
-      success(isBookmarked ? "Removed bookmark" : "Bookmarked");
-    } catch (err) {
-      // Revert on error
-      setIsBookmarked(isBookmarked);
+      if (bookmarking) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error } = await (supabase as any)
+          .from("bookmarks")
+          .insert({ user_id: user.id, post_id: post.id });
+        if (error) throw error;
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error } = await (supabase as any)
+          .from("bookmarks")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("post_id", post.id);
+        if (error) throw error;
+      }
+      success(bookmarking ? "Bookmarked" : "Removed bookmark");
+    } catch {
+      setIsBookmarked(!bookmarking);
     }
   };
 

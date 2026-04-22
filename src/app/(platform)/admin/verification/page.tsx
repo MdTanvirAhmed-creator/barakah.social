@@ -200,7 +200,7 @@ export default function VerificationDashboard() {
 
   const loadVerifications = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('content_verifications')
         .select(`
           *,
@@ -221,7 +221,7 @@ export default function VerificationDashboard() {
 
   const loadReviewers = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('profiles')
         .select(`
           id, username, full_name, avatar_url, beneficial_count, role, is_verified, expertise_areas,
@@ -239,14 +239,16 @@ export default function VerificationDashboard() {
 
   const loadStats = async () => {
     try {
-      const { data: verificationStats } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: verificationStats } = await (supabase as any)
         .from('content_verifications')
-        .select('status, submitted_at, completed_at');
+        .select('status, submitted_at, completed_at') as { data: { status: string; submitted_at: string; completed_at: string }[] | null };
 
-      const { data: reviewerStats } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: reviewerStats } = await (supabase as any)
         .from('profiles')
         .select('beneficial_count, role, is_verified')
-        .gte('beneficial_count', 100);
+        .gte('beneficial_count', 100) as { data: { beneficial_count: number; role: string; is_verified: boolean }[] | null };
 
       if (verificationStats) {
         const stats: VerificationStats = {

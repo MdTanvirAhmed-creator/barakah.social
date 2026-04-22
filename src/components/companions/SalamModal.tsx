@@ -88,7 +88,7 @@ export function SalamModal({
       }
 
       // Create companion connection request
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("companion_connections")
         .insert({
           requester_id: user.id,

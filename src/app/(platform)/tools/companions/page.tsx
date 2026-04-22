@@ -114,7 +114,8 @@ export default function CompanionsPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
         .from('companion_connections')
         .insert({
           requester_id: user.id,

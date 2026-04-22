@@ -90,7 +90,6 @@ import {
   Award,
   Trophy,
   Medal,
-  Certificate,
   Flag,
   AlertTriangle,
   Info,
@@ -142,7 +141,7 @@ import {
   Award as AwardIcon,
   Trophy as TrophyIcon,
   Medal as MedalIcon,
-  Certificate as CertificateIcon,
+  Award as CertificateIcon,
   Flag as FlagIcon,
   AlertTriangle as AlertTriangleIcon,
   Info as InfoIcon,
@@ -311,7 +310,7 @@ export default function StudyTools() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('study_notes')
         .select('*')
         .eq('user_id', user.id)
@@ -329,7 +328,7 @@ export default function StudyTools() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('flashcard_decks')
         .select(`
           *,
@@ -347,7 +346,7 @@ export default function StudyTools() {
 
   const loadQuizzes = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('quizzes')
         .select('*')
         .eq('is_public', true)
@@ -362,7 +361,7 @@ export default function StudyTools() {
 
   const loadStudyGroups = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('study_groups')
         .select(`
           *,
@@ -386,7 +385,7 @@ export default function StudyTools() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('study_notes')
         .insert({
           user_id: user.id,
@@ -414,7 +413,7 @@ export default function StudyTools() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('flashcard_decks')
         .insert({
           user_id: user.id,
@@ -439,7 +438,7 @@ export default function StudyTools() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('quizzes')
         .insert({
           user_id: user.id,
@@ -466,7 +465,7 @@ export default function StudyTools() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('study_groups')
         .insert({
           name: groupData.name,
@@ -491,7 +490,7 @@ export default function StudyTools() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('study_group_members')
         .insert({
           group_id: groupId,

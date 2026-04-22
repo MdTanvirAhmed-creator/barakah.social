@@ -26,9 +26,6 @@ const nextConfig = {
     },
   },
 
-  // Performance optimizations
-  swcMinify: true,
-  
   // Experimental features
   experimental: {
     optimizePackageImports: ['lucide-react'],

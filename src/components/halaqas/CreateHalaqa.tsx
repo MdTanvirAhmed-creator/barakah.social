@@ -160,16 +160,17 @@ export function CreateHalaqa({ isOpen, onClose, onSuccess }: CreateHalaqaProps) 
 
     setIsCreating(true);
     
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = supabase as any;
     try {
-      // Save to database
-      const { data: halaqaData, error } = await supabase
+      const { data: halaqaData, error } = await sb
         .from('halaqas')
         .insert({
           name: data.name,
           description: data.description,
           category: data.category,
-          rules: data.rules.join('\n'), // Convert array to text with newlines
-          member_count: 1, // Creator is the first member
+          rules: data.rules.join('\n'),
+          member_count: 1,
           is_public: data.is_public,
           created_by: user.id
         })
@@ -178,13 +179,12 @@ export function CreateHalaqa({ isOpen, onClose, onSuccess }: CreateHalaqaProps) 
 
       if (error) {
         console.error("Error creating Halaqa:", error);
-        console.error("Error details:", JSON.stringify(error, null, 2));
         showError(`Failed to create Halaqa: ${error.message || "Please try again."}`);
         return;
       }
 
       // Add creator as admin member
-      const { error: memberError } = await supabase
+      const { error: memberError } = await sb
         .from('halaqa_members')
         .insert({
           halaqa_id: halaqaData.id,

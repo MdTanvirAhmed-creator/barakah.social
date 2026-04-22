@@ -131,7 +131,8 @@ export function ZakatCalculator({ onClose }: ZakatCalculatorProps) {
   const [isCalculating, setIsCalculating] = useState(false);
 
   const form = useForm<ZakatFormData>({
-    resolver: zodResolver(ZAKAT_FORM_SCHEMA),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(ZAKAT_FORM_SCHEMA) as any,
     defaultValues: {
       assets: {},
       goldPrice: 65,
@@ -430,7 +431,7 @@ export function ZakatCalculator({ onClose }: ZakatCalculatorProps) {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form onSubmit={handleSubmit(onSubmit as any)}>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Form */}
           <div className="lg:col-span-2">

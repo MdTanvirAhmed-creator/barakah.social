@@ -253,7 +253,7 @@ export function EnhancedSearch() {
 
     try {
       // Get recent searches
-      const { data: recentSearches } = await supabase
+      const { data: recentSearches } = await (supabase as any)
         .from('user_search_history')
         .select('search_query')
         .ilike('search_query', `%${query}%`)
@@ -261,14 +261,14 @@ export function EnhancedSearch() {
         .limit(3);
 
       // Get saved searches
-      const { data: savedSearches } = await supabase
+      const { data: savedSearches } = await (supabase as any)
         .from('saved_searches')
         .select('name, search_query')
         .or(`name.ilike.%${query}%,search_query.ilike.%${query}%`)
         .limit(3);
 
       // Get popular searches
-      const { data: popularSearches } = await supabase
+      const { data: popularSearches } = await (supabase as any)
         .from('user_search_history')
         .select('search_query')
         .ilike('search_query', `%${query}%`)
@@ -276,18 +276,18 @@ export function EnhancedSearch() {
         .limit(3);
 
       const suggestionList: SearchSuggestion[] = [
-        ...(recentSearches || []).map((search, index) => ({
+        ...(recentSearches || []).map((search: any, index: number) => ({
           id: `recent-${index}`,
           query: search.search_query,
           type: 'recent' as const,
           timestamp: new Date().toISOString(),
         })),
-        ...(savedSearches || []).map((search, index) => ({
+        ...(savedSearches || []).map((search: any, index: number) => ({
           id: `saved-${index}`,
           query: search.search_query,
           type: 'saved' as const,
         })),
-        ...(popularSearches || []).map((search, index) => ({
+        ...(popularSearches || []).map((search: any, index: number) => ({
           id: `popular-${index}`,
           query: search.search_query,
           type: 'popular' as const,
@@ -349,7 +349,7 @@ export function EnhancedSearch() {
       }
       
       // Perform full-text search
-      const { data, error, count } = await supabase
+      const { data, error, count } = await (supabase as any)
         .from('content')
         .select(`
           *,
@@ -368,7 +368,7 @@ export function EnhancedSearch() {
       setSearchTime(Date.now() - startTime);
       
       // Save to search history
-      await supabase
+      await (supabase as any)
         .from('user_search_history')
         .insert({
           search_query: query,
@@ -393,14 +393,14 @@ export function EnhancedSearch() {
     
     try {
       // Get content relationships
-      const { data: relationships } = await supabase
+      const { data: relationships } = await (supabase as any)
         .rpc('get_content_relationships', {
           content_id: contentId,
           limit_count: 5
         });
 
       // Get editorial picks
-      const { data: editorialPicks } = await supabase
+      const { data: editorialPicks } = await (supabase as any)
         .rpc('get_editorial_picks', {
           limit_count: 3
         });

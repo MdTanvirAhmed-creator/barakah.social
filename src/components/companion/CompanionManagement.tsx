@@ -58,7 +58,7 @@ export function CompanionManagement({ pendingConnections, onRefresh }: Companion
     setProcessing(connectionId);
     try {
       const supabase = createClient();
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("companion_connections")
         .update({ status: "accepted" })
         .eq("id", connectionId);
@@ -79,7 +79,7 @@ export function CompanionManagement({ pendingConnections, onRefresh }: Companion
     setProcessing(connectionId);
     try {
       const supabase = createClient();
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("companion_connections")
         .update({ status: "declined" })
         .eq("id", connectionId);
