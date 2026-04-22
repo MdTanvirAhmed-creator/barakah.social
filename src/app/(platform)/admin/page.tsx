@@ -71,15 +71,32 @@ export default function AdminDashboard() {
   const supabase = createClient();
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
   useEffect(() => {
-    loadStats();
+    checkAdminAndLoad();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function loadStats() {
+  async function checkAdminAndLoad() {
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const sb = supabase as any;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setIsAdmin(false); setLoading(false); return; }
+
+      const { data: profile } = await sb.from('profiles').select('role').eq('id', user.id).single();
+      if (profile?.role !== 'admin') { setIsAdmin(false); setLoading(false); return; }
+      setIsAdmin(true);
+      loadStats(sb);
+    } catch (err) {
+      console.error('Admin check failed:', err);
+      setIsAdmin(false);
+      setLoading(false);
+    }
+  }
+
+  async function loadStats(sb: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    try {
       const [
         { count: totalUsers },
         { count: totalPosts },
@@ -103,6 +120,18 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false);
     }
+  }
+
+  if (isAdmin === false) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Shield className="w-16 h-16 text-red-400 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h1>
+          <p className="text-gray-600">You do not have admin privileges to view this page.</p>
+        </div>
+      </div>
+    );
   }
 
   return (
