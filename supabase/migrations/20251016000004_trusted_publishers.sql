@@ -34,6 +34,19 @@ CREATE TABLE trusted_publishers (
     approved_at TIMESTAMP
 );
 
+-- Publisher Connections Table (User-Publisher relationships)
+-- (backported from MASTER_MIGRATION_SCRIPT; exists in production)
+CREATE TABLE publisher_connections (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    publisher_id UUID NOT NULL REFERENCES trusted_publishers(id) ON DELETE CASCADE,
+    connection_type VARCHAR(50) DEFAULT 'follower', -- 'follower', 'subscriber', 'contributor', 'admin'
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(user_id, publisher_id)
+);
+
 -- Imported Content Table
 CREATE TABLE imported_content (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -71,7 +84,7 @@ CREATE TABLE imported_content (
 CREATE TABLE imported_content_categories (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     content_id UUID NOT NULL REFERENCES imported_content(id) ON DELETE CASCADE,
-    category_id UUID NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
+    category_id UUID NOT NULL REFERENCES content_categories(id) ON DELETE CASCADE,
     assigned_by UUID REFERENCES profiles(id),
     assigned_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     UNIQUE(content_id, category_id)
@@ -151,6 +164,21 @@ CREATE INDEX idx_quality_metrics_publisher ON publisher_quality_metrics(publishe
 CREATE INDEX idx_quality_metrics_date ON publisher_quality_metrics(metric_date);
 
 -- RLS Policies
+ALTER TABLE publisher_connections ENABLE ROW LEVEL SECURITY;
+
+-- Publisher Connections RLS Policies
+CREATE POLICY "Users can view their own connections" ON publisher_connections
+    FOR SELECT USING (user_id = auth.uid());
+
+CREATE POLICY "Users can create their own connections" ON publisher_connections
+    FOR INSERT WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "Users can update their own connections" ON publisher_connections
+    FOR UPDATE USING (user_id = auth.uid());
+
+CREATE POLICY "Users can delete their own connections" ON publisher_connections
+    FOR DELETE USING (user_id = auth.uid());
+
 ALTER TABLE trusted_publishers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE imported_content ENABLE ROW LEVEL SECURITY;
 ALTER TABLE imported_content_categories ENABLE ROW LEVEL SECURITY;

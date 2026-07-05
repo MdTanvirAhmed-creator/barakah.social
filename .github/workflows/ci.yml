@@ -57,6 +57,39 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
 
+  # Database rebuild + RLS policy tests against a local Supabase stack.
+  # Proves: (1) `supabase db reset` rebuilds the whole schema from migrations,
+  # (2) row-level security actually isolates users (tests/rls/).
+  rls-tests:
+    name: DB Reset & RLS Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.109.0
+
+      - name: Start local Supabase (applies migrations)
+        run: supabase start
+
+      - name: Verify full schema rebuild from migrations
+        run: supabase db reset
+
+      - name: Run RLS tests
+        run: npm run test:rls
+
   # Build Application
   build:
     name: Build Application
@@ -81,6 +114,9 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
+
+      - name: Secret audit (no service_role in client bundle)
+        run: bash scripts/audit-client-bundle.sh
 
   # E2E Tests with Playwright (optional — requires running server)
   e2e:

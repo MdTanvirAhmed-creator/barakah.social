@@ -1,6 +1,14 @@
 -- Migration: Add Recommended Trusted Publishers
 -- This migration adds the recommended publishers to the trusted_publishers table
 
+-- Add new columns to trusted_publishers table if they don't exist
+ALTER TABLE trusted_publishers 
+ADD COLUMN IF NOT EXISTS description TEXT,
+ADD COLUMN IF NOT EXISTS is_recommended BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS last_import TIMESTAMP,
+ADD COLUMN IF NOT EXISTS import_count INTEGER DEFAULT 0,
+ADD COLUMN IF NOT EXISTS success_rate DECIMAL(5,2) DEFAULT 0.0;
+
 -- Insert recommended English sources
 INSERT INTO trusted_publishers (
   id,
@@ -190,14 +198,6 @@ INSERT INTO trusted_publishers (
   NOW()
 );
 
--- Add new columns to trusted_publishers table if they don't exist
-ALTER TABLE trusted_publishers 
-ADD COLUMN IF NOT EXISTS description TEXT,
-ADD COLUMN IF NOT EXISTS is_recommended BOOLEAN DEFAULT false,
-ADD COLUMN IF NOT EXISTS last_import TIMESTAMP,
-ADD COLUMN IF NOT EXISTS import_count INTEGER DEFAULT 0,
-ADD COLUMN IF NOT EXISTS success_rate DECIMAL(5,2) DEFAULT 0.0;
-
 -- Create an index for recommended publishers
 CREATE INDEX IF NOT EXISTS idx_trusted_publishers_recommended 
 ON trusted_publishers(is_recommended) 
@@ -224,6 +224,8 @@ CREATE POLICY "Allow read access to recommended publishers" ON trusted_publisher
 FOR SELECT USING (is_recommended = true);
 
 -- Create a function to get publisher statistics
+-- (drop first: an earlier migration defines it with a different return type)
+DROP FUNCTION IF EXISTS get_publisher_stats(UUID);
 CREATE OR REPLACE FUNCTION get_publisher_stats(publisher_id UUID)
 RETURNS TABLE (
   total_content BIGINT,
