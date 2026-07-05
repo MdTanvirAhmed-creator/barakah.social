@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { cookies } from "next/headers";
+import { fontVariables } from "./fonts";
 import "@/styles/globals.css";
 import { ToastProvider } from "@/components/providers/ToastProvider";
 import { ReactQueryProvider } from "@/components/providers/ReactQueryProvider";
@@ -7,12 +8,6 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SkipToMain } from "@/components/accessibility/SkipToMain";
 import { Toaster } from "sonner";
 import Script from "next/script";
-
-const inter = Inter({ 
-  subsets: ["latin"],
-  display: "swap",
-  preload: true,
-});
 
 export const metadata: Metadata = {
   title: {
@@ -74,19 +69,25 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   userScalable: true,
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#0d9488" },
-    { media: "(prefers-color-scheme: dark)", color: "#134e4a" },
-  ],
+  themeColor: "#0B0F1A", /* night-900 — Night is the default identity */
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const theme = cookieStore.get("bk-theme")?.value === "day" ? "day" : "night";
+  const locale = cookieStore.get("bk-locale")?.value === "ar" ? "ar" : "en";
+  const dir = locale === "ar" ? "rtl" : "ltr";
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html
+      lang={locale}
+      dir={dir}
+      data-theme={theme === "day" ? "day" : undefined}
+      suppressHydrationWarning
+    >
       <head>
         {/* PWA Meta Tags */}
         <link rel="manifest" href="/manifest.json" />
@@ -98,7 +99,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
       </head>
-      <body className={inter.className}>
+      <body className={fontVariables}>
         <SkipToMain />
         <ErrorBoundary>
           <ReactQueryProvider>

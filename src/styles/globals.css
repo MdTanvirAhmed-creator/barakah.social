@@ -1,5 +1,5 @@
-/* Import Google Fonts - must be at the top */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Amiri:wght@400;700&display=swap');
+/* Fonts are self-hosted via next/font (src/app/fonts.ts) — no network imports. */
+@import "./tokens.css";
 
 @tailwind base;
 @tailwind components;
@@ -63,7 +63,7 @@
 
 /* Focus visible styles - keyboard navigation */
 :focus-visible {
-  outline: 2px solid hsl(var(--color-primary-500));
+  outline: 2px solid rgb(var(--ring));
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -81,7 +81,7 @@
   position: absolute;
   top: -40px;
   left: 0;
-  background: hsl(var(--color-primary-600));
+  background: rgb(var(--color-primary-600));
   color: white;
   padding: 8px 16px;
   text-decoration: none;
@@ -129,147 +129,10 @@
 /* ============================================ */
 
 /* ============================================ */
-/* CSS Custom Properties - Light Mode */
+/* Theme variables live in tokens.css (night default, day opt-in) */
 /* ============================================ */
 
 @layer base {
-  :root {
-    /* Primary Colors - Deep Teal */
-    --color-primary-50: 240 253 250;
-    --color-primary-100: 204 251 241;
-    --color-primary-200: 153 246 228;
-    --color-primary-300: 94 234 212;
-    --color-primary-400: 45 212 191;
-    --color-primary-500: 20 184 166;
-    --color-primary-600: 15 118 110;
-    --color-primary-700: 13 148 136;
-    --color-primary-800: 17 94 89;
-    --color-primary-900: 19 78 74;
-    
-    /* Secondary Colors - Gold */
-    --color-secondary-50: 255 251 235;
-    --color-secondary-100: 254 243 199;
-    --color-secondary-200: 253 230 138;
-    --color-secondary-300: 252 211 77;
-    --color-secondary-400: 251 191 36;
-    --color-secondary-500: 245 158 11;
-    --color-secondary-600: 217 119 6;
-    --color-secondary-700: 180 83 9;
-    --color-secondary-800: 146 64 14;
-    --color-secondary-900: 120 53 15;
-    
-    /* Semantic Colors */
-    --color-success: 16 185 129;
-    --color-warning: 245 158 11;
-    --color-error: 239 68 68;
-    --color-info: 59 130 246;
-    
-    /* Backgrounds */
-    --background: 250 250 249;
-    --background-secondary: 245 245 244;
-    --background-tertiary: 255 255 255;
-    
-    /* Text Colors */
-    --foreground: 28 25 23;
-    --foreground-secondary: 87 83 78;
-    --foreground-tertiary: 120 113 108;
-    --foreground-inverse: 250 250 249;
-    
-    /* Component Colors */
-    --card: 255 255 255;
-    --card-foreground: 28 25 23;
-    --popover: 255 255 255;
-    --popover-foreground: 28 25 23;
-    --primary: 15 118 110;
-    --primary-foreground: 250 250 249;
-    --secondary: 245 158 11;
-    --secondary-foreground: 28 25 23;
-    --muted: 245 245 244;
-    --muted-foreground: 120 113 108;
-    --accent: 15 118 110;
-    --accent-foreground: 250 250 249;
-    --destructive: 239 68 68;
-    --destructive-foreground: 250 250 249;
-    
-    /* Borders */
-    --border: 231 229 228;
-    --border-medium: 214 211 209;
-    --border-dark: 168 162 158;
-    --input: 231 229 228;
-    --ring: 15 118 110;
-    
-    /* Radius */
-    --radius-sm: 0.25rem;
-    --radius: 0.5rem;
-    --radius-md: 0.75rem;
-    --radius-lg: 1rem;
-    --radius-xl: 1.5rem;
-    
-    /* Shadows */
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-    
-    /* Animation */
-    --duration-fast: 150ms;
-    --duration-base: 200ms;
-    --duration-moderate: 300ms;
-    --duration-slow: 500ms;
-    
-    /* Easing */
-    --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
-    --ease-barakah: cubic-bezier(0.34, 1.56, 0.64, 1);
-  }
-
-  /* ============================================ */
-  /* Dark Mode Variables */
-  /* ============================================ */
-
-  .dark {
-    /* Backgrounds */
-    --background: 28 25 23;
-    --background-secondary: 41 37 36;
-    --background-tertiary: 68 64 60;
-    
-    /* Text Colors */
-    --foreground: 250 250 249;
-    --foreground-secondary: 168 162 158;
-    --foreground-tertiary: 120 113 108;
-    --foreground-inverse: 28 25 23;
-    
-    /* Component Colors */
-    --card: 41 37 36;
-    --card-foreground: 250 250 249;
-    --popover: 41 37 36;
-    --popover-foreground: 250 250 249;
-    --primary: 20 184 166;
-    --primary-foreground: 28 25 23;
-    --secondary: 251 191 36;
-    --secondary-foreground: 28 25 23;
-    --muted: 68 64 60;
-    --muted-foreground: 168 162 158;
-    --accent: 20 184 166;
-    --accent-foreground: 28 25 23;
-    --destructive: 239 68 68;
-    --destructive-foreground: 250 250 249;
-    
-    /* Borders */
-    --border: 68 64 60;
-    --border-medium: 87 83 78;
-    --border-dark: 120 113 108;
-    --input: 68 64 60;
-    --ring: 20 184 166;
-    
-    /* Enhanced shadows for dark mode */
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
-    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
-    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.4);
-  }
-
   /* ============================================ */
   /* Base Styles */
   /* ============================================ */
@@ -299,8 +162,7 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     transition: background-color var(--duration-moderate) var(--ease-in-out),
                 color var(--duration-moderate) var(--ease-in-out);
   }
@@ -310,9 +172,13 @@
   /* ============================================ */
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-semibold text-foreground;
+    @apply font-medium text-foreground;
     line-height: 1.2;
-    letter-spacing: -0.025em;
+    letter-spacing: -0.015em;
+  }
+
+  h1, h2 {
+    font-family: var(--font-display), serif;
   }
 
   h1 {
@@ -343,12 +209,50 @@
     @apply text-base text-foreground-secondary leading-relaxed;
   }
 
-  /* Arabic text styling */
-  [lang="ar"],
+  /* ============================================
+     Arabic — per-script rules (never letter-spaced,
+     never fake-bold, own size + leading)
+     ============================================ */
+  /* Per-script rules apply to Arabic TEXT RUNS, not the document root —
+     a root-level lang="ar" flips direction (dir attr) without forcing
+     Latin UI strings into an Arabic face. */
+  :not(html):not(body)[lang="ar"],
   .arabic {
-    font-family: 'Amiri', 'Traditional Arabic', 'Times New Roman', serif;
+    font-family: var(--font-arabic), "Noto Naskh Arabic", serif;
+    text-align: start;
+    letter-spacing: 0 !important;
+    font-synthesis: none;
+    line-height: var(--leading-arabic);
+    font-size: calc(1em * var(--arabic-scale));
+  }
+
+  [lang="ar"] h1, [lang="ar"] h2, .arabic-display {
+    font-family: var(--font-arabic-display), var(--font-arabic), serif;
+    letter-spacing: 0 !important;
+  }
+
+  .arabic-ui {
+    font-family: var(--font-arabic-ui), var(--font-arabic), serif;
+    letter-spacing: 0 !important;
+    line-height: 1.7;
+  }
+
+  /* Qur'anic text renders ONLY through the QuranText component,
+     which applies this class. Uthmanic face, still, complete. */
+  .quran-text {
+    font-family: var(--font-quran), var(--font-arabic), serif;
     direction: rtl;
-    text-align: right;
+    text-align: center;
+    letter-spacing: 0 !important;
+    font-synthesis: none;
+    line-height: 2.2;
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* Direction-aware icons: flip arrows/chevrons in RTL */
+  [dir="rtl"] .flip-rtl {
+    transform: scaleX(-1);
   }
 
   /* ============================================ */
@@ -615,3 +519,54 @@
   }
 }
 
+/* ============================================ */
+/* Girih motif animations (see ui/girih.tsx)    */
+/* Static state is COMPLETE, so reduced motion  */
+/* shows the finished knot, not a blank.        */
+/* ============================================ */
+
+.girih-loader-star {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  animation: girih-draw 3.6s var(--ease-sakina) infinite;
+}
+.girih-loader-ring {
+  animation: girih-ring 3.6s linear infinite;
+}
+.girih-loader-gold {
+  transform-origin: 100px 100px;
+  transform: rotate(45deg);
+  animation: girih-gold 3.6s var(--ease-sakina) infinite;
+}
+.leaf-moment {
+  background: linear-gradient(
+    100deg,
+    rgb(201 162 75 / 0.1) 40%,
+    rgb(201 162 75 / 0.28) 50%,
+    rgb(201 162 75 / 0.1) 60%
+  );
+  background-size: 220% 100%;
+  animation: leaf-shimmer 2.2s var(--ease-sakina) 0.4s 1 both;
+}
+
+@keyframes girih-draw {
+  0% { stroke-dashoffset: 1; opacity: 1; }
+  62% { stroke-dashoffset: 0; opacity: 1; }
+  82% { stroke-dashoffset: 0; opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
+}
+@keyframes girih-ring {
+  0%, 25% { opacity: 0; }
+  55%, 82% { opacity: 0.22; }
+  100% { opacity: 0; }
+}
+@keyframes girih-gold {
+  0%, 58% { opacity: 0; transform: rotate(45deg) scale(0.4); }
+  72% { opacity: 1; transform: rotate(45deg) scale(1); }
+  84% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes leaf-shimmer {
+  from { background-position: 160% 0; }
+  to { background-position: -60% 0; }
+}

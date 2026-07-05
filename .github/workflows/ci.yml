@@ -28,6 +28,12 @@ jobs:
         run: npx eslint src
         continue-on-error: true
 
+      - name: Adab check (sacred text is never texture)
+        run: ./scripts/adab-check.sh
+
+      - name: Contrast check (WCAG AA on both themes)
+        run: node scripts/contrast-check.mjs
+
       - name: Type check
         run: npx tsc --noEmit
 

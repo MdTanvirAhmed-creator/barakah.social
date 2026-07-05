@@ -1,7 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Loader2, Upload } from "lucide-react";
+import { Upload } from "lucide-react";
+import { GirihLoader } from "@/components/ui/girih";
 
 // Shimmer effect for skeleton loaders
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -30,17 +31,9 @@ export function SkeletonShimmer({ className = "" }: { className?: string }) {
   );
 }
 
-// Spinner variants
+// The loader is a girih knot tracing itself — there is no spinner (§3).
 export function Spinner({ size = "md", className = "" }: { size?: "sm" | "md" | "lg"; className?: string }) {
-  const sizeClasses = {
-    sm: "w-4 h-4",
-    md: "w-8 h-8",
-    lg: "w-12 h-12",
-  };
-
-  return (
-    <Loader2 className={`animate-spin text-primary-600 ${sizeClasses[size]} ${className}`} />
-  );
+  return <GirihLoader size={size} className={className} />;
 }
 
 // Pulsing dot loader

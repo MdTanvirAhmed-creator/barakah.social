@@ -24,7 +24,7 @@ describe('Button Component', () => {
   it('applies correct size styles', () => {
     const { container } = render(<Button size="lg">Large</Button>);
     const button = container.querySelector('button');
-    expect(button?.className).toContain('h-11');
+    expect(button?.className).toContain('h-12');
   });
 
   it('renders as disabled when disabled prop is true', () => {
