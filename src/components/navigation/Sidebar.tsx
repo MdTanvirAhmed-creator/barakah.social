@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import {
   Home,
   Users,
+  UserPlus,
   BookOpen,
   Compass,
   User,
@@ -31,6 +32,13 @@ const NAVIGATION_ITEMS = [
     href: "/feed",
     icon: Home,
     description: "Your personalized feed",
+  },
+  {
+    name: "Companions",
+    nameEn: "Your Circle",
+    href: "/companions",
+    icon: UserPlus,
+    description: "Requests & companions",
   },
   {
     name: "Halaqas",

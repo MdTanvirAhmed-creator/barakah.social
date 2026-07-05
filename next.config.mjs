@@ -2,6 +2,19 @@ import { withSentryConfig } from '@sentry/nextjs';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Dev-only: proxy the local Supabase stack through the dev server so
+  // sandboxed preview browsers (which can only reach port 3000) can auth.
+  // Enabled by `npm run dev:local`.
+  ...(process.env.LOCAL_SUPABASE_PROXY === "1" && {
+    async rewrites() {
+      return [
+        {
+          source: "/sb-local/:path*",
+          destination: "http://127.0.0.1:54321/:path*",
+        },
+      ];
+    },
+  }),
   // Image optimization
   images: {
     formats: ['image/avif', 'image/webp'],
