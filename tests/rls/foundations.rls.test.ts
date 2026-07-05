@@ -42,10 +42,19 @@ describe("profiles", () => {
     expect(data?.id).toBe(userA.id);
   });
 
-  test("profiles are intentionally public-readable (B can read A's profile)", async () => {
-    const { data, error } = await userB.client
+  test("full profile rows are private to self + companions (Phase 1)", async () => {
+    const { data } = await userB.client
       .from("profiles")
       .select("id, username")
+      .eq("id", userA.id);
+
+    expect(data).toEqual([]);
+  });
+
+  test("strangers see only the minimal public card via public_profiles", async () => {
+    const { data, error } = await userB.client
+      .from("public_profiles")
+      .select("id, username, display_name, avatar_url")
       .eq("id", userA.id)
       .single();
 
