@@ -16,10 +16,10 @@
 
 :root {
   /* ---------- 1. Primitives ---------- */
-  /* Night — deep lapis-black, never pure black */
-  --night-900: #0b0f1a;
-  --night-800: #121826;
-  --night-700: #1b2334;
+  /* Night — deep lapis, lifted for comfortable long reading (never pure black) */
+  --night-900: #141b2d;
+  --night-800: #1c2438;
+  --night-700: #263047;
   --bone-100: #ece7da;
   --bone-300: #9aa3b8;
 
@@ -76,20 +76,20 @@
 
   /* ---------- 2. Semantic layer — NIGHT (default) ---------- */
   /* RGB triplets for Tailwind rgb(var(--x) / <alpha-value>) */
-  --background: 11 15 26;
-  --background-secondary: 18 24 38;
-  --background-tertiary: 27 35 52;
+  --background: 20 27 45;
+  --background-secondary: 28 36 56;
+  --background-tertiary: 38 48 71;
 
   --foreground: 236 231 218;
   --foreground-secondary: 154 163 184;
   --foreground-tertiary: 138 147 168;
   --foreground-inverse: 27 31 42;
 
-  --card: 18 24 38;
+  --card: 28 36 56;
   --card-foreground: 236 231 218;
-  --popover: 27 35 52;
+  --popover: 38 48 71;
   --popover-foreground: 236 231 218;
-  --muted: 27 35 52;
+  --muted: 38 48 71;
   --muted-foreground: 154 163 184;
 
   --primary: 62 109 181; /* lapis-500 */
@@ -101,10 +101,10 @@
   --destructive: 181 81 78;
   --destructive-foreground: 251 248 240;
 
-  --border: 38 45 62; /* hairline on night */
-  --border-medium: 51 60 80;
-  --border-dark: 77 87 110;
-  --input: 38 45 62;
+  --border: 49 58 80; /* hairline on night */
+  --border-medium: 62 72 96;
+  --border-dark: 88 98 124;
+  --input: 49 58 80;
   --ring: 110 155 216; /* lapis-300 — visible on night */
 
   /* Named semantics (new components) */
@@ -114,7 +114,7 @@
   --text-color: var(--bone-100);
   --text-muted-color: var(--bone-300);
   --accent-rare: var(--leaf-500); /* used deliberately, sparingly */
-  --focus-ring: 0 0 0 2px rgb(11 15 26), 0 0 0 4px rgb(110 155 216 / 0.9);
+  --focus-ring: 0 0 0 2px rgb(20 27 45), 0 0 0 4px rgb(110 155 216 / 0.9);
   --glow: 0 0 22px rgb(62 109 181 / 0.3);
   --glow-leaf: 0 0 18px rgb(201 162 75 / 0.25);
 

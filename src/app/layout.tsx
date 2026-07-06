@@ -69,7 +69,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   userScalable: true,
-  themeColor: "#0B0F1A", /* night-900 — Night is the default identity */
+  themeColor: "#141B2D", /* night-900 — Night is the default identity */
 };
 
 export default async function RootLayout({

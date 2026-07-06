@@ -520,23 +520,28 @@
 }
 
 /* ============================================ */
-/* Girih motif animations (see ui/girih.tsx)    */
-/* Static state is COMPLETE, so reduced motion  */
-/* shows the finished knot, not a blank.        */
+/* Shamsa loader animation (see ui/girih.tsx)   */
+/* Static state is FULL BLOOM, so reduced       */
+/* motion shows the finished medallion.         */
 /* ============================================ */
 
-.girih-loader-star {
-  stroke-dasharray: 1;
-  stroke-dashoffset: 0;
-  animation: girih-draw 3.6s var(--ease-sakina) infinite;
-}
-.girih-loader-ring {
-  animation: girih-ring 3.6s linear infinite;
-}
-.girih-loader-gold {
+.shamsa-petal {
   transform-origin: 100px 100px;
-  transform: rotate(45deg);
-  animation: girih-gold 3.6s var(--ease-sakina) infinite;
+  transform-box: view-box;
+  animation: shamsa-bloom 4s var(--ease-sakina) infinite;
+}
+.shamsa-rays {
+  transform-origin: 100px 100px;
+  transform-box: view-box;
+  animation: shamsa-rays 4s var(--ease-sakina) infinite;
+}
+.shamsa-core {
+  transform-origin: 100px 100px;
+  transform-box: view-box;
+  animation: shamsa-core 4s var(--ease-sakina) infinite;
+}
+.shamsa-halo {
+  animation: shamsa-halo 4s var(--ease-sakina) infinite;
 }
 .leaf-moment {
   background: linear-gradient(
@@ -549,21 +554,30 @@
   animation: leaf-shimmer 2.2s var(--ease-sakina) 0.4s 1 both;
 }
 
-@keyframes girih-draw {
-  0% { stroke-dashoffset: 1; opacity: 1; }
-  62% { stroke-dashoffset: 0; opacity: 1; }
-  82% { stroke-dashoffset: 0; opacity: 1; }
-  100% { stroke-dashoffset: 0; opacity: 0; }
+@keyframes shamsa-bloom {
+  0% { transform: scale(0); opacity: 0; }
+  38% { transform: scale(1); opacity: 0.95; }
+  85% { transform: scale(1); opacity: 0.95; }
+  100% { transform: scale(1); opacity: 0; }
 }
-@keyframes girih-ring {
-  0%, 25% { opacity: 0; }
-  55%, 82% { opacity: 0.22; }
+@keyframes shamsa-rays {
+  0%, 30% { opacity: 0; transform: scale(0.86); }
+  55% { opacity: 0.55; transform: scale(1); }
+  85% { opacity: 0.55; }
   100% { opacity: 0; }
 }
-@keyframes girih-gold {
-  0%, 58% { opacity: 0; transform: rotate(45deg) scale(0.4); }
-  72% { opacity: 1; transform: rotate(45deg) scale(1); }
-  84% { opacity: 1; }
+@keyframes shamsa-core {
+  0% { transform: scale(0.3); opacity: 0; }
+  25% { transform: scale(1); opacity: 1; }
+  60% { transform: scale(1.1); }
+  85% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1); opacity: 0; }
+}
+@keyframes shamsa-halo {
+  0%, 20% { opacity: 0; }
+  45% { opacity: 0.42; }
+  70% { opacity: 0.18; }
+  85% { opacity: 0.35; }
   100% { opacity: 0; }
 }
 @keyframes leaf-shimmer {

@@ -4,8 +4,8 @@
   "description": "A modern social platform for Muslims to connect, learn, and grow together",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#0d9488",
+  "background_color": "#141B2D",
+  "theme_color": "#141B2D",
   "orientation": "portrait-primary",
   "icons": [
     {

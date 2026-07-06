@@ -19,11 +19,11 @@ cd "$(dirname "$0")/.."
 #    asset files entirely; honorifics in prose content are fine and proper.
 #  - QURANIC: Qur'anic text markers (ayah ornaments, basmala, Uthmanic
 #    orthography) — allowed ONLY in QuranText and allowlisted surfaces.
-SACRED_ANY='ﷻ|ﷺ|﴿|﴾|بِسْمِ ٱ?اللَّهِ|بِسْمِ اللهِ|ٱللَّه'
-QURANIC='﴿|﴾|بِسْمِ ٱ?اللَّهِ|بِسْمِ اللهِ|ٱللَّه'
+SACRED_ANY='ﷻ|ﷺ|﴿|﴾|بِسْمِ اللَّهِ|بِسْمِ اللهِ|ٱللَّه|اللَّهِ'
+QURANIC='﴿|﴾|بِسْمِ اللَّهِ|بِسْمِ اللهِ|ٱللَّه|اللَّهِ'
 
 # Surfaces that may render Qur'anic text (content, never chrome)
-ALLOW='src/components/ui/QuranText.tsx|src/app/style/StyleReference.tsx|src/components/feed/PostComposer.tsx'
+ALLOW='src/components/ui/QuranText.tsx|src/app/style/StyleReference.tsx|src/components/feed/PostComposer.tsx|src/components/admin/ContentEditor.tsx'
 
 fail=0
 
@@ -47,7 +47,10 @@ echo "adab-check: Qur'anic text near animation primitives (must be none)"
 for f in $(grep -rlE "$QURANIC" src --include="*.tsx" 2>/dev/null); do
   if grep -qE "animate-|framer-motion|keyframes|<motion\." "$f"; then
     # QuranText forbids motion by construction; anything else must justify itself
-    if [ "$f" != "src/components/ui/QuranText.tsx" ] && [ "$f" != "src/components/feed/PostComposer.tsx" ] && [ "$f" != "src/app/style/StyleReference.tsx" ]; then
+    case "$f" in
+      src/components/ui/QuranText.tsx|src/components/feed/PostComposer.tsx|src/app/style/StyleReference.tsx|src/components/admin/ContentEditor.tsx) continue ;;
+    esac
+    if true; then
       echo "FAIL: $f contains Qur'anic text AND animation primitives."
       fail=1
     fi

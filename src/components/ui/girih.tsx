@@ -4,8 +4,9 @@ import { cn } from "@/lib/utils";
 /**
  * The girih motif engine — the brand texture, built once.
  *
- * - GirihLoader: a {10/3} decagram knot that traces itself in. Replaces
- *   every spinner. Renders complete and still under reduced motion.
+ * - GirihLoader / ShamsaLoader: a shamsa — the radiant medallion of
+ *   manuscript frontispieces — blooming open. Replaces every spinner.
+ *   Renders fully bloomed and still under reduced motion.
  * - IlluminatedDivider: hairlines meeting a gold-leaf mark; the only
  *   sanctioned home for --accent-rare outside true moments.
  * - GirihPattern: tileable khatam (eight-point star) lattice for ambient
@@ -25,47 +26,79 @@ const DECAGON =
 
 const LOADER_SIZES = { sm: 28, md: 48, lg: 80 } as const;
 
+/* Shamsa rays: 12 short strokes between petals, r=62..76 */
+const RAYS = [
+  [116.05, 40.11, 119.67, 26.59],
+  [143.84, 56.16, 153.74, 46.26],
+  [159.89, 83.95, 173.41, 80.33],
+  [159.89, 116.05, 173.41, 119.67],
+  [143.84, 143.84, 153.74, 153.74],
+  [116.05, 159.89, 119.67, 173.41],
+  [83.95, 159.89, 80.33, 173.41],
+  [56.16, 143.84, 46.26, 153.74],
+  [40.11, 116.05, 26.59, 119.67],
+  [40.11, 83.95, 26.59, 80.33],
+  [56.16, 56.16, 46.26, 46.26],
+  [83.95, 40.11, 80.33, 26.59],
+] as const;
+
+/* One petal, pointing up from the center; rotated copies form the rosette */
+const PETAL = "M100 100 C93 82 93 62 100 46 C107 62 107 82 100 100 Z";
+
 export interface GirihLoaderProps {
   size?: keyof typeof LOADER_SIZES;
   label?: string;
   className?: string;
 }
 
-/** The loader — a knot tracing itself. There is no spinner in this app. */
+/**
+ * The loader — a shamsa (the radiant "little sun" medallion that opens
+ * illuminated Qur'an frontispieces) blooming: twelve petals unfold from
+ * the center, rays of light breathe outward, a gold-leaf core settles.
+ * Ornament evoking light — never scripture. There is no spinner in this
+ * app. Under reduced motion it renders fully bloomed and still.
+ */
 export function GirihLoader({ size = "md", label = "Loading", className }: GirihLoaderProps) {
   const px = LOADER_SIZES[size];
   return (
     <span role="status" aria-label={label} className={cn("inline-flex", className)}>
       <svg width={px} height={px} viewBox="0 0 200 200" aria-hidden="true">
-        <path
-          className="girih-loader-ring"
-          d={DECAGON}
+        <circle
+          cx="100"
+          cy="100"
+          r="88"
           fill="none"
           stroke="rgb(var(--foreground-secondary))"
-          strokeWidth="2"
-          opacity="0.22"
+          strokeWidth="1"
+          opacity="0.14"
         />
-        <path
-          className="girih-loader-star"
-          pathLength={1}
-          d={DECAGRAM}
-          fill="none"
-          stroke="rgb(var(--primary))"
-          strokeWidth="3"
-          strokeLinejoin="miter"
-        />
-        <rect
-          className="girih-loader-gold"
-          x="93"
-          y="93"
-          width="14"
-          height="14"
-          fill="var(--accent-rare)"
-        />
+        {Array.from({ length: 12 }, (_, k) => (
+          <g key={k} transform={`rotate(${k * 30} 100 100)`}>
+            <path
+              className="shamsa-petal"
+              style={{ animationDelay: `${k * 55}ms` }}
+              d={PETAL}
+              fill="rgb(var(--primary) / 0.16)"
+              stroke="rgb(var(--color-primary-300))"
+              strokeWidth="1.6"
+              opacity="0.95"
+            />
+          </g>
+        ))}
+        <g className="shamsa-rays" stroke="rgb(var(--color-primary-300))" strokeWidth="1.4" opacity="0.55">
+          {RAYS.map(([x1, y1, x2, y2], i) => (
+            <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} strokeLinecap="round" />
+          ))}
+        </g>
+        <circle className="shamsa-halo" cx="100" cy="100" r="15" fill="none" stroke="var(--accent-rare)" strokeWidth="1.2" opacity="0.3" />
+        <circle className="shamsa-core" cx="100" cy="100" r="8.5" fill="var(--accent-rare)" />
       </svg>
     </span>
   );
 }
+
+/** Preferred name going forward; GirihLoader stays as the wired-in alias. */
+export const ShamsaLoader = GirihLoader;
 
 export interface IlluminatedDividerProps {
   className?: string;

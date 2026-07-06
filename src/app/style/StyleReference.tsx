@@ -159,14 +159,15 @@ export function StyleReference() {
           </QuranText>
         </Section>
 
-        <Section title="The loader — a girih knot tracing itself">
+        <Section title="The loader — a shamsa unfolding (light, not a spinner)">
           <div className="flex items-end gap-10">
             <GirihLoader size="sm" />
             <GirihLoader size="md" />
             <GirihLoader size="lg" />
             <p className="text-sm text-foreground-secondary max-w-[26ch]">
-              No spinner anywhere. Under reduced motion the knot renders
-              complete and still.
+              The radiant medallion of manuscript frontispieces blooms open,
+              rays breathe, a gold core settles. Under reduced motion it
+              renders fully bloomed and still.
             </p>
           </div>
         </Section>

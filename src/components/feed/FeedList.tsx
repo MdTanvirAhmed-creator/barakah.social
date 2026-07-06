@@ -90,23 +90,22 @@ function QuestionOfTheWeek() {
     <motion.div
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-gradient-to-r from-secondary-500 to-secondary-600 rounded-lg shadow-lg p-6 mb-6 text-white w-full"
+      className="relative bg-card border border-border rounded-lg p-6 mb-6 w-full overflow-hidden"
     >
       <div className="flex items-start gap-4">
-        <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
-          <span className="text-2xl">💡</span>
-        </div>
+        <span
+          aria-hidden="true"
+          className="mt-1 inline-block w-2.5 h-2.5 rotate-45 bg-[var(--accent-rare)] flex-shrink-0"
+        />
         <div className="flex-1">
-          <h3 className="text-lg font-semibold mb-2">Question of the Week</h3>
-          <p className="text-secondary-50 mb-4">
+          <h3 className="font-display text-lg font-medium mb-2 text-foreground">
+            Question of the week
+          </h3>
+          <p className="text-foreground-secondary mb-4">
             How can we maintain sincerity (ikhlas) in our acts of worship in the age of social media?
           </p>
-          <Button
-            variant="outline"
-            size="sm"
-            className="bg-white/10 border-white/30 text-white hover:bg-white/20"
-          >
-            Share Your Thoughts
+          <Button variant="quiet" size="sm">
+            Share your thoughts
           </Button>
         </div>
       </div>

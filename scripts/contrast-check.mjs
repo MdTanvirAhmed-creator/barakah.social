@@ -15,15 +15,15 @@ const ratio = (a, b) => {
 
 // [label, fg, bg, minimum]
 const pairs = [
-  ["night: text / bg", "#ECE7DA", "#0B0F1A", 4.5],
-  ["night: muted / bg", "#9AA3B8", "#0B0F1A", 4.5],
-  ["night: muted / card", "#9AA3B8", "#121826", 4.5],
-  ["night: tertiary / bg", "#8A93A8", "#0B0F1A", 4.5],
+  ["night: text / bg", "#ECE7DA", "#141B2D", 4.5],
+  ["night: muted / bg", "#9AA3B8", "#141B2D", 4.5],
+  ["night: muted / card", "#9AA3B8", "#1C2438", 4.5],
+  ["night: tertiary / bg", "#8A93A8", "#141B2D", 4.5],
   ["night: primary button text", "#FBF8F0", "#3E6DB5", 4.5],
-  ["night: link (lapis-300) / bg", "#6E9BD8", "#0B0F1A", 4.5],
-  ["night: leaf / bg", "#C9A24B", "#0B0F1A", 4.5],
+  ["night: link (lapis-300) / bg", "#6E9BD8", "#141B2D", 4.5],
+  ["night: leaf / bg", "#C9A24B", "#141B2D", 4.5],
   ["night: danger button text", "#FBF8F0", "#B5514E", 4.5],
-  ["night: focus ring / bg (non-text)", "#6E9BD8", "#0B0F1A", 3],
+  ["night: focus ring / bg (non-text)", "#6E9BD8", "#141B2D", 3],
   ["day: text / bg", "#1B1F2A", "#F4EFE1", 4.5],
   ["day: muted / bg", "#5A6072", "#F4EFE1", 4.5],
   ["day: primary button text", "#FBF8F0", "#33599A", 4.5],
