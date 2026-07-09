@@ -1,53 +1,51 @@
 /* ============================================================
- Barakah.Social — Design tokens (Phase 2.5)
- The single source of truth for color, type, geometry, motion.
+   Barakah.Social — Design tokens (Phase 2.5 FINAL)
+   Single source of truth for the visual layer.
 
- Layers:
-   1. Primitives  (--night-*, --bone-*, --ivory-*, --ink-*,
-                   --lapis-*, --leaf-*, ...) — literal values.
-   2. Semantics   (--background, --foreground, --primary, ...)
-                  — what components consume, in the RGB-triplet
-                  format Tailwind's rgb(var(--x) / <alpha>) needs.
- Night is the default theme and the identity; Day is opt-in via
- [data-theme="day"] on <html>. (.dark is kept as a legacy alias.)
+   COURTYARD (default, :root) — warm limewashed stone, zellij teal,
+   lapis, rare gold leaf. Stepping into a shaded courtyard.
+   DUSK (html[data-theme="dusk"]) — warm pine night, never cold navy.
 
- All text pairs verified WCAG AA (see scripts/contrast-check.mjs).
- ============================================================ */
+   Two vocabularies, one source:
+     - Spec names (--bg, --surface, --ink, --leaf, --clay, --wm-*)
+       for the craft layer and new components.
+     - Legacy triplet names (--background, --foreground, --primary…)
+       in the RGB-triplet format Tailwind's rgb(var(--x) / <alpha>)
+       consumes, so the whole existing app inherits the theme.
+
+   AA verified for both themes: scripts/contrast-check.mjs (CI).
+   NOTE: no @layer here — this file is imported outside the Tailwind
+   pipeline and plain selectors keep the build happy.
+   ============================================================ */
 
 :root {
-  /* ---------- 1. Primitives ---------- */
-  /* Night — deep lapis, lifted for comfortable long reading (never pure black) */
-  --night-900: #141b2d;
-  --night-800: #1c2438;
-  --night-700: #263047;
-  --bone-100: #ece7da;
-  --bone-300: #9aa3b8;
-
-  /* Day — warm ivory anchored to ink + lapis, never clay */
-  --ivory-50: #f4efe1;
-  --ivory-25: #fbf8f0;
-  --ink-900: #1b1f2a;
-  --ink-500: #5a6072;
-
-  /* Identity accents */
-  --lapis-500: #3e6db5;
-  --lapis-300: #6e9bd8;
-  --leaf-500: #c9a24b; /* gold leaf — illumination, not a button color */
-  --verdigris: #2e8b84;
-
-  /* Feedback — muted, never neon */
-  --positive: #4e8c6a;
-  --caution: #c08a3e;
-  --danger: #b5514e;
+  /* ---------- COURTYARD spec tokens ---------- */
+  --bg: #e7decb;            /* warm limewashed stone */
+  --surface: #f1e9d8;       /* raised cards */
+  --surface-sunk: #dcd2bc;  /* inputs, wells */
+  --ink: #2a2620;
+  --ink-muted: #6e6656;
+  --hairline: rgba(42, 38, 32, 0.12);
+  --primary-hex: #1c7f72;   /* zellij teal — the working accent */
+  --primary-contrast: #ffffff;
+  --accent-lapis: #2b5fa6;
+  --leaf: #b0872a;          /* GOLD LEAF — rare moments only */
+  --clay: #b85c43;          /* tile accent ONLY, never a wash */
+  --focus-ring-color: rgba(28, 127, 114, 0.45);
+  --positive: #2e7d6b;
+  --caution: #b0872a;
+  --danger-hex: #b0504c;
+  --wm-stroke: #2a2620;     /* girih watermark */
+  --wm-opacity: 0.07;
 
   /* ---------- Motion (sakina — breath, no overshoot) ---------- */
   --ease-sakina: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
-  --ease-barakah: var(--ease-sakina); /* legacy name; the overshoot curve is retired */
+  --ease-barakah: var(--ease-sakina); /* legacy name; overshoot retired */
   --dur-quick: 180ms;
   --dur-base: 280ms;
   --dur-slow: 420ms;
-  --dur-arrival: 700ms; /* threshold / illumination moments only */
+  --dur-arrival: 800ms; /* shamsa hero ONLY */
   /* legacy names */
   --duration-fast: var(--dur-quick);
   --duration-base: 200ms;
@@ -61,7 +59,7 @@
   --radius-lg: 1rem;
   --radius-xl: 1.25rem;
 
-  /* ---------- Type scale (modular, 1.25) ---------- */
+  /* ---------- Type scale (modular 1.25) + per-script ---------- */
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
   --text-base: 1rem;
@@ -69,150 +67,155 @@
   --text-xl: 1.5625rem;
   --text-2xl: 1.953rem;
   --text-3xl: 2.441rem;
-  /* Arabic runs larger with taller leading at the "same" size */
-  --arabic-scale: 1.18;
+  --arabic-scale: 1.18;   /* Arabic runs larger at the "same" size */
   --leading-latin: 1.6;
   --leading-arabic: 2;
 
-  /* ---------- 2. Semantic layer — NIGHT (default) ---------- */
-  /* RGB triplets for Tailwind rgb(var(--x) / <alpha-value>) */
-  --background: 20 27 45;
-  --background-secondary: 28 36 56;
-  --background-tertiary: 38 48 71;
+  /* ---------- Legacy semantic layer (RGB triplets) ---------- */
+  --background: 231 222 203;            /* --bg */
+  --background-secondary: 241 233 216;  /* --surface */
+  --background-tertiary: 220 210 188;   /* --surface-sunk */
 
-  --foreground: 236 231 218;
-  --foreground-secondary: 154 163 184;
-  --foreground-tertiary: 138 147 168;
-  --foreground-inverse: 27 31 42;
+  --foreground: 42 38 32;               /* --ink */
+  --foreground-secondary: 110 102 86;   /* --ink-muted */
+  --foreground-tertiary: 100 92 76;
+  --foreground-inverse: 241 233 216;
 
-  --card: 28 36 56;
-  --card-foreground: 236 231 218;
-  --popover: 38 48 71;
-  --popover-foreground: 236 231 218;
-  --muted: 38 48 71;
-  --muted-foreground: 154 163 184;
+  --card: 241 233 216;
+  --card-foreground: 42 38 32;
+  --popover: 248 242 229;
+  --popover-foreground: 42 38 32;
+  --muted: 220 210 188;
+  --muted-foreground: 110 102 86;
 
-  --primary: 62 109 181; /* lapis-500 */
-  --primary-foreground: 251 248 240;
-  --secondary: 201 162 75; /* leaf — rare */
-  --secondary-foreground: 27 31 42;
-  --accent: 62 109 181;
-  --accent-foreground: 251 248 240;
-  --destructive: 181 81 78;
-  --destructive-foreground: 251 248 240;
+  --primary: 28 127 114;                /* zellij teal */
+  --primary-foreground: 255 255 255;
+  --secondary: 176 135 42;              /* leaf — rare marks, not buttons */
+  --secondary-foreground: 42 38 32;
+  --accent: 28 127 114;
+  --accent-foreground: 255 255 255;
+  --destructive: 176 80 76;
+  --destructive-foreground: 255 255 255;
 
-  --border: 49 58 80; /* hairline on night */
-  --border-medium: 62 72 96;
-  --border-dark: 88 98 124;
-  --input: 49 58 80;
-  --ring: 110 155 216; /* lapis-300 — visible on night */
+  --border: 208 200 182;                /* --hairline, pre-blended */
+  --border-medium: 190 181 161;
+  --border-dark: 160 150 128;
+  --input: 220 210 188;
+  --ring: 28 127 114;
 
-  /* Named semantics (new components) */
-  --surface: var(--night-900);
-  --surface-raised: var(--night-800);
-  --surface-lifted: var(--night-700);
-  --text-color: var(--bone-100);
-  --text-muted-color: var(--bone-300);
-  --accent-rare: var(--leaf-500); /* used deliberately, sparingly */
-  --focus-ring: 0 0 0 2px rgb(20 27 45), 0 0 0 4px rgb(110 155 216 / 0.9);
-  --glow: 0 0 22px rgb(62 109 181 / 0.3);
-  --glow-leaf: 0 0 18px rgb(201 162 75 / 0.25);
+  /* Named semantics for the craft layer */
+  --accent-rare: var(--leaf);
+  --focus-ring: 0 0 0 2px rgb(231 222 203), 0 0 0 4px var(--focus-ring-color);
+  --glow: 0 0 18px rgba(28, 127, 114, 0.16);
+  --glow-leaf: 0 0 14px rgba(176, 135, 42, 0.22);
 
-  /* Lapis ramp (replaces the old teal "--color-primary-*") */
-  --color-primary-50: 239 244 251;
-  --color-primary-100: 220 231 246;
-  --color-primary-200: 189 209 236;
-  --color-primary-300: 110 155 216;
-  --color-primary-400: 84 128 196;
-  --color-primary-500: 62 109 181;
-  --color-primary-600: 51 89 154;
-  --color-primary-700: 42 74 128;
-  --color-primary-800: 34 58 102;
-  --color-primary-900: 26 44 78;
+  /* Teal ramp (working accent) */
+  --color-primary-50: 230 242 240;
+  --color-primary-100: 199 228 223;
+  --color-primary-200: 150 204 196;
+  --color-primary-300: 98 176 165;
+  --color-primary-400: 59 151 138;
+  --color-primary-500: 28 127 114;
+  --color-primary-600: 23 104 94;
+  --color-primary-700: 18 82 74;
+  --color-primary-800: 13 61 55;
+  --color-primary-900: 9 42 38;
 
-  /* Leaf ramp (replaces the old amber "--color-secondary-*") */
-  --color-secondary-50: 250 245 232;
-  --color-secondary-100: 242 231 200;
-  --color-secondary-200: 229 208 149;
-  --color-secondary-300: 216 188 110;
-  --color-secondary-400: 208 175 91;
-  --color-secondary-500: 201 162 75;
-  --color-secondary-600: 169 133 56;
-  --color-secondary-700: 134 104 43;
-  --color-secondary-800: 101 78 32;
-  --color-secondary-900: 69 53 22;
+  /* Leaf ramp (illumination) */
+  --color-secondary-50: 247 241 225;
+  --color-secondary-100: 237 224 189;
+  --color-secondary-200: 221 199 138;
+  --color-secondary-300: 204 173 88;
+  --color-secondary-400: 190 154 63;
+  --color-secondary-500: 176 135 42;
+  --color-secondary-600: 146 112 34;
+  --color-secondary-700: 115 88 25;
+  --color-secondary-800: 86 66 19;
+  --color-secondary-900: 58 44 12;
 
-  --color-success: 78 140 106;
-  --color-warning: 192 138 62;
-  --color-error: 181 81 78;
-  --color-info: 110 155 216;
+  --color-success: 46 125 107;
+  --color-warning: 146 112 34;  /* caution as TEXT uses leaf-600 for AA */
+  --color-error: 176 80 76;
+  --color-info: 43 95 166;      /* lapis */
 
-  /* Soft, warm elevation — night casts deeper */
-  --shadow-sm: 0 1px 2px 0 rgb(4 6 12 / 0.4);
-  --shadow: 0 1px 3px 0 rgb(4 6 12 / 0.45), 0 1px 2px -1px rgb(4 6 12 / 0.4);
-  --shadow-md: 0 4px 10px -2px rgb(4 6 12 / 0.45), 0 2px 4px -2px rgb(4 6 12 / 0.4);
-  --shadow-lg: 0 10px 24px -4px rgb(4 6 12 / 0.5), 0 4px 8px -4px rgb(4 6 12 / 0.4);
-  --shadow-xl: 0 20px 40px -8px rgb(4 6 12 / 0.55), 0 8px 12px -6px rgb(4 6 12 / 0.4);
-}
+  /* Soft warm elevation */
+  --shadow-sm: 0 1px 2px 0 rgba(58, 48, 30, 0.07);
+  --shadow: 0 1px 3px 0 rgba(58, 48, 30, 0.09), 0 1px 2px -1px rgba(58, 48, 30, 0.07);
+  --shadow-md: 0 4px 10px -2px rgba(58, 48, 30, 0.1), 0 2px 4px -2px rgba(58, 48, 30, 0.07);
+  --shadow-lg: 0 10px 24px -4px rgba(58, 48, 30, 0.12), 0 4px 8px -4px rgba(58, 48, 30, 0.08);
+  --shadow-xl: 0 20px 40px -8px rgba(58, 48, 30, 0.14), 0 8px 12px -6px rgba(58, 48, 30, 0.09);
 
-/* ---------- Semantic layer — DAY ---------- */
-[data-theme="day"] {
-  --background: 244 239 225;
-  --background-secondary: 251 248 240;
-  --background-tertiary: 255 253 248;
-
-  --foreground: 27 31 42;
-  --foreground-secondary: 90 96 114;
-  --foreground-tertiary: 122 128 146;
-  --foreground-inverse: 236 231 218;
-
-  --card: 251 248 240;
-  --card-foreground: 27 31 42;
-  --popover: 255 253 248;
-  --popover-foreground: 27 31 42;
-  --muted: 236 230 214;
-  --muted-foreground: 90 96 114;
-
-  --primary: 51 89 154; /* lapis-600 — AA on ivory */
-  --primary-foreground: 251 248 240;
-  --secondary: 134 104 43; /* leaf-700 — gold reads darker on ivory, as real leaf does */
-  --secondary-foreground: 251 248 240;
-  --accent: 51 89 154;
-  --accent-foreground: 251 248 240;
-  --destructive: 181 81 78;
-  --destructive-foreground: 251 248 240;
-
-  --border: 223 216 200;
-  --border-medium: 206 198 180;
-  --border-dark: 168 160 142;
-  --input: 223 216 200;
-  --ring: 62 109 181;
-
-  --surface: var(--ivory-50);
-  --surface-raised: var(--ivory-25);
-  --surface-lifted: #fffdf8;
-  --text-color: var(--ink-900);
-  --text-muted-color: var(--ink-500);
-  --focus-ring: 0 0 0 2px rgb(244 239 225), 0 0 0 4px rgb(62 109 181 / 0.9);
-  --glow: 0 0 18px rgb(62 109 181 / 0.18);
-  --glow-leaf: 0 0 14px rgb(201 162 75 / 0.22);
-  --accent-rare: #86682b; /* leaf-700 on day */
-
-  --shadow-sm: 0 1px 2px 0 rgb(43 38 24 / 0.06);
-  --shadow: 0 1px 3px 0 rgb(43 38 24 / 0.08), 0 1px 2px -1px rgb(43 38 24 / 0.06);
-  --shadow-md: 0 4px 10px -2px rgb(43 38 24 / 0.08), 0 2px 4px -2px rgb(43 38 24 / 0.06);
-  --shadow-lg: 0 10px 24px -4px rgb(43 38 24 / 0.1), 0 4px 8px -4px rgb(43 38 24 / 0.06);
-  --shadow-xl: 0 20px 40px -8px rgb(43 38 24 / 0.12), 0 8px 12px -6px rgb(43 38 24 / 0.08);
-}
-
-/* Legacy alias: anything that toggles .dark gets Night (already the default). */
-.dark {
-  color-scheme: dark;
-}
-
-:root {
-  color-scheme: dark;
-}
-[data-theme="day"] {
   color-scheme: light;
+}
+
+/* ============================================================
+   DUSK — optional night. Warm pine, NOT cold navy.
+   ============================================================ */
+html[data-theme="dusk"] {
+  --bg: #14231f;
+  --surface: #1d2e28;
+  --surface-sunk: #101b18;
+  --ink: #ece3d0;
+  --ink-muted: #93a199;
+  --hairline: rgba(236, 227, 208, 0.1);
+  --primary-hex: #2fa58f;
+  --primary-contrast: #0c1a16;
+  --accent-lapis: #5a8fc9;
+  --leaf: #cba24b;
+  --clay: #c4614a;
+  --focus-ring-color: rgba(47, 165, 143, 0.5);
+  --positive: #3fa588;
+  --caution: #cba24b;
+  --danger-hex: #c56663;
+  --wm-stroke: #ece3d0;
+  --wm-opacity: 0.1;
+
+  --background: 20 35 31;
+  --background-secondary: 29 46 40;
+  --background-tertiary: 36 55 47;
+
+  --foreground: 236 227 208;
+  --foreground-secondary: 147 161 153;
+  --foreground-tertiary: 132 146 138;
+  --foreground-inverse: 42 38 32;
+
+  --card: 29 46 40;
+  --card-foreground: 236 227 208;
+  --popover: 36 55 47;
+  --popover-foreground: 236 227 208;
+  --muted: 29 46 40;
+  --muted-foreground: 147 161 153;
+
+  --primary: 47 165 143;
+  --primary-foreground: 12 26 22;
+  --secondary: 203 162 75;
+  --secondary-foreground: 20 35 31;
+  --accent: 47 165 143;
+  --accent-foreground: 12 26 22;
+  --destructive: 197 102 99;
+  --destructive-foreground: 255 255 255;
+
+  --border: 50 64 57;
+  --border-medium: 66 80 72;
+  --border-dark: 90 104 96;
+  --input: 16 27 24;
+  --ring: 47 165 143;
+
+  --accent-rare: var(--leaf);
+  --focus-ring: 0 0 0 2px rgb(20 35 31), 0 0 0 4px var(--focus-ring-color);
+  --glow: 0 0 18px rgba(47, 165, 143, 0.2);
+  --glow-leaf: 0 0 14px rgba(203, 162, 75, 0.22);
+
+  --color-success: 63 165 136;
+  --color-warning: 203 162 75;
+  --color-error: 197 102 99;
+  --color-info: 90 143 201;
+
+  --shadow-sm: 0 1px 2px 0 rgba(5, 10, 8, 0.4);
+  --shadow: 0 1px 3px 0 rgba(5, 10, 8, 0.45), 0 1px 2px -1px rgba(5, 10, 8, 0.4);
+  --shadow-md: 0 4px 10px -2px rgba(5, 10, 8, 0.45), 0 2px 4px -2px rgba(5, 10, 8, 0.4);
+  --shadow-lg: 0 10px 24px -4px rgba(5, 10, 8, 0.5), 0 4px 8px -4px rgba(5, 10, 8, 0.4);
+  --shadow-xl: 0 20px 40px -8px rgba(5, 10, 8, 0.55), 0 8px 12px -6px rgba(5, 10, 8, 0.4);
+
+  color-scheme: dark;
 }

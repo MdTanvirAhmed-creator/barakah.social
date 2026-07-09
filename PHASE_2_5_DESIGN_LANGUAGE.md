@@ -1,3 +1,33 @@
+# Phase 2.5 — The design foundation (FINAL)
+
+> **Superseded brief note:** the dark-first "night manuscript" system below
+> was replaced on 2026-07-09 by the FINAL design foundation: **Courtyard**
+> (warm limewashed stone) is the default theme, **Dusk** (warm pine) is the
+> user-toggled night mode, and the craft layer (girih watermark, tazhib
+> corners, gold-leaf marks, two-mode shamsa) carries the identity.
+> Current source of truth: `src/styles/tokens.css`, `src/components/ui/girih.tsx`,
+> `/style`. Key facts:
+>
+> - Themes: `:root` = Courtyard; `html[data-theme="dusk"]` = Dusk; `bk-theme`
+>   cookie persists (SSR sets the attribute — no flash); `generateViewport`
+>   sets theme-color per theme (stone / pine).
+> - Shamsa: one component, two modes. `mode="hero"` blooms ONCE (~800ms,
+>   gold core) only at the first-open welcome (`WelcomeShamsa`, gated on
+>   empty feed + `bk-welcome-seen` localStorage key; dev preview
+>   `/feed?preview=welcome`, non-production). `mode="loader"` is the quiet
+>   everyday indicator (teal, no gold, slow turn) — every legacy loader
+>   alias inherits it.
+> - Craft: `.girih-bg` watermark utility (masked tile, themed via
+>   `--wm-stroke`/`--wm-opacity`), `TazhibCorner` (RTL-mirroring),
+>   `GoldDiamond` (shared leaf mark), `IlluminatedDivider`, `GirihEmptyState`.
+> - Motion: ambient baseline everywhere (`rise-in`, `rise-stagger`, route
+>   template, card lift, button press) at 180–280ms; spectacle only in the
+>   hero (800ms). Reduced motion collapses everything.
+> - AA verified both themes: `scripts/contrast-check.mjs`; adab grep:
+>   `scripts/adab-check.sh` (both in CI).
+
+---
+
 # Phase 2.5 — The design language
 
 Sakina: a quiet courtyard after the noisy street. Night — a dark,

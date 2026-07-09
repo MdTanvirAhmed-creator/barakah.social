@@ -520,67 +520,129 @@
 }
 
 /* ============================================ */
-/* Shamsa loader animation (see ui/girih.tsx)   */
-/* Static state is FULL BLOOM, so reduced       */
-/* motion shows the finished medallion.         */
+/* Craft layer: girih watermark, shamsa, gold    */
 /* ============================================ */
 
-.shamsa-petal {
+/* Girih watermark utility — the tile is a mask, so colour/opacity come
+   from --wm-stroke/--wm-opacity per theme. Texture only, never a loader. */
+.girih-bg {
+  background-color: var(--wm-stroke);
+  opacity: var(--wm-opacity);
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Cg fill='none' stroke='%23000' stroke-width='1'%3E%3Cpolygon points='32,3 61,32 32,61 3,32'/%3E%3Crect x='11' y='11' width='42' height='42'/%3E%3C/g%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Cg fill='none' stroke='%23000' stroke-width='1'%3E%3Cpolygon points='32,3 61,32 32,61 3,32'/%3E%3Crect x='11' y='11' width='42' height='42'/%3E%3C/g%3E%3C/svg%3E");
+  -webkit-mask-repeat: repeat;
+  mask-repeat: repeat;
+  -webkit-mask-size: 64px 64px;
+  mask-size: 64px 64px;
+}
+
+/* Shamsa HERO — the welcome bloom. Plays once (~800ms), fill both.
+   Under reduced motion the global rule collapses durations, leaving the
+   finished bloom. */
+.shamsa-hero-petal {
   transform-origin: 100px 100px;
   transform-box: view-box;
-  animation: shamsa-bloom 4s var(--ease-sakina) infinite;
+  animation: shamsa-hero-bloom 500ms var(--ease-sakina) both;
 }
-.shamsa-rays {
+.shamsa-hero-rays {
   transform-origin: 100px 100px;
   transform-box: view-box;
-  animation: shamsa-rays 4s var(--ease-sakina) infinite;
+  animation: shamsa-hero-rays var(--dur-arrival) var(--ease-sakina) both;
 }
-.shamsa-core {
+.shamsa-hero-core {
   transform-origin: 100px 100px;
   transform-box: view-box;
-  animation: shamsa-core 4s var(--ease-sakina) infinite;
+  animation: shamsa-hero-core 650ms var(--ease-sakina) 150ms both;
 }
-.shamsa-halo {
-  animation: shamsa-halo 4s var(--ease-sakina) infinite;
+.shamsa-hero-halo {
+  animation: shamsa-hero-halo var(--dur-arrival) var(--ease-sakina) 100ms both;
+}
+@keyframes shamsa-hero-bloom {
+  from { transform: scale(0); opacity: 0; }
+  to { transform: scale(1); opacity: 0.95; }
+}
+@keyframes shamsa-hero-rays {
+  0% { opacity: 0; transform: scale(0.88); }
+  65% { opacity: 0.6; }
+  100% { opacity: 0.5; transform: scale(1); }
+}
+@keyframes shamsa-hero-core {
+  0% { transform: scale(0.2); opacity: 0; }
+  70% { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes shamsa-hero-halo {
+  from { opacity: 0; }
+  to { opacity: 0.35; }
+}
+
+/* Shamsa LOADER — quiet, cheap, repeatable. A slow turn; static when
+   motion is reduced. */
+.shamsa-loader-turn {
+  transform-origin: 100px 100px;
+  transform-box: view-box;
+  animation: shamsa-turn 7s linear infinite;
+}
+@keyframes shamsa-turn {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shamsa-loader-turn { animation: none; }
+}
+
+/* Gold catches light once on load — never loops */
+.gold-catch {
+  animation: gold-catch 900ms var(--ease-sakina) 300ms 1 both;
 }
 .leaf-moment {
   background: linear-gradient(
     100deg,
-    rgb(201 162 75 / 0.1) 40%,
-    rgb(201 162 75 / 0.28) 50%,
-    rgb(201 162 75 / 0.1) 60%
+    color-mix(in srgb, var(--leaf) 10%, transparent) 40%,
+    color-mix(in srgb, var(--leaf) 26%, transparent) 50%,
+    color-mix(in srgb, var(--leaf) 10%, transparent) 60%
   );
   background-size: 220% 100%;
   animation: leaf-shimmer 2.2s var(--ease-sakina) 0.4s 1 both;
 }
-
-@keyframes shamsa-bloom {
-  0% { transform: scale(0); opacity: 0; }
-  38% { transform: scale(1); opacity: 0.95; }
-  85% { transform: scale(1); opacity: 0.95; }
-  100% { transform: scale(1); opacity: 0; }
-}
-@keyframes shamsa-rays {
-  0%, 30% { opacity: 0; transform: scale(0.86); }
-  55% { opacity: 0.55; transform: scale(1); }
-  85% { opacity: 0.55; }
-  100% { opacity: 0; }
-}
-@keyframes shamsa-core {
-  0% { transform: scale(0.3); opacity: 0; }
-  25% { transform: scale(1); opacity: 1; }
-  60% { transform: scale(1.1); }
-  85% { transform: scale(1); opacity: 1; }
-  100% { transform: scale(1); opacity: 0; }
-}
-@keyframes shamsa-halo {
-  0%, 20% { opacity: 0; }
-  45% { opacity: 0.42; }
-  70% { opacity: 0.18; }
-  85% { opacity: 0.35; }
-  100% { opacity: 0; }
+@keyframes gold-catch {
+  0% { filter: brightness(1); }
+  40% { filter: brightness(1.4); }
+  100% { filter: brightness(1); }
 }
 @keyframes leaf-shimmer {
   from { background-position: 160% 0; }
   to { background-position: -60% 0; }
+}
+
+/* ============================================ */
+/* Ambient motion baseline (spec §7)            */
+/* Present everywhere, calm, 180–280ms, never   */
+/* blocking. Spectacle lives in the hero only.  */
+/* ============================================ */
+
+.rise-in {
+  animation: rise-in var(--dur-base) var(--ease-sakina) both;
+}
+.rise-stagger > * {
+  animation: rise-in var(--dur-base) var(--ease-sakina) both;
+}
+.rise-stagger > *:nth-child(2) { animation-delay: 40ms; }
+.rise-stagger > *:nth-child(3) { animation-delay: 80ms; }
+.rise-stagger > *:nth-child(4) { animation-delay: 120ms; }
+.rise-stagger > *:nth-child(5) { animation-delay: 160ms; }
+.rise-stagger > *:nth-child(n + 6) { animation-delay: 200ms; }
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+a {
+  transition: color var(--dur-quick) var(--ease-sakina);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise-in,
+  .rise-stagger > * {
+    animation: none;
+  }
 }

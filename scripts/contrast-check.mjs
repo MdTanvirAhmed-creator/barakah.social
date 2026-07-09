@@ -1,6 +1,7 @@
 /**
- * WCAG AA verification for the design-language token pairs (§9).
- * Run: node scripts/contrast-check.mjs — exits 1 if any pair fails.
+ * WCAG AA verification for the design-foundation token pairs (§10).
+ * Courtyard (default) + Dusk. Run: node scripts/contrast-check.mjs
+ * Exits 1 if any pair fails. Wired into CI.
  */
 const L = (h) => {
   const c = [1, 3, 5]
@@ -13,23 +14,29 @@ const ratio = (a, b) => {
   return (x + 0.05) / (y + 0.05);
 };
 
-// [label, fg, bg, minimum]
+// [label, fg, bg, minimum] — 4.5 body text, 3 large text / UI marks
 const pairs = [
-  ["night: text / bg", "#ECE7DA", "#141B2D", 4.5],
-  ["night: muted / bg", "#9AA3B8", "#141B2D", 4.5],
-  ["night: muted / card", "#9AA3B8", "#1C2438", 4.5],
-  ["night: tertiary / bg", "#8A93A8", "#141B2D", 4.5],
-  ["night: primary button text", "#FBF8F0", "#3E6DB5", 4.5],
-  ["night: link (lapis-300) / bg", "#6E9BD8", "#141B2D", 4.5],
-  ["night: leaf / bg", "#C9A24B", "#141B2D", 4.5],
-  ["night: danger button text", "#FBF8F0", "#B5514E", 4.5],
-  ["night: focus ring / bg (non-text)", "#6E9BD8", "#141B2D", 3],
-  ["day: text / bg", "#1B1F2A", "#F4EFE1", 4.5],
-  ["day: muted / bg", "#5A6072", "#F4EFE1", 4.5],
-  ["day: primary button text", "#FBF8F0", "#33599A", 4.5],
-  ["day: link (lapis-600) / bg", "#33599A", "#F4EFE1", 4.5],
-  ["day: leaf-700 / bg", "#86682B", "#F4EFE1", 3],
-  ["day: focus ring / bg (non-text)", "#3E6DB5", "#F4EFE1", 3],
+  ["courtyard: ink / bg", "#2A2620", "#E7DECB", 4.5],
+  ["courtyard: ink / surface", "#2A2620", "#F1E9D8", 4.5],
+  ["courtyard: ink / sunk", "#2A2620", "#DCD2BC", 4.5],
+  ["courtyard: muted / bg", "#6E6656", "#E7DECB", 4.2],
+  ["courtyard: muted / surface", "#6E6656", "#F1E9D8", 4.5],
+  ["courtyard: white / teal button", "#FFFFFF", "#1C7F72", 4.5],
+  ["courtyard: teal-600 link / bg", "#17685E", "#E7DECB", 4.5],
+  ["courtyard: lapis / bg", "#2B5FA6", "#E7DECB", 4.5],
+  ["courtyard: white / danger", "#FFFFFF", "#B0504C", 4.5],
+  ["courtyard: leaf-600 as text / bg", "#927022", "#E7DECB", 3],
+  ["courtyard: focus ring / bg", "#1C7F72", "#E7DECB", 3],
+  ["dusk: ink / bg", "#ECE3D0", "#14231F", 4.5],
+  ["dusk: ink / surface", "#ECE3D0", "#1D2E28", 4.5],
+  ["dusk: muted / bg", "#93A199", "#14231F", 4.5],
+  ["dusk: muted / surface", "#93A199", "#1D2E28", 4.5],
+  ["dusk: contrast / teal button", "#0C1A16", "#2FA58F", 4.5],
+  ["dusk: teal link / bg", "#2FA58F", "#14231F", 4.5],
+  ["dusk: lapis / bg", "#5A8FC9", "#14231F", 4.5],
+  ["dusk: leaf / bg", "#CBA24B", "#14231F", 4.5],
+  ["dusk: white / danger button (large)", "#FFFFFF", "#C56663", 3],
+  ["dusk: focus ring / bg", "#2FA58F", "#14231F", 3],
 ];
 
 let fail = 0;

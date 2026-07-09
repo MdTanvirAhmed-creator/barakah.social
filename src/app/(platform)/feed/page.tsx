@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { Suspense } from "react";
 import { PostComposer } from "@/components/feed/PostComposer";
+import { WelcomeShamsa } from "@/components/feed/WelcomeShamsa";
 import { FeedList } from "@/components/feed/FeedList";
 import { DailyCompanionCard } from "@/components/feed/DailyCompanionCard";
 import { createClient } from "@/lib/supabase/client";
@@ -169,6 +171,11 @@ export default function FeedPage() {
               </p>
             </div>
           </div>
+
+          {/* First-open welcome (spec §12) — real gate + dev preview flag */}
+          <Suspense fallback={null}>
+            <WelcomeShamsa />
+          </Suspense>
 
           {/* Post Composer */}
           <PostComposer onPostCreated={handlePostCreated} />

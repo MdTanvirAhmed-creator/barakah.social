@@ -64,13 +64,19 @@ export const metadata: Metadata = {
   },
 };
 
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 5,
-  userScalable: true,
-  themeColor: "#141B2D", /* night-900 — Night is the default identity */
-};
+export async function generateViewport(): Promise<Viewport> {
+  const cookieStore = await cookies();
+  const raw = cookieStore.get("bk-theme")?.value;
+  const dusk = raw === "dusk" || raw === "night";
+  return {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 5,
+    userScalable: true,
+    /* PWA chrome follows the theme: stone for Courtyard, pine for Dusk */
+    themeColor: dusk ? "#14231F" : "#E7DECB",
+  };
+}
 
 export default async function RootLayout({
   children,
@@ -78,14 +84,17 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const cookieStore = await cookies();
-  const theme = cookieStore.get("bk-theme")?.value === "day" ? "day" : "night";
+  // Courtyard is the default; Dusk is the user-toggled night mode.
+  // (legacy cookie values "night"/"day" map to dusk/courtyard)
+  const raw = cookieStore.get("bk-theme")?.value;
+  const theme = raw === "dusk" || raw === "night" ? "dusk" : "courtyard";
   const locale = cookieStore.get("bk-locale")?.value === "ar" ? "ar" : "en";
   const dir = locale === "ar" ? "rtl" : "ltr";
   return (
     <html
       lang={locale}
       dir={dir}
-      data-theme={theme === "day" ? "day" : undefined}
+      data-theme={theme === "dusk" ? "dusk" : undefined}
       suppressHydrationWarning
     >
       <head>

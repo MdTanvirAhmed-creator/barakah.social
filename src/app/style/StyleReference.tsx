@@ -7,28 +7,30 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  GirihLoader,
+  Shamsa,
+  GirihPattern,
+  TazhibCorner,
+  GoldDiamond,
   IlluminatedDivider,
   GirihEmptyState,
-  GirihPattern,
   LeafMoment,
 } from "@/components/ui/girih";
 import { QuranText } from "@/components/ui/QuranText";
 import { useToast } from "@/hooks/useToast";
 
-const NIGHT_SWATCHES = [
-  { name: "night-900 · bg", cls: "bg-background border border-border" },
-  { name: "night-800 · surface", cls: "bg-background-secondary" },
-  { name: "night-700 · lifted", cls: "bg-background-tertiary" },
-  { name: "bone-100 · text", cls: "bg-[#ECE7DA]" },
-  { name: "bone-300 · muted", cls: "bg-[#9AA3B8]" },
-  { name: "lapis-500 · primary", cls: "bg-primary-500" },
-  { name: "lapis-300 · ring", cls: "bg-primary-300" },
-  { name: "leaf-500 · rare", cls: "bg-secondary-500" },
-  { name: "verdigris", cls: "bg-[#2E8B84]" },
-  { name: "positive", cls: "bg-success-500" },
-  { name: "caution", cls: "bg-warning-500" },
-  { name: "danger", cls: "bg-error-500" },
+const SWATCHES = [
+  { name: "bg · stone", style: { background: "var(--bg)", border: "1px solid var(--hairline)" } },
+  { name: "surface", style: { background: "var(--surface)", border: "1px solid var(--hairline)" } },
+  { name: "surface-sunk", style: { background: "var(--surface-sunk)" } },
+  { name: "ink", style: { background: "var(--ink)" } },
+  { name: "ink-muted", style: { background: "var(--ink-muted)" } },
+  { name: "primary · teal", style: { background: "var(--primary-hex)" } },
+  { name: "lapis", style: { background: "var(--accent-lapis)" } },
+  { name: "leaf · rare", style: { background: "var(--leaf)" } },
+  { name: "clay · tile only", style: { background: "var(--clay)" } },
+  { name: "positive", style: { background: "var(--positive)" } },
+  { name: "caution", style: { background: "var(--caution)" } },
+  { name: "danger", style: { background: "var(--danger-hex)" } },
 ];
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -44,18 +46,19 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export function StyleReference() {
   const { success } = useToast();
-  const [theme, setTheme] = useState<"night" | "day">(() =>
-    typeof document !== "undefined" && document.documentElement.dataset.theme === "day"
-      ? "day"
-      : "night"
+  const [theme, setTheme] = useState<"courtyard" | "dusk">(() =>
+    typeof document !== "undefined" && document.documentElement.dataset.theme === "dusk"
+      ? "dusk"
+      : "courtyard"
   );
   const [dir, setDir] = useState<"ltr" | "rtl">(() =>
     typeof document !== "undefined" && document.documentElement.dir === "rtl" ? "rtl" : "ltr"
   );
+  const [heroKey, setHeroKey] = useState(0);
 
-  const applyTheme = useCallback((t: "night" | "day") => {
+  const applyTheme = useCallback((t: "courtyard" | "dusk") => {
     setTheme(t);
-    if (t === "day") document.documentElement.dataset.theme = "day";
+    if (t === "dusk") document.documentElement.dataset.theme = "dusk";
     else delete document.documentElement.dataset.theme;
     document.cookie = `bk-theme=${t};path=/;max-age=31536000`;
   }, []);
@@ -73,28 +76,26 @@ export function StyleReference() {
         <header className="mb-12">
           <div className="flex items-start justify-between gap-6 flex-wrap">
             <div>
-              <h1 className="font-display text-3xl font-medium">
-                The design language
-              </h1>
+              <h1 className="font-display text-3xl font-medium">The courtyard</h1>
               <p className="mt-2 text-foreground-secondary max-w-md">
-                Sakina — a quiet courtyard after the noisy street. Every
-                component in Phases 3–8 inherits from this page.
+                Sakina — warm limewashed stone, zellij teal, rare gold leaf.
+                Every surface in Phases 3–8 inherits from this page.
               </p>
             </div>
             <div className="flex gap-2">
               <Button
-                variant={theme === "night" ? "default" : "quiet"}
+                variant={theme === "courtyard" ? "default" : "quiet"}
                 size="sm"
-                onClick={() => applyTheme("night")}
+                onClick={() => applyTheme("courtyard")}
               >
-                Night
+                Courtyard
               </Button>
               <Button
-                variant={theme === "day" ? "default" : "quiet"}
+                variant={theme === "dusk" ? "default" : "quiet"}
                 size="sm"
-                onClick={() => applyTheme("day")}
+                onClick={() => applyTheme("dusk")}
               >
-                Day
+                Dusk
               </Button>
               <Button
                 variant={dir === "rtl" ? "default" : "quiet"}
@@ -107,19 +108,119 @@ export function StyleReference() {
           </div>
         </header>
 
-        <Section title="Palette — night, bone, lapis, leaf">
+        <Section title="Palette — stone, ink, tile, leaf">
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
-            {NIGHT_SWATCHES.map((s) => (
+            {SWATCHES.map((s) => (
               <div key={s.name}>
-                <div className={`h-12 rounded-[var(--radius)] ${s.cls}`} />
+                <div className="h-12 rounded-[var(--radius)]" style={s.style} />
                 <div className="mt-1.5 text-xs text-foreground-secondary">{s.name}</div>
               </div>
             ))}
           </div>
           <p className="mt-4 text-sm text-foreground-secondary max-w-prose">
-            Gold leaf is illumination, not a button color — it marks rare,
-            meaningful moments. Components reference semantic tokens only.
+            Teal is the working accent; gold leaf marks rare moments; clay is a
+            tile accent, never a wash. Components reference semantic tokens only.
           </p>
+        </Section>
+
+        <Section title="The specimen card — watermark, tazhib, gold diamond, teal action">
+          <div className="relative bg-card border border-border rounded-lg p-6 overflow-hidden max-w-xl">
+            <GirihPattern />
+            <TazhibCorner corner="top-end" size={38} />
+            <div className="relative flex items-start gap-4">
+              <GoldDiamond size={10} shimmer className="mt-1.5" />
+              <div className="flex-1">
+                <h3 className="font-display text-lg font-medium mb-2 text-foreground">
+                  Question of the week
+                </h3>
+                <p className="text-foreground-secondary mb-4">
+                  How can we maintain sincerity (ikhlas) in our acts of worship
+                  in the age of social media?
+                </p>
+                <Button size="sm" onClick={() => success("Thought shared")}>
+                  Share your thoughts
+                </Button>
+              </div>
+            </div>
+          </div>
+        </Section>
+
+        <Section title="The shamsa — hero (welcome, once) and loader (everyday, quiet)">
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div className="relative rounded-lg border border-border bg-card p-6 text-center overflow-hidden">
+              <GirihPattern />
+              <div className="relative">
+                <Shamsa mode="hero" key={heroKey} size="hero" />
+                <p className="text-sm text-foreground-secondary mt-3 mb-4">
+                  mode=&quot;hero&quot; — twelve petals unfold once (~800ms),
+                  the gold core settles. Welcome only.
+                </p>
+                <Button variant="quiet" size="sm" onClick={() => setHeroKey((k) => k + 1)}>
+                  Replay bloom
+                </Button>
+              </div>
+            </div>
+            <div className="rounded-lg border border-border bg-card p-6 text-center">
+              <div className="flex items-end justify-center gap-6 mt-6">
+                <Shamsa mode="loader" size="sm" />
+                <Shamsa mode="loader" size="md" />
+                <Shamsa mode="loader" size="lg" />
+              </div>
+              <p className="text-sm text-foreground-secondary mt-6">
+                mode=&quot;loader&quot; — a minimal medallion turning slowly in
+                teal. No gold, no bloom; static under reduced motion. This is
+                what every loading surface inherits.
+              </p>
+            </div>
+          </div>
+          <p className="mt-3 text-xs text-foreground-secondary">
+            Dev preview: <code>/feed?preview=welcome</code> (non-production builds).
+            Reset the real gate: <code>localStorage.removeItem(&quot;bk-welcome-seen&quot;)</code>.
+          </p>
+        </Section>
+
+        <Section title="Buttons — teal works, gold illuminates">
+          <div className="flex flex-wrap items-center gap-3">
+            <Button>Send request</Button>
+            <Button variant="quiet">Decline</Button>
+            <Button variant="ghost">Cancel</Button>
+            <Button variant="destructive">Block</Button>
+            <Button disabled>Disabled</Button>
+            <Button variant="link">Learn more</Button>
+          </div>
+          <p className="mt-3 text-sm text-foreground-secondary">
+            Focus ring is always visible — tab through. Tap targets ≥ 44px.
+            Buttons press down on tap; cards lift on hover.
+          </p>
+        </Section>
+
+        <Section title="Inputs">
+          <div className="grid gap-4 max-w-sm">
+            <Input placeholder="Search by username or name…" />
+            <Input value="Focused state (tab to me)" readOnly />
+            <Input disabled placeholder="Disabled" />
+          </div>
+        </Section>
+
+        <Section title="Card, badge, avatar, skeleton">
+          <div className="rounded-[var(--radius-md)] border border-border bg-card p-5 max-w-md shadow-sm">
+            <div className="flex items-center gap-3">
+              <Avatar>
+                <AvatarFallback>AB</AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <div className="font-medium">Card title</div>
+                <div className="text-sm text-foreground-secondary">
+                  Raised surface, hairline border, soft warm shadow.
+                </div>
+              </div>
+              <Badge>Badge</Badge>
+            </div>
+            <div className="mt-4 space-y-2">
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+            </div>
+          </div>
         </Section>
 
         <Section title="Type — Latin">
@@ -159,69 +260,6 @@ export function StyleReference() {
           </QuranText>
         </Section>
 
-        <Section title="The loader — a shamsa unfolding (light, not a spinner)">
-          <div className="flex items-end gap-10">
-            <GirihLoader size="sm" />
-            <GirihLoader size="md" />
-            <GirihLoader size="lg" />
-            <p className="text-sm text-foreground-secondary max-w-[26ch]">
-              The radiant medallion of manuscript frontispieces blooms open,
-              rays breathe, a gold core settles. Under reduced motion it
-              renders fully bloomed and still.
-            </p>
-          </div>
-        </Section>
-
-        <Section title="Buttons — quiet by default, light where earned">
-          <div className="flex flex-wrap items-center gap-3">
-            <Button>Send request</Button>
-            <Button variant="quiet">Decline</Button>
-            <Button variant="ghost">Cancel</Button>
-            <Button variant="destructive">Block</Button>
-            <Button disabled>Disabled</Button>
-            <Button variant="link">Learn more</Button>
-          </div>
-          <p className="mt-3 text-sm text-foreground-secondary">
-            Focus ring is a lapis glow — tab through to see it. Tap targets
-            are 44px minimum.
-          </p>
-        </Section>
-
-        <Section title="Inputs">
-          <div className="grid gap-4 max-w-sm">
-            <Input placeholder="Search by username or name…" />
-            <Input value="Focused state (tab to me)" readOnly />
-            <Input disabled placeholder="Disabled" />
-          </div>
-        </Section>
-
-        <Section title="Card, badge, avatar, skeleton">
-          <div className="rounded-[var(--radius-md)] border border-border bg-card p-5 max-w-md">
-            <div className="flex items-center gap-3">
-              <Avatar>
-                <AvatarFallback>AB</AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <div className="font-medium">Card title</div>
-                <div className="text-sm text-foreground-secondary">
-                  Raised surface, hairline border, soft warm shadow.
-                </div>
-              </div>
-              <Badge>Badge</Badge>
-            </div>
-            <div className="mt-4 space-y-2">
-              <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="h-4 w-1/2" />
-            </div>
-          </div>
-        </Section>
-
-        <Section title="Toast — the control names the act; the toast confirms it">
-          <Button variant="quiet" onClick={() => success("Request sent")}>
-            Send request
-          </Button>
-        </Section>
-
         <Section title="Illuminated divider and gold-leaf moment">
           <IlluminatedDivider />
           <IlluminatedDivider>Al-Hikmah</IlluminatedDivider>
@@ -233,7 +271,7 @@ export function StyleReference() {
           </div>
         </Section>
 
-        <Section title="Empty state — an invitation, never an apology">
+        <Section title="Empty state — an invitation on craft">
           <GirihEmptyState
             title="Your Minbar is quiet."
             description="Find your companions to begin — posts from your circle will gather here."
@@ -241,22 +279,22 @@ export function StyleReference() {
           />
         </Section>
 
-        <Section title="Ambient texture — behind content, opacity ≤ 4%">
-          <div className="relative rounded-[var(--radius-md)] border border-border bg-background-secondary p-8 overflow-hidden">
-            <GirihPattern className="text-foreground" />
-            <p className="relative text-foreground-secondary text-sm max-w-prose">
-              The khatam lattice sits behind quiet areas at whisper opacity.
-              It never competes with reading, and it is never scripture —
-              reverent with the word, generous with the geometry.
-            </p>
-          </div>
-        </Section>
-
-        <Section title="Motion — sakina">
+        <Section title="Motion — everywhere calm, spectacle in one place">
           <div className="text-sm text-foreground-secondary space-y-1">
-            <div><code className="text-foreground">--ease-sakina</code> cubic-bezier(0.22, 1, 0.36, 1) — no overshoot, no bounce</div>
-            <div><code className="text-foreground">--dur-quick</code> 180ms · <code className="text-foreground">--dur-base</code> 280ms · <code className="text-foreground">--dur-slow</code> 420ms · <code className="text-foreground">--dur-arrival</code> 700ms</div>
-            <div>prefers-reduced-motion replaces all motion with instant transitions.</div>
+            <div>
+              <code className="text-foreground">--ease-sakina</code> cubic-bezier(0.22, 1, 0.36,
+              1) — no overshoot, no bounce, nothing loops for attention
+            </div>
+            <div>
+              <code className="text-foreground">--dur-quick</code> 180ms ·{" "}
+              <code className="text-foreground">--dur-base</code> 280ms ·{" "}
+              <code className="text-foreground">--dur-slow</code> 420ms ·{" "}
+              <code className="text-foreground">--dur-arrival</code> 800ms (hero only)
+            </div>
+            <div>
+              Routes rise in; lists stagger; cards lift on hover; buttons press
+              on tap. prefers-reduced-motion collapses everything.
+            </div>
           </div>
         </Section>
       </div>

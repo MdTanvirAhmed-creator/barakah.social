@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { RefreshCw, Sparkles } from "lucide-react";
 import { PostCard } from "./PostCard";
 import { Button } from "@/components/ui/button";
+import { GirihPattern, TazhibCorner, GoldDiamond } from "@/components/ui/girih";
 import { createClient } from "@/lib/supabase/client";
 
 const PAGE_SIZE = 20;
@@ -92,11 +93,10 @@ function QuestionOfTheWeek() {
       animate={{ opacity: 1, y: 0 }}
       className="relative bg-card border border-border rounded-lg p-6 mb-6 w-full overflow-hidden"
     >
-      <div className="flex items-start gap-4">
-        <span
-          aria-hidden="true"
-          className="mt-1 inline-block w-2.5 h-2.5 rotate-45 bg-[var(--accent-rare)] flex-shrink-0"
-        />
+      <GirihPattern />
+      <TazhibCorner corner="top-end" size={38} />
+      <div className="relative flex items-start gap-4">
+        <GoldDiamond size={10} shimmer className="mt-1.5" />
         <div className="flex-1">
           <h3 className="font-display text-lg font-medium mb-2 text-foreground">
             Question of the week
