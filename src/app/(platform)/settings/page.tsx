@@ -17,7 +17,7 @@ import {
   AlertTriangle,
   Handshake,
   Shield,
-  SunMoon,
+  Palette,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -215,7 +215,7 @@ export default function SettingsPage() {
           {/* Appearance — Courtyard (day) / Dusk (night) */}
           <div className="bg-card rounded-lg border border-border p-4 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <SunMoon className="w-5 h-5 text-primary-600" aria-hidden="true" />
+              <Palette className="w-5 h-5 text-accent-strong" aria-hidden="true" />
               <div>
                 <h3 className="font-semibold text-foreground">Appearance</h3>
                 <p className="text-sm text-foreground-secondary">

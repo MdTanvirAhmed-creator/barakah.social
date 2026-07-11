@@ -523,13 +523,15 @@
 /* Craft layer: girih watermark, shamsa, gold    */
 /* ============================================ */
 
-/* Girih watermark utility — the tile is a mask, so colour/opacity come
-   from --wm-stroke/--wm-opacity per theme. Texture only, never a loader. */
+/* Girih watermark utility — octagon-and-cross zellij lattice (the classic
+   Moroccan/Alhambra tile grid; deliberately no overlapping-polygon stars).
+   The tile is a mask, so colour/opacity come from --wm-stroke/--wm-opacity
+   per theme. Texture only, never a loader. */
 .girih-bg {
   background-color: var(--wm-stroke);
   opacity: var(--wm-opacity);
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Cg fill='none' stroke='%23000' stroke-width='1'%3E%3Cpolygon points='32,3 61,32 32,61 3,32'/%3E%3Crect x='11' y='11' width='42' height='42'/%3E%3C/g%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Cg fill='none' stroke='%23000' stroke-width='1'%3E%3Cpolygon points='32,3 61,32 32,61 3,32'/%3E%3Crect x='11' y='11' width='42' height='42'/%3E%3C/g%3E%3C/svg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Cg fill='none' stroke='%23000' stroke-width='1'%3E%3Cpath d='M56.0 41.9 L41.9 56.0 L22.1 56.0 L8.0 41.9 L8.0 22.1 L22.1 8.0 L41.9 8.0 L56.0 22.1 Z'/%3E%3Cpath d='M0 -10 L10 0 L0 10 L-10 0 Z M64 -10 L74 0 L64 10 L54 0 Z M64 54 L74 64 L64 74 L54 64 Z M0 54 L10 64 L0 74 L-10 64 Z'/%3E%3C/g%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Cg fill='none' stroke='%23000' stroke-width='1'%3E%3Cpath d='M56.0 41.9 L41.9 56.0 L22.1 56.0 L8.0 41.9 L8.0 22.1 L22.1 8.0 L41.9 8.0 L56.0 22.1 Z'/%3E%3Cpath d='M0 -10 L10 0 L0 10 L-10 0 Z M64 -10 L74 0 L64 10 L54 0 Z M64 54 L74 64 L64 74 L54 64 Z M0 54 L10 64 L0 74 L-10 64 Z'/%3E%3C/g%3E%3C/svg%3E");
   -webkit-mask-repeat: repeat;
   mask-repeat: repeat;
   -webkit-mask-size: 64px 64px;

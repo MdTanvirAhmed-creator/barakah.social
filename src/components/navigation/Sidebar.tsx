@@ -16,6 +16,7 @@ import {
   ChevronRight,
   Lightbulb,
   Eye,
+  Settings,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -81,7 +82,14 @@ const NAVIGATION_ITEMS = [
     nameEn: "Your Profile",
     href: "/profile",
     icon: User,
-    description: "Settings & preferences",
+    description: "Your posts & bio",
+  },
+  {
+    name: "Settings",
+    nameEn: "Preferences",
+    href: "/settings",
+    icon: Settings,
+    description: "Account, privacy & appearance",
   },
 ];
 

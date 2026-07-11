@@ -166,7 +166,8 @@ export default function ProfilePage() {
           {/* Profile Card */}
           <div className="bg-card rounded-lg shadow-md overflow-hidden">
             {/* Cover */}
-            <div className="h-32 bg-gradient-to-r from-primary-600 to-primary-700 relative">
+            <div className="h-32 bg-primary-800 relative overflow-hidden">
+              <div className="girih-bg absolute inset-0" aria-hidden="true" style={{ opacity: 0.14, backgroundColor: "var(--surface)" }} />
               <div className="pattern-islamic absolute inset-0 opacity-10" />
             </div>
 
@@ -175,7 +176,7 @@ export default function ProfilePage() {
               <div className="flex flex-col sm:flex-row items-start sm:items-end gap-6 -mt-16 mb-6">
                 <Avatar className="h-32 w-32 border-4 border-card shadow-xl">
                   <AvatarImage src={profile?.avatar_url || undefined} />
-                  <AvatarFallback className="bg-gradient-to-r from-primary-600 to-primary-700 text-white text-3xl">
+                  <AvatarFallback className="bg-primary-100 text-primary-700 text-3xl">
                     {getInitials(profile?.full_name)}
                   </AvatarFallback>
                 </Avatar>
