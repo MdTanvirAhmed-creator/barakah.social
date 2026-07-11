@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useSyncExternalStore } from "react";
-import { Sunrise, Sunset } from "lucide-react";
+import { Sun, Sunset } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type ThemeName = "courtyard" | "dusk";
@@ -47,7 +47,7 @@ export function ThemeToggle({
     applyTheme(theme === "dusk" ? "courtyard" : "dusk");
   }, [theme]);
 
-  const Icon = theme === "dusk" ? Sunrise : Sunset;
+  const Icon = theme === "dusk" ? Sunset : Sun;
   const label = theme === "dusk" ? "Switch to Courtyard (light)" : "Switch to Dusk (dark)";
 
   return (

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import {
+  TrendingUp,
   Clock,
   Compass,
   Calendar,
@@ -11,7 +12,6 @@ import {
   Bell,
   Settings,
   Star,
-  TrendingUp,
   Users,
   BookOpen,
   UserPlus,
@@ -23,6 +23,7 @@ import { QiblaCompass } from "@/components/tools/QiblaCompass";
 import { HijriCalendar } from "@/components/tools/HijriCalendar";
 import { ZakatCalculator } from "@/components/tools/ZakatCalculator";
 import { Button } from "@/components/ui/button";
+import { GirihPattern, TazhibCorner } from "@/components/ui/girih";
 
 const ISLAMIC_TOOLS = [
   {
@@ -30,10 +31,7 @@ const ISLAMIC_TOOLS = [
     title: "Prayer Times",
     description: "Daily prayer times with location detection",
     icon: Clock,
-    color: "from-blue-500 to-indigo-600",
-    gradient: "bg-gradient-to-br from-blue-500 to-indigo-600",
     category: "Daily",
-    popularity: 95,
     isNew: false,
   },
   {
@@ -41,10 +39,7 @@ const ISLAMIC_TOOLS = [
     title: "Qibla Compass",
     description: "Find the direction of Kaaba from anywhere",
     icon: Compass,
-    color: "from-green-500 to-emerald-600",
-    gradient: "bg-gradient-to-br from-green-500 to-emerald-600",
     category: "Direction",
-    popularity: 88,
     isNew: false,
   },
   {
@@ -52,10 +47,7 @@ const ISLAMIC_TOOLS = [
     title: "Hijri Calendar",
     description: "Islamic calendar with important dates",
     icon: Calendar,
-    color: "from-purple-500 to-violet-600",
-    gradient: "bg-gradient-to-br from-purple-500 to-violet-600",
     category: "Calendar",
-    popularity: 72,
     isNew: false,
   },
   {
@@ -63,10 +55,7 @@ const ISLAMIC_TOOLS = [
     title: "Zakat Calculator",
     description: "Calculate your Zakat obligations",
     icon: Calculator,
-    color: "from-amber-500 to-orange-600",
-    gradient: "bg-gradient-to-br from-amber-500 to-orange-600",
     category: "Finance",
-    popularity: 81,
     isNew: true,
   },
   {
@@ -74,10 +63,7 @@ const ISLAMIC_TOOLS = [
     title: "Mosque Finder",
     description: "Find nearby mosques and prayer spaces",
     icon: MapPin,
-    color: "from-rose-500 to-pink-600",
-    gradient: "bg-gradient-to-br from-rose-500 to-pink-600",
     category: "Location",
-    popularity: 67,
     isNew: false,
     comingSoon: true,
   },
@@ -86,10 +72,7 @@ const ISLAMIC_TOOLS = [
     title: "Ramadan Tracker",
     description: "Track fasting days and spiritual progress",
     icon: Star,
-    color: "from-teal-500 to-cyan-600",
-    gradient: "bg-gradient-to-br from-teal-500 to-cyan-600",
     category: "Spiritual",
-    popularity: 92,
     isNew: false,
     comingSoon: true,
   },
@@ -98,10 +81,7 @@ const ISLAMIC_TOOLS = [
     title: "Quran Tracker",
     description: "Track your Quran reading progress",
     icon: BookOpen,
-    color: "from-emerald-500 to-teal-600",
-    gradient: "bg-gradient-to-br from-emerald-500 to-teal-600",
     category: "Spiritual",
-    popularity: 85,
     isNew: false,
     comingSoon: true,
   },
@@ -110,10 +90,7 @@ const ISLAMIC_TOOLS = [
     title: "Charity Tracker",
     description: "Track your charitable giving",
     icon: TrendingUp,
-    color: "from-indigo-500 to-purple-600",
-    gradient: "bg-gradient-to-br from-indigo-500 to-purple-600",
     category: "Finance",
-    popularity: 58,
     isNew: false,
     comingSoon: true,
   },
@@ -122,10 +99,7 @@ const ISLAMIC_TOOLS = [
     title: "Companion Finder",
     description: "Find righteous companions for your journey",
     icon: Handshake,
-    color: "from-primary-500 to-secondary-600",
-    gradient: "bg-gradient-to-br from-primary-500 to-secondary-600",
     category: "Social",
-    popularity: 94,
     isNew: true,
     comingSoon: false,
     isLink: true,
@@ -136,10 +110,7 @@ const ISLAMIC_TOOLS = [
     title: "Iftar Companions",
     description: "Find companions to break fast with virtually during Ramadan",
     icon: Users,
-    color: "from-purple-500 to-pink-600",
-    gradient: "bg-gradient-to-br from-purple-500 to-pink-600",
     category: "Ramadan",
-    popularity: 87,
     isNew: false,
     comingSoon: true,
     seasonal: true,
@@ -149,10 +120,7 @@ const ISLAMIC_TOOLS = [
     title: "30-Day Quran Partners",
     description: "Find companions for 30-day Quran completion challenge",
     icon: BookOpen,
-    color: "from-teal-500 to-emerald-600",
-    gradient: "bg-gradient-to-br from-teal-500 to-emerald-600",
     category: "Ramadan",
-    popularity: 91,
     isNew: false,
     comingSoon: true,
     seasonal: true,
@@ -210,21 +178,23 @@ export default function ToolsPage() {
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           {[
-            { icon: Clock, label: "Prayer Times", value: "Active", color: "text-blue-600" },
-            { icon: Compass, label: "Qibla Direction", value: "Ready", color: "text-green-600" },
-            { icon: Calendar, label: "Islamic Calendar", value: "Updated", color: "text-purple-600" },
-            { icon: Calculator, label: "Zakat Calculator", value: "New", color: "text-amber-600" },
+            { icon: Clock, label: "Prayer Times", value: "Active", tint: "craft-tile-teal" },
+            { icon: Compass, label: "Qibla Direction", value: "Ready", tint: "craft-tile-lapis" },
+            { icon: Calendar, label: "Islamic Calendar", value: "Updated", tint: "craft-tile-teal" },
+            { icon: Calculator, label: "Zakat Calculator", value: "New", tint: "craft-tile-lapis" },
           ].map((stat, index) => (
             <motion.div
               key={stat.label}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              className="bg-card rounded-lg shadow-md border border-border p-4 text-center"
+              className="bg-card rounded-lg shadow-sm border border-border p-4 text-center"
             >
-              <stat.icon className={`w-8 h-8 ${stat.color} mx-auto mb-2`} />
+              <div className={`w-11 h-11 ${stat.tint} rounded-lg flex items-center justify-center mx-auto mb-2`}>
+                <stat.icon className="w-6 h-6" aria-hidden="true" />
+              </div>
               <div className="text-sm font-medium text-foreground">{stat.label}</div>
-              <div className={`text-xs ${stat.color} font-semibold`}>{stat.value}</div>
+              <div className="text-xs text-foreground-secondary">{stat.value}</div>
             </motion.div>
           ))}
         </div>
@@ -253,62 +223,47 @@ export default function ToolsPage() {
           {filteredTools.map((tool, index) => {
             const toolContent = (
               <>
-                <div className={`h-32 ${tool.gradient} relative`}>
-                  <div className="absolute inset-0 bg-black/20" />
-                  
-                  {/* Badges */}
-                  <div className="absolute top-3 left-3 flex gap-2">
+                <div className="p-4 pb-0 flex items-start justify-between">
+                  <div
+                    className={`w-12 h-12 ${
+                      index % 2 ? "craft-tile-lapis" : "craft-tile-teal"
+                    } rounded-lg flex items-center justify-center`}
+                  >
+                    <tool.icon className="w-6 h-6" aria-hidden="true" />
+                  </div>
+                  <div className="flex gap-2">
                     {tool.isNew && (
-                      <span className="px-2 py-1 bg-green-500 text-white text-xs font-bold rounded-full">
+                      <span
+                        className="px-2 py-0.5 border text-xs rounded-full"
+                        style={{
+                          borderColor: "color-mix(in srgb, var(--leaf) 40%, transparent)",
+                          color: "var(--leaf)",
+                        }}
+                      >
                         New
                       </span>
                     )}
                     {tool.comingSoon && (
-                      <span className="px-2 py-1 bg-gray-500 text-white text-xs font-bold rounded-full">
+                      <span className="px-2 py-0.5 bg-muted text-muted-foreground text-xs rounded-full">
                         Soon
                       </span>
                     )}
                   </div>
-
-                  {/* Popularity */}
-                  <div className="absolute top-3 right-3">
-                    <div className="flex items-center gap-1 bg-black/60 text-white px-2 py-1 rounded-full text-xs">
-                      <TrendingUp className="w-3 h-3" />
-                      <span>{tool.popularity}%</span>
-                    </div>
-                  </div>
-
-                  {/* Icon */}
-                  <div className="absolute bottom-3 left-3">
-                    <tool.icon className="w-8 h-8 text-white" />
-                  </div>
-
-                  {/* Category */}
-                  <div className="absolute bottom-3 right-3">
-                    <span className="px-2 py-1 bg-white/20 text-white text-xs rounded-full">
-                      {tool.category}
-                    </span>
-                  </div>
                 </div>
 
                 {/* Content */}
-                <div className="p-4">
-                  <h3 className="text-lg font-semibold text-foreground mb-2">
+                <div className="p-4 text-start">
+                  <h3 className="text-lg font-semibold text-foreground mb-1">
                     {tool.title}
                   </h3>
-                  <p className="text-sm text-foreground-secondary mb-4 line-clamp-2">
+                  <p className="text-sm text-foreground-secondary mb-3 line-clamp-2">
                     {tool.description}
                   </p>
-
-                  {/* Action */}
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">
-                      {tool.comingSoon ? "Coming Soon" : "Click to Open"}
-                    </span>
-                    <div className={`w-2 h-2 rounded-full ${
-                      tool.popularity >= 90 ? "bg-green-500" :
-                      tool.popularity >= 70 ? "bg-yellow-500" : "bg-gray-400"
-                    }`} />
+                    <span className="text-xs text-muted-foreground">{tool.category}</span>
+                    {!tool.comingSoon && (
+                      <span className="text-xs font-medium text-accent-strong">Open</span>
+                    )}
                   </div>
                 </div>
               </>
@@ -324,7 +279,7 @@ export default function ToolsPage() {
               >
                 {tool.isLink ? (
                   <Link href={tool.linkPath || '#'}>
-                    <div className="w-full bg-card rounded-lg shadow-md border border-border hover:shadow-lg transition-all overflow-hidden cursor-pointer group-hover:scale-105">
+                    <div className="w-full bg-card rounded-lg shadow-md border border-border hover:shadow-lg transition-all overflow-hidden cursor-pointer">
                       {toolContent}
                     </div>
                   </Link>
@@ -333,7 +288,7 @@ export default function ToolsPage() {
                     onClick={() => !tool.comingSoon && setSelectedTool(tool.id)}
                     disabled={tool.comingSoon}
                     className={`w-full bg-card rounded-lg shadow-md border border-border hover:shadow-lg transition-all overflow-hidden ${
-                      tool.comingSoon ? "opacity-60 cursor-not-allowed" : "cursor-pointer group-hover:scale-105"
+                      tool.comingSoon ? "opacity-60 cursor-not-allowed" : "cursor-pointer"
                     }`}
                   >
                     {toolContent}
@@ -348,7 +303,7 @@ export default function ToolsPage() {
         <div className="mt-12">
           <h2 className="text-2xl font-bold text-foreground mb-6">Most Popular Tools</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {ISLAMIC_TOOLS.filter(tool => tool.popularity >= 85).map((tool, index) => (
+            {ISLAMIC_TOOLS.filter((tool) => !tool.comingSoon).slice(0, 6).map((tool, index) => (
               <motion.div
                 key={tool.id}
                 initial={{ opacity: 0, x: -20 }}
@@ -357,8 +312,12 @@ export default function ToolsPage() {
                 className="bg-card rounded-lg shadow-md border border-border p-6"
               >
                 <div className="flex items-center gap-4 mb-4">
-                  <div className={`w-12 h-12 ${tool.gradient} rounded-lg flex items-center justify-center`}>
-                    <tool.icon className="w-6 h-6 text-white" />
+                  <div
+                    className={`w-12 h-12 ${
+                      index % 2 ? "craft-tile-lapis" : "craft-tile-teal"
+                    } rounded-lg flex items-center justify-center`}
+                  >
+                    <tool.icon className="w-6 h-6" aria-hidden="true" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-foreground">{tool.title}</h3>
@@ -390,18 +349,20 @@ export default function ToolsPage() {
         </div>
 
         {/* Call to Action */}
-        <div className="mt-12 bg-gradient-to-r from-primary-600 to-primary-700 rounded-lg shadow-lg p-8 text-center text-white">
-          <h3 className="text-2xl font-bold mb-4">Need a Custom Tool?</h3>
-          <p className="text-primary-100 mb-6 max-w-2xl mx-auto">
-            We&apos;re constantly adding new Islamic tools based on community feedback. 
-            Let us know what tools would help your daily practice.
+        <div className="mt-12 relative bg-card border border-border rounded-lg p-8 text-center overflow-hidden">
+          <GirihPattern />
+          <TazhibCorner corner="top-start" size={38} />
+          <TazhibCorner corner="bottom-end" size={38} />
+          <h3 className="relative font-display text-2xl font-medium text-foreground mb-4">
+            Need a custom tool?
+          </h3>
+          <p className="relative text-foreground-secondary mb-6 max-w-2xl mx-auto">
+            New tools grow from community feedback — tell us what would help
+            your daily practice.
           </p>
-          <Button
-            size="lg"
-            className="bg-white text-primary-600 hover:bg-primary-50"
-          >
-            <Settings className="w-5 h-5 mr-2" />
-            Request a Tool
+          <Button size="lg" className="relative">
+            <Settings className="w-5 h-5 me-2" />
+            Request a tool
           </Button>
         </div>
       </div>

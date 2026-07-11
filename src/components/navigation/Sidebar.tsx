@@ -201,7 +201,7 @@ export function Sidebar({ isCollapsed = false, onToggleCollapse }: SidebarProps)
       )}
 
       {/* Navigation Items */}
-      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+      <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto">
         {NAVIGATION_ITEMS.map((item) => {
           const Icon = item.icon;
           const isActive = pathname?.startsWith(item.href);
@@ -212,7 +212,7 @@ export function Sidebar({ isCollapsed = false, onToggleCollapse }: SidebarProps)
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 className={`
-                  relative flex items-center gap-3 px-3 py-3 rounded-lg
+                  relative flex items-center gap-3 px-3 py-2 rounded-lg
                   transition-all cursor-pointer group
                   ${
                     isActive
@@ -279,7 +279,7 @@ export function Sidebar({ isCollapsed = false, onToggleCollapse }: SidebarProps)
       </nav>
 
       {/* Footer with theme, collapse, logout */}
-      <div className="p-3 border-t border-border space-y-2">
+      <div className="p-2 border-t border-border space-y-1">
         {/* Courtyard / Dusk */}
         <ThemeToggle
           showLabel={!isCollapsed}

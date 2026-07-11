@@ -164,12 +164,6 @@ export default function FeedPage() {
               })}
             </div>
 
-            {/* Tab Description */}
-            <div className="px-3 sm:px-4 py-2 sm:py-3 bg-muted/50">
-              <p className="text-xs sm:text-sm text-muted-foreground text-center">
-                {FEED_TABS.find((tab) => tab.id === activeTab)?.description}
-              </p>
-            </div>
           </div>
 
           {/* First-open welcome (spec §12) — real gate + dev preview flag */}
