@@ -186,7 +186,7 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
           {!isExpanded ? (
             <button
               onClick={handleExpand}
-              className="w-full text-left px-4 py-3 bg-muted hover:bg-muted/80 rounded-lg transition-colors text-muted-foreground"
+              className="w-full text-start px-4 py-3 bg-popover border border-border hover:bg-background-tertiary/40 rounded-lg transition-colors duration-quick ease-sakina text-muted-foreground"
             >
               Share beneficial knowledge...
             </button>

@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { useToast } from "@/hooks/useToast";
 import { useCompanionData } from "@/hooks/useCompanionData";
@@ -138,8 +139,8 @@ export function Sidebar({ isCollapsed = false, onToggleCollapse }: SidebarProps)
               exit={{ opacity: 0 }}
               className="flex items-center gap-2"
             >
-              <div className="w-8 h-8 bg-gradient-to-r from-primary-600 to-primary-700 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">B</span>
+              <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
+                <span className="text-primary-foreground font-bold text-sm">B</span>
               </div>
               <span className="font-bold text-lg text-foreground">
                 Barakah.Social
@@ -148,8 +149,8 @@ export function Sidebar({ isCollapsed = false, onToggleCollapse }: SidebarProps)
           )}
           
           {isCollapsed && (
-            <div className="w-8 h-8 bg-gradient-to-r from-primary-600 to-primary-700 rounded-lg flex items-center justify-center mx-auto">
-              <span className="text-white font-bold text-sm">B</span>
+            <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center mx-auto">
+              <span className="text-primary-foreground font-bold text-sm">B</span>
             </div>
           )}
         </div>
@@ -269,8 +270,14 @@ export function Sidebar({ isCollapsed = false, onToggleCollapse }: SidebarProps)
         })}
       </nav>
 
-      {/* Footer with Logout */}
+      {/* Footer with theme, collapse, logout */}
       <div className="p-3 border-t border-border space-y-2">
+        {/* Courtyard / Dusk */}
+        <ThemeToggle
+          showLabel={!isCollapsed}
+          className={isCollapsed ? "w-full justify-center px-2" : "w-full justify-start"}
+        />
+
         {/* Collapse Toggle */}
         {onToggleCollapse && (
           <button
@@ -297,7 +304,7 @@ export function Sidebar({ isCollapsed = false, onToggleCollapse }: SidebarProps)
           disabled={isLoggingOut}
           className={`w-full ${
             isCollapsed ? "px-2" : "justify-start"
-          } text-error hover:text-error hover:bg-error/10`}
+          } text-foreground-secondary hover:text-error hover:bg-error/10`}
         >
           <LogOut className="w-5 h-5" />
           {!isCollapsed && <span className="ml-2">Sign Out</span>}

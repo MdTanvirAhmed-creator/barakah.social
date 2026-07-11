@@ -97,6 +97,7 @@
   --destructive: 176 80 76;
   --destructive-foreground: 255 255 255;
 
+  --accent-strong: 23 104 94;           /* teal-600 — AA text accent on stone */
   --border: 208 200 182;                /* --hairline, pre-blended */
   --border-medium: 190 181 161;
   --border-dark: 160 150 128;
@@ -195,6 +196,7 @@ html[data-theme="dusk"] {
   --destructive: 197 102 99;
   --destructive-foreground: 255 255 255;
 
+  --accent-strong: 47 165 143;          /* dusk teal — AA text accent on pine */
   --border: 50 64 57;
   --border-medium: 66 80 72;
   --border-dark: 90 104 96;

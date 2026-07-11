@@ -1,5 +1,6 @@
 "use client";
 
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -16,6 +17,7 @@ import {
   AlertTriangle,
   Handshake,
   Shield,
+  SunMoon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -210,6 +212,20 @@ export default function SettingsPage() {
         </div>
 
         <div className="max-w-3xl mx-auto space-y-4">
+          {/* Appearance — Courtyard (day) / Dusk (night) */}
+          <div className="bg-card rounded-lg border border-border p-4 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <SunMoon className="w-5 h-5 text-primary-600" aria-hidden="true" />
+              <div>
+                <h3 className="font-semibold text-foreground">Appearance</h3>
+                <p className="text-sm text-foreground-secondary">
+                  Courtyard is the daylight theme; Dusk is the warm night mode.
+                </p>
+              </div>
+            </div>
+            <ThemeToggle showLabel />
+          </div>
+
           {sections.map((section) => (
             <div
               key={section.id}

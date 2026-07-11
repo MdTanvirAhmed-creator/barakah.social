@@ -37,6 +37,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { moment } from "@/hooks/useToast";
 
 interface ReviewItem {
   id: string;
@@ -252,7 +253,11 @@ export default function ReviewPage() {
         setReviewItems(prev => prev.filter(reviewItem => reviewItem.id !== item.id));
       }
 
-      toast.success(`Content ${action}d successfully`);
+      if (action === "approve") {
+        moment("Approved — may it benefit the community");
+      } else {
+        toast.success(`Content ${action}d`);
+      }
       setShowReviewModal(false);
       setSelectedItem(null);
       setReviewComment("");

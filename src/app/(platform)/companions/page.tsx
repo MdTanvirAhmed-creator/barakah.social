@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/useToast";
 import { useCompanions, ProfileCard } from "@/hooks/useCompanions";
+import { GirihEmptyState } from "@/components/ui/girih";
 
 type Tab = "companions" | "requests" | "find" | "blocked";
 
@@ -51,18 +52,24 @@ function CardIdentity({ card }: { card: ProfileCard | null }) {
 
 export default function CompanionsPage() {
   const companions = useCompanions();
-  const { success, error: showError } = useToast();
+  const { success, error: showError, moment } = useToast();
   const [tab, setTab] = useState<Tab>("companions");
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Awaited<ReturnType<typeof companions.search>>>([]);
   const [searching, setSearching] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
 
-  const act = async (key: string, fn: () => Promise<void>, message: string) => {
+  const act = async (
+    key: string,
+    fn: () => Promise<void>,
+    message: string,
+    isMoment = false
+  ) => {
     setBusy(key);
     try {
       await fn();
-      success(message);
+      if (isMoment) moment(message);
+      else success(message);
     } catch (e) {
       showError((e as Error).message);
     } finally {
@@ -94,8 +101,8 @@ export default function CompanionsPage() {
     <div className="min-h-screen bg-background">
       <div className="container-custom py-6 md:py-8 max-w-3xl">
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-14 h-14 bg-gradient-to-br from-primary-500 to-secondary-600 rounded-2xl flex items-center justify-center">
-            <Users className="w-7 h-7 text-white" />
+          <div className="w-14 h-14 craft-tile-teal rounded-2xl flex items-center justify-center">
+            <Users className="w-7 h-7" aria-hidden="true" />
           </div>
           <div>
             <h1 className="text-3xl font-bold text-foreground">Companions</h1>
@@ -112,7 +119,7 @@ export default function CompanionsPage() {
               onClick={() => setTab(t.id)}
               className={`flex items-center gap-2 px-4 py-3 font-medium transition-colors ${
                 tab === t.id
-                  ? "text-primary-600 border-b-2 border-primary-600"
+                  ? "text-accent-strong border-b-2 border-accent-strong"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -133,16 +140,16 @@ export default function CompanionsPage() {
         {!companions.loading && tab === "companions" && (
           <div className="space-y-3">
             {companions.companions.length === 0 && (
-              <div className="text-center py-12">
-                <Users className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                <p className="text-muted-foreground mb-4">
-                  No companions yet. Find someone to walk the path with.
-                </p>
-                <Button onClick={() => setTab("find")}>
-                  <Search className="w-4 h-4 mr-2" />
-                  Find companions
-                </Button>
-              </div>
+              <GirihEmptyState
+                title="No companions yet."
+                description="Find someone to walk the path with — requests you send and receive gather here."
+                action={
+                  <Button onClick={() => setTab("find")}>
+                    <Search className="w-4 h-4 me-2" />
+                    Find companions
+                  </Button>
+                }
+              />
             )}
             {companions.companions.map((entry) => {
               const other =
@@ -214,7 +221,8 @@ export default function CompanionsPage() {
                           act(
                             entry.companionship.id,
                             () => companions.respond(entry.companionship.id, "accepted"),
-                            "Request accepted — you are now companions"
+                            "Request accepted — you are now companions",
+                            true
                           )
                         }
                       >
@@ -337,7 +345,8 @@ export default function CompanionsPage() {
                           act(
                             `accept-${r.companionshipId}`,
                             () => companions.respond(r.companionshipId!, "accepted"),
-                            "Request accepted — you are now companions"
+                            "Request accepted — you are now companions",
+                            true
                           )
                         }
                       >

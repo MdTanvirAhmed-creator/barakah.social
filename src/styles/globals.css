@@ -646,3 +646,19 @@ a {
     animation: none;
   }
 }
+
+/* Quiet duotone tiles for category/header icons — teal or lapis tint,
+   themed via tokens. Replaces emoji + gradient tiles everywhere. */
+.craft-tile-teal {
+  background: color-mix(in srgb, var(--primary-hex) 12%, transparent);
+  color: var(--primary-hex);
+}
+.craft-tile-lapis {
+  background: color-mix(in srgb, var(--accent-lapis) 12%, transparent);
+  color: var(--accent-lapis);
+}
+
+/* Theme-flipping accent for active tabs/links directly on the canvas —
+   teal-600 on stone, bright teal on pine; AA in both. */
+.text-accent-strong { color: rgb(var(--accent-strong)); }
+.border-accent-strong { border-color: rgb(var(--accent-strong)); }

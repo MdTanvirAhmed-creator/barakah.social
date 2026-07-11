@@ -144,7 +144,7 @@ export default function FeedPage() {
                       px-1.5 sm:px-3 md:px-4 py-3 sm:py-4 text-[10px] sm:text-xs md:text-sm font-medium transition-colors relative text-center
                       ${
                         isActive
-                          ? "text-primary-600"
+                          ? "text-accent-strong"
                           : "text-muted-foreground hover:text-foreground"
                       }
                     `}

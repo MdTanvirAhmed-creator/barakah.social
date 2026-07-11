@@ -93,7 +93,7 @@ function QuestionOfTheWeek() {
       animate={{ opacity: 1, y: 0 }}
       className="relative bg-card border border-border rounded-lg p-6 mb-6 w-full overflow-hidden"
     >
-      <GirihPattern />
+      <GirihPattern subtle />
       <TazhibCorner corner="top-end" size={38} />
       <div className="relative flex items-start gap-4">
         <GoldDiamond size={10} shimmer className="mt-1.5" />

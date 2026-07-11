@@ -77,9 +77,9 @@ export function DailyCompanionCard({ suggestion, onDismiss }: DailyCompanionCard
           transition={{ duration: 0.3 }}
           className="w-full"
         >
-          <div className="bg-gradient-to-br from-primary-50 to-secondary-50 dark:from-primary-900/10 dark:to-secondary-900/10 rounded-lg shadow-md border-2 border-primary-200 dark:border-primary-800 overflow-hidden mb-6 w-full">
+          <div className="bg-card rounded-lg shadow-sm border border-border overflow-hidden mb-6 w-full">
             {/* Header */}
-            <div className="bg-gradient-to-r from-primary-600 to-secondary-600 px-4 py-3 flex items-center justify-between">
+            <div className="bg-primary-600 px-4 py-3 flex items-center justify-between">
               <div className="flex items-center gap-2 text-white">
                 <Sparkles className="w-5 h-5" />
                 <h3 className="font-semibold">Today&apos;s Companion Suggestion</h3>
@@ -98,7 +98,7 @@ export function DailyCompanionCard({ suggestion, onDismiss }: DailyCompanionCard
                 {/* Avatar */}
                 <Avatar className="h-12 w-12 sm:h-16 sm:w-16 border-2 sm:border-4 border-white dark:border-gray-800 shadow-lg flex-shrink-0">
                   <AvatarImage src={suggestion.profile.avatar_url || undefined} />
-                  <AvatarFallback className="bg-gradient-to-br from-primary-500 to-primary-700 text-white text-lg sm:text-xl">
+                  <AvatarFallback className="bg-primary-100 text-primary-700 text-lg sm:text-xl">
                     {getInitials(suggestion.profile.full_name)}
                   </AvatarFallback>
                 </Avatar>

@@ -46,6 +46,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { moment } from "@/hooks/useToast";
 
 interface ContentSubmission {
   id: string;
@@ -324,7 +325,7 @@ export default function ContributePage() {
         content: "",
       });
 
-      toast.success("Content submitted successfully! It will be reviewed by the community.");
+      moment("Submitted for community review");
     } catch (error) {
       console.error("Error submitting content:", error);
       toast.error("Failed to submit content");

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Search, Grid3X3, List, Plus, Filter, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { GirihEmptyState, GirihLoader } from "@/components/ui/girih";
 import { Input } from "@/components/ui/input";
 import { HalaqaCard } from "@/components/halaqas/HalaqaCard";
 import { CreateHalaqa } from "@/components/halaqas/CreateHalaqa";
@@ -245,7 +246,7 @@ export default function HalaqasPage() {
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2 px-6 py-3 text-sm font-medium transition-colors relative ${
                     isActive
-                      ? "text-primary-600"
+                      ? "text-accent-strong"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
@@ -323,36 +324,33 @@ export default function HalaqasPage() {
         {/* Content */}
         {loading ? (
           <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto mb-4" />
+            <GirihLoader size="lg" className="mx-auto mb-4" />
             <p className="text-muted-foreground">Loading Halaqas...</p>
           </div>
         ) : filteredHalaqas.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
-              <Users className="w-10 h-10 text-muted-foreground" />
-            </div>
-            <h3 className="text-xl font-semibold text-foreground mb-3">
-              {searchQuery || selectedCategory !== "All" ? "No Halaqas found" : "No Halaqas yet"}
-            </h3>
-            <p className="text-foreground-secondary mb-6 max-w-md mx-auto">
-              {searchQuery || selectedCategory !== "All"
+          <GirihEmptyState
+            className="my-8"
+            title={
+              searchQuery || selectedCategory !== "All" ? "No Halaqas found" : "Your circles await."
+            }
+            description={
+              searchQuery || selectedCategory !== "All"
                 ? "Try adjusting your search or filters."
                 : activeTab === "my-halaqas"
-                ? "You haven't joined any Halaqas yet. Discover some interesting circles!"
-                : "No public Halaqas yet — be the first to create one!"}
-            </p>
-            {activeTab === "my-halaqas" && !searchQuery && selectedCategory === "All" && (
-              <Button onClick={() => setActiveTab("discover")} variant="outline">
-                Discover Halaqas
-              </Button>
-            )}
-            {activeTab === "discover" && !searchQuery && selectedCategory === "All" && (
-              <Button onClick={() => setShowCreateModal(true)} className="bg-primary-600 hover:bg-primary-700">
-                <Plus className="w-4 h-4 mr-2" />
-                Create the First Halaqa
-              </Button>
-            )}
-          </div>
+                ? "Join a circle of study — discover Halaqas gathering around what you love."
+                : "No public Halaqas yet — be the first to gather one."
+            }
+            action={
+              activeTab === "my-halaqas" && !searchQuery && selectedCategory === "All" ? (
+                <Button onClick={() => setActiveTab("discover")}>Discover Halaqas</Button>
+              ) : activeTab === "discover" && !searchQuery && selectedCategory === "All" ? (
+                <Button onClick={() => setShowCreateModal(true)}>
+                  <Plus className="w-4 h-4 me-2" />
+                  Create the first Halaqa
+                </Button>
+              ) : undefined
+            }
+          />
         ) : (
           <div
             className={

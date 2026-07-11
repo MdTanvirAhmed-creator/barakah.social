@@ -12,25 +12,35 @@ import {
   ChevronRight,
   Loader2,
   Library,
+  ScrollText,
+  Scale,
+  Gem,
+  Footprints,
+  Sparkles,
+  Globe,
+  Users,
+  LibraryBig,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LearningPath } from "@/components/knowledge/LearningPath";
 import { FilterPanel } from "@/components/knowledge/FilterPanel";
 import { StudyTogetherBanner } from "@/components/knowledge/StudyTogetherBanner";
+import { GirihPattern, TazhibCorner } from "@/components/ui/girih";
 import { createClient } from "@/lib/supabase/client";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 
+// Quiet duotone tiles — line icons on teal/lapis tints (no emoji, no gradients)
 const CATEGORIES = [
-  { id: "quran", name: "Quran", icon: "📖", color: "from-emerald-500 to-teal-600" },
-  { id: "hadith", name: "Hadith", icon: "📜", color: "from-blue-500 to-indigo-600" },
-  { id: "fiqh", name: "Fiqh", icon: "⚖️", color: "from-purple-500 to-violet-600" },
-  { id: "aqeedah", name: "Aqeedah", icon: "🕌", color: "from-amber-500 to-orange-600" },
-  { id: "seerah", name: "Seerah", icon: "📚", color: "from-rose-500 to-pink-600" },
-  { id: "spirituality", name: "Spirituality", icon: "🕯️", color: "from-indigo-500 to-purple-600" },
-  { id: "contemporary", name: "Contemporary", icon: "🌍", color: "from-gray-500 to-slate-600" },
-  { id: "family", name: "Family", icon: "👨‍👩‍👧‍👦", color: "from-green-500 to-emerald-600" },
-];
+  { id: "quran", name: "Quran", icon: BookOpen, tint: "teal" },
+  { id: "hadith", name: "Hadith", icon: ScrollText, tint: "lapis" },
+  { id: "fiqh", name: "Fiqh", icon: Scale, tint: "teal" },
+  { id: "aqeedah", name: "Aqeedah", icon: Gem, tint: "lapis" },
+  { id: "seerah", name: "Seerah", icon: Footprints, tint: "teal" },
+  { id: "spirituality", name: "Spirituality", icon: Sparkles, tint: "lapis" },
+  { id: "contemporary", name: "Contemporary", icon: Globe, tint: "teal" },
+  { id: "family", name: "Family", icon: Users, tint: "lapis" },
+] as const;
 
 type ContentType = "all" | "article" | "video" | "book";
 type Difficulty = "all" | "beginner" | "intermediate" | "advanced";
@@ -230,7 +240,7 @@ export default function KnowledgePage() {
                 transition={{ delay: index * 0.1 }}
                 className="bg-card rounded-lg shadow-md border border-border p-4 text-center"
               >
-                <stat.icon className="w-8 h-8 text-primary-600 mx-auto mb-2" />
+                <stat.icon className="w-8 h-8 text-accent-strong mx-auto mb-2" />
                 <div className="text-2xl font-bold text-foreground">{stat.count}</div>
                 <div className="text-sm text-muted-foreground">{stat.label}</div>
               </motion.div>
@@ -252,8 +262,8 @@ export default function KnowledgePage() {
                   : "border-border hover:border-primary-300 hover:shadow-md"
               }`}
             >
-              <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center text-2xl mb-3 mx-auto">
-                ✨
+              <div className="w-12 h-12 craft-tile-teal rounded-lg flex items-center justify-center mb-3 mx-auto">
+                <LibraryBig className="w-6 h-6" aria-hidden="true" />
               </div>
               <div className="text-sm font-medium text-foreground mb-1">All</div>
             </motion.button>
@@ -270,8 +280,12 @@ export default function KnowledgePage() {
                     : "border-border hover:border-primary-300 hover:shadow-md"
                 }`}
               >
-                <div className={`w-12 h-12 bg-gradient-to-br ${category.color} rounded-lg flex items-center justify-center text-2xl mb-3 mx-auto`}>
-                  {category.icon}
+                <div
+                  className={`w-12 h-12 ${
+                    category.tint === "teal" ? "craft-tile-teal" : "craft-tile-lapis"
+                  } rounded-lg flex items-center justify-center mb-3 mx-auto`}
+                >
+                  <category.icon className="w-6 h-6" aria-hidden="true" />
                 </div>
                 <div className="text-sm font-medium text-foreground mb-1">{category.name}</div>
               </motion.button>
@@ -378,21 +392,20 @@ export default function KnowledgePage() {
         </div>
 
         {/* Call to Action */}
-        <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-lg shadow-lg p-8 text-center text-white">
-          <h3 className="text-2xl font-bold mb-4">Start Your Learning Journey</h3>
-          <p className="text-primary-100 mb-6 max-w-2xl mx-auto">
+        <div className="relative bg-card border border-border rounded-lg p-8 text-center overflow-hidden">
+          <GirihPattern />
+          <TazhibCorner corner="top-start" size={38} />
+          <TazhibCorner corner="bottom-end" size={38} />
+          <h3 className="relative font-display text-2xl font-medium text-foreground mb-4">Start your learning journey</h3>
+          <p className="relative text-foreground-secondary mb-6 max-w-2xl mx-auto">
             Join thousands of Muslims worldwide who are deepening their understanding of Islam through our curated content.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="bg-white text-primary-600 hover:bg-primary-50">
+            <Button size="lg" className="relative">
               <BookOpen className="w-5 h-5 mr-2" />
               Browse All Content
             </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="border-white text-white hover:bg-white/10"
-            >
+            <Button size="lg" variant="quiet" className="relative">
               <Award className="w-5 h-5 mr-2" />
               View Learning Paths
             </Button>

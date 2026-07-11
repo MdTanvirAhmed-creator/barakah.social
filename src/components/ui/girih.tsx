@@ -227,6 +227,8 @@ export function TazhibCorner({ corner = "top-start", size = 44, className }: Taz
 
 export interface GirihPatternProps {
   className?: string;
+  /** ~30% fainter — for cards that carry body text. */
+  subtle?: boolean;
 }
 
 /**
@@ -234,11 +236,12 @@ export interface GirihPatternProps {
  * --wm-stroke/--wm-opacity. Always behind content, never reducing
  * contrast. Also available as the `.girih-bg` CSS utility.
  */
-export function GirihPattern({ className }: GirihPatternProps) {
+export function GirihPattern({ className, subtle = false }: GirihPatternProps) {
   return (
     <div
       aria-hidden="true"
       className={cn("girih-bg pointer-events-none absolute inset-0 overflow-hidden", className)}
+      style={subtle ? { opacity: "calc(var(--wm-opacity) * 0.7)" } : undefined}
     />
   );
 }
