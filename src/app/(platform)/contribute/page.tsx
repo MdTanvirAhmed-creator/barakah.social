@@ -40,6 +40,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { GirihLoader } from "@/components/ui/girih";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -88,50 +89,50 @@ const CONTENT_TYPES = {
   article: {
     icon: FileText,
     label: "Article",
-    color: "text-blue-600",
-    bgColor: "bg-blue-50",
-    borderColor: "border-blue-200",
+    color: "text-info-600",
+    bgColor: "bg-info-50",
+    borderColor: "border-info-200",
   },
   video: {
     icon: Video,
     label: "Video Link",
-    color: "text-red-600",
-    bgColor: "bg-red-50",
-    borderColor: "border-red-200",
+    color: "text-error-600",
+    bgColor: "bg-error-50",
+    borderColor: "border-error-200",
   },
   book: {
     icon: BookOpen,
     label: "Book Recommendation",
-    color: "text-green-600",
-    bgColor: "bg-green-50",
-    borderColor: "border-green-200",
+    color: "text-success-600",
+    bgColor: "bg-success-50",
+    borderColor: "border-success-200",
   },
   translation: {
     icon: Languages,
     label: "Translation",
-    color: "text-purple-600",
-    bgColor: "bg-purple-50",
-    borderColor: "border-purple-200",
+    color: "text-info-600",
+    bgColor: "bg-info-50",
+    borderColor: "border-info-200",
   },
 };
 
 const TARGET_AUDIENCES = {
   beginner: {
     label: "Beginner",
-    color: "text-green-600",
-    bgColor: "bg-green-50",
+    color: "text-success-600",
+    bgColor: "bg-success-50",
     description: "New to Islamic knowledge",
   },
   intermediate: {
     label: "Intermediate",
-    color: "text-yellow-600",
-    bgColor: "bg-yellow-50",
+    color: "text-warning-600",
+    bgColor: "bg-warning-50",
     description: "Some Islamic knowledge",
   },
   advanced: {
     label: "Advanced",
-    color: "text-red-600",
-    bgColor: "bg-red-50",
+    color: "text-error-600",
+    bgColor: "bg-error-50",
     description: "Deep Islamic knowledge",
   },
 };
@@ -370,12 +371,12 @@ export default function ContributePage() {
 
   const getStatusColor = (status: ContentSubmission["status"]) => {
     const colors = {
-      draft: "text-gray-600 bg-gray-50 border-gray-200",
-      submitted: "text-blue-600 bg-blue-50 border-blue-200",
-      community_review: "text-yellow-600 bg-yellow-50 border-yellow-200",
-      scholar_review: "text-purple-600 bg-purple-50 border-purple-200",
-      approved: "text-green-600 bg-green-50 border-green-200",
-      rejected: "text-red-600 bg-red-50 border-red-200",
+      draft: "text-muted-foreground bg-muted border-border",
+      submitted: "text-info-600 bg-info-50 border-info-200",
+      community_review: "text-warning-600 bg-warning-50 border-warning-200",
+      scholar_review: "text-info-600 bg-info-50 border-info-200",
+      approved: "text-success-600 bg-success-50 border-success-200",
+      rejected: "text-error-600 bg-error-50 border-error-200",
     };
     return colors[status];
   };
@@ -430,50 +431,50 @@ export default function ContributePage() {
           {/* Contributor Stats */}
           {contributorStats && (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <Card className="bg-blue-50 border-blue-200">
+              <Card className="bg-info-50 border-info-200">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-blue-600">Contributor Level</p>
-                      <p className="text-lg font-bold text-blue-900">{contributorStats.contributorLevel}</p>
+                      <p className="text-sm font-medium text-info-600">Contributor Level</p>
+                      <p className="text-lg font-bold text-info-900">{contributorStats.contributorLevel}</p>
                     </div>
-                    <Award className="w-6 h-6 text-blue-600" />
+                    <Award className="w-6 h-6 text-info-600" />
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="bg-green-50 border-green-200">
+              <Card className="bg-success-50 border-success-200">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-green-600">Approved Content</p>
-                      <p className="text-lg font-bold text-green-900">{contributorStats.approvedContent}</p>
+                      <p className="text-sm font-medium text-success-600">Approved Content</p>
+                      <p className="text-lg font-bold text-success-900">{contributorStats.approvedContent}</p>
                     </div>
-                    <CheckCircle className="w-6 h-6 text-green-600" />
+                    <CheckCircle className="w-6 h-6 text-success-600" />
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="bg-purple-50 border-purple-200">
+              <Card className="bg-info-50 border-info-200">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-purple-600">Points</p>
-                      <p className="text-lg font-bold text-purple-900">{contributorStats.points}</p>
+                      <p className="text-sm font-medium text-info-600">Points</p>
+                      <p className="text-lg font-bold text-info-900">{contributorStats.points}</p>
                     </div>
-                    <Star className="w-6 h-6 text-purple-600" />
+                    <Star className="w-6 h-6 text-info-600" />
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="bg-orange-50 border-orange-200">
+              <Card className="bg-warning-50 border-warning-200">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-orange-600">Rank</p>
-                      <p className="text-lg font-bold text-orange-900">#{contributorStats.rank}</p>
+                      <p className="text-sm font-medium text-warning-600">Rank</p>
+                      <p className="text-lg font-bold text-warning-900">#{contributorStats.rank}</p>
                     </div>
-                    <TrendingUp className="w-6 h-6 text-orange-600" />
+                    <TrendingUp className="w-6 h-6 text-warning-600" />
                   </div>
                 </CardContent>
               </Card>
@@ -615,7 +616,7 @@ export default function ContributePage() {
                         {tag}
                         <button
                           onClick={() => removeTag(tag)}
-                          className="ml-1 hover:text-red-600"
+                          className="ml-1 hover:text-error-600"
                         >
                           ×
                         </button>
@@ -669,7 +670,7 @@ export default function ContributePage() {
                         <span className="text-sm">{source}</span>
                         <button
                           onClick={() => removeSource(source)}
-                          className="text-red-600 hover:text-red-800"
+                          className="text-error-600 hover:text-error-800"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -701,7 +702,7 @@ export default function ContributePage() {
                   >
                     {submitting ? (
                       <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <GirihLoader size="sm" className="[&_svg]:w-4 [&_svg]:h-4" />
                         Submitting...
                       </div>
                     ) : (
@@ -764,19 +765,19 @@ export default function ContributePage() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         <div className="flex items-center gap-1">
-                          <ThumbsUp className="w-4 h-4 text-green-600" />
+                          <ThumbsUp className="w-4 h-4 text-success-600" />
                           <span className="text-sm text-muted-foreground">
                             {submission.beneficialMarks} beneficial
                           </span>
                         </div>
                         <div className="flex items-center gap-1">
-                          <AlertTriangle className="w-4 h-4 text-yellow-600" />
+                          <AlertTriangle className="w-4 h-4 text-warning-600" />
                           <span className="text-sm text-muted-foreground">
                             {submission.communityFlags} flags
                           </span>
                         </div>
                         <div className="flex items-center gap-1">
-                          <Clock className="w-4 h-4 text-blue-600" />
+                          <Clock className="w-4 h-4 text-info-600" />
                           <span className="text-sm text-muted-foreground">
                             Stage {submission.reviewStage}/4
                           </span>
@@ -850,7 +851,7 @@ export default function ContributePage() {
                   <div className="space-y-3">
                   {contributorStats?.badges.map((badge, index) => (
                     <div key={index} className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                      <Award className="w-5 h-5 text-yellow-600" />
+                      <Award className="w-5 h-5 text-warning-600" />
                       <span className="font-medium">{badge}</span>
                     </div>
                   ))}
@@ -867,20 +868,20 @@ export default function ContributePage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
-                      <CheckCircle className="w-5 h-5 text-green-600" />
+                    <div className="flex items-center gap-3 p-3 bg-success-50 rounded-lg">
+                      <CheckCircle className="w-5 h-5 text-success-600" />
                       <span className="font-medium">Knowledge Contributor Badge</span>
                     </div>
-                    <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-                      <Zap className="w-5 h-5 text-blue-600" />
+                    <div className="flex items-center gap-3 p-3 bg-info-50 rounded-lg">
+                      <Zap className="w-5 h-5 text-info-600" />
                       <span className="font-medium">Early Access to New Content</span>
                     </div>
-                    <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg">
-                      <Users className="w-5 h-5 text-purple-600" />
+                    <div className="flex items-center gap-3 p-3 bg-info-50 rounded-lg">
+                      <Users className="w-5 h-5 text-info-600" />
                       <span className="font-medium">Exclusive Halaqa Invitations</span>
                     </div>
-                    <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-lg">
-                      <TrendingUp className="w-5 h-5 text-orange-600" />
+                    <div className="flex items-center gap-3 p-3 bg-warning-50 rounded-lg">
+                      <TrendingUp className="w-5 h-5 text-warning-600" />
                       <span className="font-medium">Points toward Verified Status</span>
                     </div>
                   </div>

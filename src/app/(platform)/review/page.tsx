@@ -31,6 +31,7 @@ import {
   SortDesc,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { GirihLoader } from "@/components/ui/girih";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -74,16 +75,16 @@ interface ReviewerStats {
 }
 
 const CONTENT_TYPES = {
-  article: { icon: FileText, label: "Article", color: "text-blue-600" },
-  video: { icon: Video, label: "Video", color: "text-red-600" },
-  book: { icon: BookOpen, label: "Book", color: "text-green-600" },
-  translation: { icon: Languages, label: "Translation", color: "text-purple-600" },
+  article: { icon: FileText, label: "Article", color: "text-info-600" },
+  video: { icon: Video, label: "Video", color: "text-error-600" },
+  book: { icon: BookOpen, label: "Book", color: "text-success-600" },
+  translation: { icon: Languages, label: "Translation", color: "text-info-600" },
 };
 
 const TARGET_AUDIENCES = {
-  beginner: { label: "Beginner", color: "text-green-600", bgColor: "bg-green-50" },
-  intermediate: { label: "Intermediate", color: "text-yellow-600", bgColor: "bg-yellow-50" },
-  advanced: { label: "Advanced", color: "text-red-600", bgColor: "bg-red-50" },
+  beginner: { label: "Beginner", color: "text-success-600", bgColor: "bg-success-50" },
+  intermediate: { label: "Intermediate", color: "text-warning-600", bgColor: "bg-warning-50" },
+  advanced: { label: "Advanced", color: "text-error-600", bgColor: "bg-error-50" },
 };
 
 const REVIEW_STAGES = [
@@ -291,19 +292,19 @@ export default function ReviewPage() {
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case "high": return "text-red-600 bg-red-50 border-red-200";
-      case "medium": return "text-yellow-600 bg-yellow-50 border-yellow-200";
-      case "low": return "text-green-600 bg-green-50 border-green-200";
-      default: return "text-gray-600 bg-gray-50 border-gray-200";
+      case "high": return "text-error-600 bg-error-50 border-error-200";
+      case "medium": return "text-warning-600 bg-warning-50 border-warning-200";
+      case "low": return "text-success-600 bg-success-50 border-success-200";
+      default: return "text-muted-foreground bg-muted border-border";
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "submitted": return "text-blue-600 bg-blue-50 border-blue-200";
-      case "community_review": return "text-yellow-600 bg-yellow-50 border-yellow-200";
-      case "scholar_review": return "text-purple-600 bg-purple-50 border-purple-200";
-      default: return "text-gray-600 bg-gray-50 border-gray-200";
+      case "submitted": return "text-info-600 bg-info-50 border-info-200";
+      case "community_review": return "text-warning-600 bg-warning-50 border-warning-200";
+      case "scholar_review": return "text-info-600 bg-info-50 border-info-200";
+      default: return "text-muted-foreground bg-muted border-border";
     }
   };
 
@@ -346,50 +347,50 @@ export default function ReviewPage() {
           {/* Reviewer Stats */}
           {reviewerStats && (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <Card className="bg-blue-50 border-blue-200">
+              <Card className="bg-info-50 border-info-200">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-blue-600">Total Reviews</p>
-                      <p className="text-lg font-bold text-blue-900">{reviewerStats.totalReviews}</p>
+                      <p className="text-sm font-medium text-info-600">Total Reviews</p>
+                      <p className="text-lg font-bold text-info-900">{reviewerStats.totalReviews}</p>
                     </div>
-                    <BarChart3 className="w-6 h-6 text-blue-600" />
+                    <BarChart3 className="w-6 h-6 text-info-600" />
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="bg-green-50 border-green-200">
+              <Card className="bg-success-50 border-success-200">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-green-600">Approved</p>
-                      <p className="text-lg font-bold text-green-900">{reviewerStats.approvedContent}</p>
+                      <p className="text-sm font-medium text-success-600">Approved</p>
+                      <p className="text-lg font-bold text-success-900">{reviewerStats.approvedContent}</p>
                     </div>
-                    <CheckCircle className="w-6 h-6 text-green-600" />
+                    <CheckCircle className="w-6 h-6 text-success-600" />
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="bg-purple-50 border-purple-200">
+              <Card className="bg-info-50 border-info-200">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-purple-600">Reviewer Level</p>
-                      <p className="text-lg font-bold text-purple-900">{reviewerStats.reviewerLevel}</p>
+                      <p className="text-sm font-medium text-info-600">Reviewer Level</p>
+                      <p className="text-lg font-bold text-info-900">{reviewerStats.reviewerLevel}</p>
                     </div>
-                    <Award className="w-6 h-6 text-purple-600" />
+                    <Award className="w-6 h-6 text-info-600" />
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="bg-orange-50 border-orange-200">
+              <Card className="bg-warning-50 border-warning-200">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-orange-600">Rank</p>
-                      <p className="text-lg font-bold text-orange-900">#{reviewerStats.rank}</p>
+                      <p className="text-sm font-medium text-warning-600">Rank</p>
+                      <p className="text-lg font-bold text-warning-900">#{reviewerStats.rank}</p>
                     </div>
-                    <TrendingUp className="w-6 h-6 text-orange-600" />
+                    <TrendingUp className="w-6 h-6 text-warning-600" />
                   </div>
                 </CardContent>
               </Card>
@@ -509,19 +510,19 @@ export default function ReviewPage() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         <div className="flex items-center gap-1">
-                          <ThumbsUp className="w-4 h-4 text-green-600" />
+                          <ThumbsUp className="w-4 h-4 text-success-600" />
                           <span className="text-sm text-muted-foreground">
                             {item.beneficialMarks} beneficial
                           </span>
                         </div>
                         <div className="flex items-center gap-1">
-                          <AlertTriangle className="w-4 h-4 text-yellow-600" />
+                          <AlertTriangle className="w-4 h-4 text-warning-600" />
                           <span className="text-sm text-muted-foreground">
                             {item.communityFlags} flags
                           </span>
                         </div>
                         <div className="flex items-center gap-1">
-                          <Clock className="w-4 h-4 text-blue-600" />
+                          <Clock className="w-4 h-4 text-info-600" />
                           <span className="text-sm text-muted-foreground">
                             ~{item.estimatedReviewTime} min
                           </span>
@@ -682,7 +683,7 @@ export default function ReviewPage() {
                     >
                       {processing ? (
                         <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          <GirihLoader size="sm" className="[&_svg]:w-4 [&_svg]:h-4" />
                           Processing...
                         </div>
                       ) : (
