@@ -31,7 +31,7 @@ import {
   SortDesc,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { GirihLoader } from "@/components/ui/girih";
+import { GirihLoader, GirihEmptyState } from "@/components/ui/girih";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -42,13 +42,11 @@ import { moment } from "@/hooks/useToast";
 
 interface ReviewItem {
   id: string;
-  submissionId: string;
   title: string;
   description: string;
   type: "article" | "video" | "book" | "translation";
   contributorName: string;
   contributorAvatar?: string;
-  contributorLevel: string;
   category: string;
   tags: string[];
   targetAudience: "beginner" | "intermediate" | "advanced";
@@ -116,90 +114,97 @@ export default function ReviewPage() {
   const loadReviewData = async () => {
     try {
       setLoading(true);
-      
-      // Mock data for demonstration
-      const mockReviewItems: ReviewItem[] = [
-        {
-          id: "1",
-          submissionId: "sub1",
-          title: "The Importance of Seeking Knowledge in Islam",
-          description: "A comprehensive article about the Islamic emphasis on seeking knowledge and its benefits",
-          type: "article",
-          contributorName: "Ahmad Ibn Abdullah",
-          contributorAvatar: undefined,
-          contributorLevel: "Knowledgeable",
-          category: "Aqeedah",
-          tags: ["knowledge", "islam", "education"],
-          targetAudience: "intermediate",
-          content: "In Islam, seeking knowledge is not just encouraged but considered a religious obligation...",
-          sources: ["Sahih Bukhari", "Sahih Muslim"],
-          status: "community_review",
-          reviewStage: 2,
-          communityFlags: 0,
-          beneficialMarks: 45,
-          createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-          priority: "high",
-          estimatedReviewTime: 15,
-        },
-        {
-          id: "2",
-          submissionId: "sub2",
-          title: "Tafsir of Surah Al-Fatiha",
-          description: "Detailed explanation of the opening chapter of the Quran",
-          type: "video",
-          contributorName: "Fatima Al-Zahra",
-          contributorAvatar: undefined,
-          contributorLevel: "Contributor",
-          category: "Quran",
-          tags: ["tafsir", "quran", "surah-fatiha"],
-          targetAudience: "beginner",
-          content: "https://bayyinah.com/tafsir-al-fatiha",
-          sources: ["Bayyinah Institute"],
-          status: "scholar_review",
-          reviewStage: 3,
-          communityFlags: 0,
-          beneficialMarks: 78,
-          createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-          priority: "medium",
-          estimatedReviewTime: 10,
-        },
-        {
-          id: "3",
-          submissionId: "sub3",
-          title: "The Book of Knowledge by Imam Al-Ghazali",
-          description: "Classic work on Islamic epistemology and the importance of knowledge",
-          type: "book",
-          contributorName: "Omar Al-Rashid",
-          contributorAvatar: undefined,
-          contributorLevel: "Scholar",
-          category: "Classics",
-          tags: ["al-ghazali", "knowledge", "classics"],
-          targetAudience: "advanced",
-          content: "This timeless work explores the nature of knowledge in Islam...",
-          sources: ["Dar Al-Kotob Al-Ilmiyah"],
-          status: "community_review",
-          reviewStage: 2,
-          communityFlags: 1,
-          beneficialMarks: 23,
-          createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-          priority: "low",
-          estimatedReviewTime: 20,
-        },
-      ];
 
-      const mockStats: ReviewerStats = {
-        totalReviews: 45,
-        approvedContent: 38,
-        rejectedContent: 5,
-        flaggedContent: 2,
-        averageReviewTime: 12,
-        reviewerLevel: "Expert Reviewer",
-        helpfulReviews: 42,
-        rank: 8,
-      };
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
 
-      setReviewItems(mockReviewItems);
-      setReviewerStats(mockStats);
+      // The community review queue: submissions in the pipeline, minus my own.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: rows, error } = await (supabase as any)
+        .from("content_submissions")
+        .select(
+          "id, contributor_id, type, title, description, original_author, category, tags, language, target_audience, sources, content, status, review_stage, community_flags, beneficial_marks, created_at"
+        )
+        .in("status", ["submitted", "community_review", "scholar_review"])
+        .neq("contributor_id", user.id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+
+      // Contributor identities come from the public card view (privacy-safe).
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const submissions = (rows as any[]) ?? [];
+      const contributorIds = [...new Set(submissions.map((r) => r.contributor_id))];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: cards } = contributorIds.length
+        ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (supabase as any)
+            .from("public_profiles")
+            .select("id, username, display_name, avatar_url")
+            .in("id", contributorIds)
+        : { data: [] };
+      const cardById = new Map(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ((cards as any[]) ?? []).map((c) => [c.id, c])
+      );
+
+      const items: ReviewItem[] = submissions.map((r) => {
+        const card = cardById.get(r.contributor_id);
+        return {
+          id: r.id,
+          type: r.type,
+          title: r.title,
+          description: r.description ?? "",
+          originalAuthor: r.original_author ?? "",
+          category: r.category ?? "",
+          tags: r.tags ?? [],
+          language: r.language ?? "en",
+          targetAudience: r.target_audience ?? "beginner",
+          sources: r.sources ?? [],
+          content: r.content,
+          status: r.status,
+          reviewStage: r.review_stage ?? 1,
+          contributorId: r.contributor_id,
+          contributorName: card?.display_name || card?.username || "A community member",
+          contributorAvatar: card?.avatar_url ?? undefined,
+          communityFlags: r.community_flags ?? 0,
+          beneficialMarks: r.beneficial_marks ?? 0,
+          createdAt: r.created_at,
+          priority:
+            (r.community_flags ?? 0) > 0
+              ? "high"
+              : r.status === "scholar_review"
+              ? "medium"
+              : "low",
+          estimatedReviewTime: Math.max(5, Math.ceil((r.content?.length ?? 0) / 800)),
+        };
+      });
+
+      // Honest counts: my recorded reviews + the live queue. No rank, no level.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { count: myReviews } = await (supabase as any)
+        .from("community_reviews")
+        .select("id", { count: "exact", head: true })
+        .eq("reviewer_id", user.id);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { count: myApprovals } = await (supabase as any)
+        .from("community_reviews")
+        .select("id", { count: "exact", head: true })
+        .eq("reviewer_id", user.id)
+        .eq("action", "approve");
+
+      setReviewItems(items);
+      setReviewerStats({
+        totalReviews: myReviews ?? 0,
+        approvedContent: myApprovals ?? 0,
+        rejectedContent: 0,
+        flaggedContent: 0,
+        averageReviewTime: 0,
+        reviewerLevel: "",
+        helpfulReviews: 0,
+        rank: 0,
+      });
     } catch (error) {
       console.error("Error loading review data:", error);
       toast.error("Failed to load review data");
@@ -211,48 +216,30 @@ export default function ReviewPage() {
   const handleReview = async (item: ReviewItem, action: "approve" | "reject" | "flag", comment: string) => {
     try {
       setProcessing(true);
-      
-      // Simulate review processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Update item status based on action
-      let newStatus = item.status;
-      let newStage = item.reviewStage;
-      
-      if (action === "approve") {
-        if (item.reviewStage === 2) {
-          newStage = 3;
-          newStatus = "scholar_review";
-        } else if (item.reviewStage === 3) {
-          newStage = 4;
-          newStatus = "approved";
-        }
-      } else if (action === "reject") {
-        newStatus = "rejected";
-      } else if (action === "flag") {
-        // Flag for further review
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("Your session expired. Sign in again.");
+        return;
       }
 
-      // Update the item in the list
-      setReviewItems(prev => 
-        prev.map(reviewItem => 
-          reviewItem.id === item.id 
-            ? { 
-                ...reviewItem, 
-                status: newStatus as any,
-                reviewStage: newStage,
-                communityFlags: action === "flag" ? reviewItem.communityFlags + 1 : reviewItem.communityFlags
-              }
-            : reviewItem
-        )
-      );
+      // Record the review (RLS: reviewer_id must be the signed-in user).
+      // Pipeline stage transitions are applied by the moderation workflow,
+      // not by individual reviewers.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any).from("community_reviews").insert({
+        submission_id: item.id,
+        reviewer_id: user.id,
+        action,
+        comment: comment || null,
+        stage: item.reviewStage,
+      });
+      if (error) throw error;
 
-      // Remove from review queue if approved or rejected
-      if (action === "approve" && newStage === 4) {
-        setReviewItems(prev => prev.filter(reviewItem => reviewItem.id !== item.id));
-      } else if (action === "reject") {
-        setReviewItems(prev => prev.filter(reviewItem => reviewItem.id !== item.id));
-      }
+      // Reviewed items leave my queue.
+      setReviewItems((prev) => prev.filter((reviewItem) => reviewItem.id !== item.id));
 
       if (action === "approve") {
         moment("Approved — may it benefit the community");
@@ -371,24 +358,12 @@ export default function ReviewPage() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-info-50 border-info-200">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-info-600">Reviewer Level</p>
-                      <p className="text-lg font-bold text-info-900">{reviewerStats.reviewerLevel}</p>
-                    </div>
-                    <Award className="w-6 h-6 text-info-600" />
-                  </div>
-                </CardContent>
-              </Card>
-
               <Card className="bg-warning-50 border-warning-200">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-warning-600">Rank</p>
-                      <p className="text-lg font-bold text-warning-900">#{reviewerStats.rank}</p>
+                      <p className="text-sm font-medium text-warning-600">In queue</p>
+                      <p className="text-lg font-bold text-warning-900">{reviewItems.length}</p>
                     </div>
                     <TrendingUp className="w-6 h-6 text-warning-600" />
                   </div>
@@ -446,17 +421,10 @@ export default function ReviewPage() {
         {/* Review Queue */}
         <div className="space-y-4">
           {sortedItems.length === 0 ? (
-            <Card>
-              <CardContent className="p-8 text-center">
-                <Users className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-foreground mb-2">
-                  No content to review
-                </h3>
-                <p className="text-muted-foreground">
-                  All content has been reviewed or no new submissions are available
-                </p>
-              </CardContent>
-            </Card>
+            <GirihEmptyState
+              title="The review queue is clear."
+              description="When companions submit new knowledge, it gathers here for the community to weigh together."
+            />
           ) : (
             sortedItems.map((item) => {
               const typeConfig = CONTENT_TYPES[item.type];
@@ -584,7 +552,7 @@ export default function ReviewPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
                       <p className="text-sm font-medium text-foreground">Contributor</p>
-                      <p className="text-sm text-muted-foreground">{selectedItem.contributorName} ({selectedItem.contributorLevel})</p>
+                      <p className="text-sm text-muted-foreground">{selectedItem.contributorName}</p>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-foreground">Category</p>

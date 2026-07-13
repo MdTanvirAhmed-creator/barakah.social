@@ -40,7 +40,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { GirihLoader } from "@/components/ui/girih";
+import { GirihLoader, GirihEmptyState } from "@/components/ui/girih";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -145,7 +145,7 @@ const REVIEW_STAGES = [
 ];
 
 export default function ContributePage() {
-  const [activeTab, setActiveTab] = useState<"submit" | "my-submissions" | "review" | "rewards">("submit");
+  const [activeTab, setActiveTab] = useState<"submit" | "my-submissions" | "review">("submit");
   const [submissions, setSubmissions] = useState<ContentSubmission[]>([]);
   const [contributorStats, setContributorStats] = useState<ContributorStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -177,94 +177,62 @@ export default function ContributePage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      
-      // Mock data for demonstration
-      const mockSubmissions: ContentSubmission[] = [
-        {
-          id: "1",
-          type: "article",
-          title: "The Importance of Seeking Knowledge in Islam",
-          description: "A comprehensive article about the Islamic emphasis on seeking knowledge and its benefits",
-          originalAuthor: "Dr. Ahmad Al-Rashid",
-          category: "Aqeedah",
-          tags: ["knowledge", "islam", "education", "seeking"],
-          language: "en",
-          targetAudience: "intermediate",
-          sources: ["Sahih Bukhari", "Sahih Muslim", "Ibn Majah"],
-          content: "In Islam, seeking knowledge is not just encouraged but considered a religious obligation...",
-          status: "scholar_review",
-          createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-          updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-          contributorId: "user1",
-          contributorName: "Ahmad Ibn Abdullah",
-          contributorAvatar: undefined,
-          reviewStage: 3,
-          communityFlags: 0,
-          beneficialMarks: 45,
-          scholarApproval: false,
-        },
-        {
-          id: "2",
-          type: "video",
-          title: "Tafsir of Surah Al-Fatiha",
-          description: "Detailed explanation of the opening chapter of the Quran",
-          originalAuthor: "Shaykh Abdul Nasir Jangda",
-          category: "Quran",
-          tags: ["tafsir", "quran", "surah-fatiha", "explanation"],
-          language: "en",
-          targetAudience: "beginner",
-          sources: ["Bayyinah Institute"],
-          content: "https://bayyinah.com/tafsir-al-fatiha",
-          status: "approved",
-          createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-          updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-          contributorId: "user1",
-          contributorName: "Ahmad Ibn Abdullah",
-          contributorAvatar: undefined,
-          reviewStage: 4,
-          communityFlags: 0,
-          beneficialMarks: 78,
-          scholarApproval: true,
-        },
-        {
-          id: "3",
-          type: "book",
-          title: "The Book of Knowledge by Imam Al-Ghazali",
-          description: "Classic work on Islamic epistemology and the importance of knowledge",
-          originalAuthor: "Imam Al-Ghazali",
-          category: "Classics",
-          tags: ["al-ghazali", "knowledge", "classics", "epistemology"],
-          language: "en",
-          targetAudience: "advanced",
-          sources: ["Dar Al-Kotob Al-Ilmiyah"],
-          content: "This timeless work explores the nature of knowledge in Islam...",
-          status: "community_review",
-          createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-          updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-          contributorId: "user1",
-          contributorName: "Ahmad Ibn Abdullah",
-          contributorAvatar: undefined,
-          reviewStage: 2,
-          communityFlags: 1,
-          beneficialMarks: 23,
-          scholarApproval: false,
-        },
-      ];
 
-      const mockStats: ContributorStats = {
-        totalSubmissions: 12,
-        approvedContent: 8,
-        pendingReview: 3,
-        rejectedContent: 1,
-        beneficialMarks: 156,
-        contributorLevel: "Knowledgeable",
-        badges: ["Knowledge Contributor", "Quality Reviewer", "Community Helper"],
-        points: 1240,
-        rank: 15,
-      };
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
 
-      setSubmissions(mockSubmissions);
-      setContributorStats(mockStats);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: rows, error } = await (supabase as any)
+        .from("content_submissions")
+        .select(
+          "id, type, title, description, original_author, category, tags, language, target_audience, sources, content, status, review_stage, community_flags, beneficial_marks, scholar_approval, created_at, updated_at"
+        )
+        .eq("contributor_id", user.id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mine: ContentSubmission[] = ((rows as any[]) ?? []).map((r) => ({
+        id: r.id,
+        type: r.type,
+        title: r.title,
+        description: r.description ?? "",
+        originalAuthor: r.original_author ?? "",
+        category: r.category ?? "",
+        tags: r.tags ?? [],
+        language: r.language ?? "en",
+        targetAudience: r.target_audience ?? "beginner",
+        sources: r.sources ?? [],
+        content: r.content,
+        status: r.status,
+        createdAt: r.created_at,
+        updatedAt: r.updated_at,
+        contributorId: user.id,
+        contributorName: "",
+        contributorAvatar: undefined,
+        reviewStage: r.review_stage ?? 1,
+        communityFlags: r.community_flags ?? 0,
+        beneficialMarks: r.beneficial_marks ?? 0,
+        scholarApproval: r.scholar_approval ?? false,
+      }));
+
+      setSubmissions(mine);
+      // Honest counts derived from real rows — no points, no rank.
+      setContributorStats({
+        totalSubmissions: mine.length,
+        approvedContent: mine.filter((m) => m.status === "approved").length,
+        pendingReview: mine.filter((m) =>
+          ["submitted", "community_review", "scholar_review"].includes(m.status)
+        ).length,
+        rejectedContent: mine.filter((m) => m.status === "rejected").length,
+        beneficialMarks: mine.reduce((n, m) => n + m.beneficialMarks, 0),
+        contributorLevel: "Contributor",
+        badges: [],
+        points: 0,
+        rank: 0,
+      });
     } catch (error) {
       console.error("Error loading data:", error);
       toast.error("Failed to load contribution data");
@@ -283,34 +251,32 @@ export default function ContributePage() {
         return;
       }
 
-      // Simulate submission
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("Your session expired. Sign in again.");
+        return;
+      }
 
-      const newSubmission: ContentSubmission = {
-        id: Date.now().toString(),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any).from("content_submissions").insert({
+        contributor_id: user.id,
         type: formData.type,
         title: formData.title,
         description: formData.description,
-        originalAuthor: formData.originalAuthor,
-        category: formData.category,
+        original_author: formData.originalAuthor || null,
+        category: formData.category || null,
         tags: formData.tags,
         language: formData.language,
-        targetAudience: formData.targetAudience,
+        target_audience: formData.targetAudience,
         sources: formData.sources,
         content: formData.content,
         status: "submitted",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        contributorId: "current-user",
-        contributorName: "Current User",
-        contributorAvatar: undefined,
-        reviewStage: 1,
-        communityFlags: 0,
-        beneficialMarks: 0,
-        scholarApproval: false,
-      };
+      });
+      if (error) throw error;
 
-      setSubmissions(prev => [newSubmission, ...prev]);
+      await loadData();
       
       // Reset form
       setFormData({
@@ -435,8 +401,8 @@ export default function ContributePage() {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-info-600">Contributor Level</p>
-                      <p className="text-lg font-bold text-info-900">{contributorStats.contributorLevel}</p>
+                      <p className="text-sm font-medium text-info-600">Submissions</p>
+                      <p className="text-lg font-bold text-info-900">{contributorStats.totalSubmissions}</p>
                     </div>
                     <Award className="w-6 h-6 text-info-600" />
                   </div>
@@ -455,26 +421,26 @@ export default function ContributePage() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-info-50 border-info-200">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-info-600">Points</p>
-                      <p className="text-lg font-bold text-info-900">{contributorStats.points}</p>
-                    </div>
-                    <Star className="w-6 h-6 text-info-600" />
-                  </div>
-                </CardContent>
-              </Card>
-
               <Card className="bg-warning-50 border-warning-200">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-warning-600">Rank</p>
-                      <p className="text-lg font-bold text-warning-900">#{contributorStats.rank}</p>
+                      <p className="text-sm font-medium text-warning-600">In review</p>
+                      <p className="text-lg font-bold text-warning-900">{contributorStats.pendingReview}</p>
                     </div>
-                    <TrendingUp className="w-6 h-6 text-warning-600" />
+                    <Star className="w-6 h-6 text-warning-600" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-muted border-border">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Beneficial marks</p>
+                      <p className="text-lg font-bold text-foreground">{contributorStats.beneficialMarks}</p>
+                    </div>
+                    <TrendingUp className="w-6 h-6 text-muted-foreground" />
                   </div>
                 </CardContent>
               </Card>
@@ -487,7 +453,6 @@ export default function ContributePage() {
               { id: "submit", label: "Submit Content", icon: Plus },
               { id: "my-submissions", label: "My Submissions", icon: FileText },
               { id: "review", label: "Review Content", icon: Users },
-              { id: "rewards", label: "Rewards", icon: Award },
             ].map((tab) => {
               const Icon = tab.icon;
               return (
@@ -725,6 +690,13 @@ export default function ContributePage() {
             animate={{ opacity: 1, y: 0 }}
             className="space-y-4"
           >
+            {submissions.length === 0 && (
+              <GirihEmptyState
+                title="Nothing submitted yet."
+                description="Share a beneficial article, video, book, or translation — the community reviews every submission together."
+                action={<Button onClick={() => setActiveTab("submit")}>Submit content</Button>}
+              />
+            )}
             {submissions.map((submission) => {
               const StatusIcon = getStatusIcon(submission.status);
               const typeConfig = CONTENT_TYPES[submission.type];
@@ -832,64 +804,6 @@ export default function ContributePage() {
           </motion.div>
         )}
 
-        {/* Rewards */}
-        {activeTab === "rewards" && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-6"
-          >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Award className="w-5 h-5" />
-                    Your Badges
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                  {contributorStats?.badges.map((badge, index) => (
-                    <div key={index} className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                      <Award className="w-5 h-5 text-warning-600" />
-                      <span className="font-medium">{badge}</span>
-                    </div>
-                  ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Star className="w-5 h-5" />
-                    Rewards & Benefits
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3 p-3 bg-success-50 rounded-lg">
-                      <CheckCircle className="w-5 h-5 text-success-600" />
-                      <span className="font-medium">Knowledge Contributor Badge</span>
-                    </div>
-                    <div className="flex items-center gap-3 p-3 bg-info-50 rounded-lg">
-                      <Zap className="w-5 h-5 text-info-600" />
-                      <span className="font-medium">Early Access to New Content</span>
-                    </div>
-                    <div className="flex items-center gap-3 p-3 bg-info-50 rounded-lg">
-                      <Users className="w-5 h-5 text-info-600" />
-                      <span className="font-medium">Exclusive Halaqa Invitations</span>
-                    </div>
-                    <div className="flex items-center gap-3 p-3 bg-warning-50 rounded-lg">
-                      <TrendingUp className="w-5 h-5 text-warning-600" />
-                      <span className="font-medium">Points toward Verified Status</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </motion.div>
-        )}
       </div>
     </div>
   );
