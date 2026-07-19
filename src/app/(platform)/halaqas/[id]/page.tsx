@@ -36,6 +36,7 @@ import { formatRelativeTime } from "@/lib/date";
 import { useToast } from "@/hooks/useToast";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { createClient } from "@/lib/supabase/client";
+import { signPostMedia } from "@/lib/supabase/storage";
 import { CommentSection } from "@/components/comments/CommentSection";
 import { CompanionDiscoveryCard } from "@/components/halaqas/CompanionDiscoveryCard";
 import { useHalaqaCompanions } from "@/hooks/useHalaqaCompanions";
@@ -332,7 +333,9 @@ export default function HalaqaDetailPage({ params }: HalaqaDetailPageProps) {
             avatar_url
           )
         `)
-        .contains('tags', [halaqa?.category || ''])
+        // Posts belonging to this halaqa (RLS already limits to what members
+        // may see). Older tag-associated posts are not shown here.
+        .eq('halaqa_id', halaqa?.id)
         .order('created_at', { ascending: false })
         .limit(20);
 
@@ -341,7 +344,19 @@ export default function HalaqaDetailPage({ params }: HalaqaDetailPageProps) {
         return;
       }
 
-      setPosts(postsData || []);
+      // Private media → signed URLs.
+      const rows = (postsData || []) as any[];
+      const allPaths = rows.flatMap((p) => (p.media_urls ?? []) as string[]);
+      const signed = await signPostMedia(allPaths);
+      const urlByPath = new Map<string, string>();
+      allPaths.forEach((path, i) => urlByPath.set(path, signed[i]));
+      rows.forEach((p) => {
+        p.media_urls = ((p.media_urls ?? []) as string[])
+          .map((path) => urlByPath.get(path) ?? "")
+          .filter(Boolean);
+      });
+
+      setPosts(rows);
     } catch (error) {
       console.error("Error:", error);
     }
@@ -408,7 +423,10 @@ export default function HalaqaDetailPage({ params }: HalaqaDetailPageProps) {
           content: postContent,
           post_type: 'standard',
           tags: [halaqa?.category || ''],
-          beneficial_count: 0
+          // Scope the post to this halaqa via the real privacy model: only
+          // members may read it (enforced by RLS), not the whole network.
+          visibility: 'halaqa',
+          halaqa_id: halaqa?.id,
         });
 
       if (error) {

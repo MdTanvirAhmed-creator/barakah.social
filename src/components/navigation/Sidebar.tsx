@@ -23,8 +23,7 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { useToast } from "@/hooks/useToast";
-import { useCompanionData } from "@/hooks/useCompanionData";
-import { CompanionNotificationDropdown } from "@/components/companion/CompanionNotificationDropdown";
+import { NotificationInbox } from "@/components/notifications/NotificationInbox";
 import { useState } from "react";
 
 const NAVIGATION_ITEMS = [
@@ -103,7 +102,6 @@ export function Sidebar({ isCollapsed = false, onToggleCollapse }: SidebarProps)
   const router = useRouter();
   const { user, profile, loading, signOut } = useSupabaseAuth();
   const { success, error: showError } = useToast();
-  const { stats, pendingConnections, refresh: refreshCompanionData } = useCompanionData();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleSignOut = async () => {
@@ -190,12 +188,7 @@ export function Sidebar({ isCollapsed = false, onToggleCollapse }: SidebarProps)
               </motion.div>
             )}
 
-            {!isCollapsed && (
-              <CompanionNotificationDropdown
-                pendingConnections={pendingConnections}
-                onUpdate={refreshCompanionData}
-              />
-            )}
+            {!isCollapsed && <NotificationInbox />}
           </div>
         </div>
       )}

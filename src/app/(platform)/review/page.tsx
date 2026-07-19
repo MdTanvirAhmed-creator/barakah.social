@@ -104,6 +104,7 @@ export default function ReviewPage() {
   const [filterStage, setFilterStage] = useState<"all" | "1" | "2" | "3">("all");
   const [filterType, setFilterType] = useState<"all" | "article" | "video" | "book" | "translation">("all");
   const [sortBy, setSortBy] = useState<"newest" | "oldest" | "priority">("newest");
+  const [isReviewer, setIsReviewer] = useState(false);
 
   const supabase = createClient();
 
@@ -119,6 +120,23 @@ export default function ReviewPage() {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
+
+      // Review is a granted responsibility. Non-reviewers are shown an
+      // access notice rather than an empty (and confusing) queue — and RLS
+      // enforces the same boundary regardless of the UI.
+      const { data: roleRow } = await (supabase as any)
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "reviewer")
+        .maybeSingle();
+      const reviewer = !!roleRow;
+      setIsReviewer(reviewer);
+      if (!reviewer) {
+        setReviewItems([]);
+        setLoading(false);
+        return;
+      }
 
       // The community review queue: submissions in the pipeline, minus my own.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -307,6 +325,19 @@ export default function ReviewPage() {
               ))}
             </div>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isReviewer) {
+    return (
+      <div className="min-h-screen bg-background p-6">
+        <div className="max-w-xl mx-auto">
+          <GirihEmptyState
+            title="Reviewer access"
+            description="Community review is carried out by members entrusted with the reviewer role. If you would like to help safeguard the quality of shared knowledge, ask a moderator to grant you review access. You can keep contributing your own work in the meantime."
+          />
         </div>
       </div>
     );

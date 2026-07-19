@@ -21,6 +21,7 @@ import {
   SearchFilterState,
 } from "@/components/search/SearchFilters";
 import { createClient } from "@/lib/supabase/client";
+import { signPostMedia } from "@/lib/supabase/storage";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 
 type TabType = "all" | "posts" | "people" | "halaqas" | "knowledge";
@@ -36,7 +37,8 @@ interface PostResult {
     is_verified_scholar: boolean;
   };
   created_at: string;
-  beneficial_count: number;
+  beneficial_count?: number;
+  is_own_post: boolean;
   comment_count: number;
   tags: string[];
   media_urls: string[];
@@ -49,9 +51,7 @@ interface UserResult {
   username: string;
   full_name: string;
   avatar_url?: string | null;
-  bio?: string | null;
   is_verified_scholar: boolean;
-  beneficial_count: number;
 }
 
 interface HalaqaResult {
@@ -155,29 +155,31 @@ function SearchPageContent() {
 
   async function searchPosts(q: string, f: SearchFilterState): Promise<PostResult[]> {
     const cutoff = dateRangeCutoff(f.dateRange);
-    const orderCol = f.sortBy === "popular" ? "beneficial_count" : "created_at";
 
-    // If verified-only filter, resolve author IDs first
+    // If verified-only filter, resolve author IDs from the public view.
     let verifiedIds: string[] | null = null;
     if (f.verified === "verified") {
       const { data: vp } = await sb
-        .from("profiles")
+        .from("public_profiles")
         .select("id")
         .eq("is_verified_scholar", true);
       verifiedIds = (vp as { id: string }[] | null)?.map((p) => p.id) ?? [];
       if (!verifiedIds.length) return [];
     }
 
+    // No "popular" ordering: there is no public post-popularity metric on
+    // Barakah. Results are chronological. RLS already limits posts to those
+    // the searcher may see.
     let query = sb
       .from("posts")
       .select(
-        `id, content, tags, media_urls, beneficial_count, created_at, author_id,
+        `id, content, tags, media_urls, created_at, author_id,
          profiles!posts_author_id_fkey(id, username, full_name, avatar_url, is_verified_scholar),
          comments!comments_post_id_fkey(count)`
       )
       .ilike("content", `%${q}%`)
       .eq("is_deleted", false)
-      .order(orderCol, { ascending: false })
+      .order("created_at", { ascending: false })
       .limit(20);
 
     if (cutoff) query = query.gte("created_at", cutoff);
@@ -200,6 +202,12 @@ function SearchPageContent() {
       (bookmarks as { post_id: string }[] | null)?.forEach((b) => bookmarkedIds.add(b.post_id));
     }
 
+    // Private media → signed URLs, one batch.
+    const allPaths = (data as any[]).flatMap((p) => (p.media_urls ?? []) as string[]);
+    const signed = await signPostMedia(allPaths);
+    const urlByPath = new Map<string, string>();
+    allPaths.forEach((path, i) => urlByPath.set(path, signed[i]));
+
     return (data as any[]).map((post) => ({
       id: post.id,
       content: post.content,
@@ -211,21 +219,26 @@ function SearchPageContent() {
         is_verified_scholar: post.profiles.is_verified_scholar,
       },
       created_at: post.created_at,
-      beneficial_count: post.beneficial_count ?? 0,
+      is_own_post: !!user && post.author_id === user.id,
+      beneficial_count: undefined,
       comment_count: post.comments?.[0]?.count ?? 0,
       tags: post.tags ?? [],
-      media_urls: post.media_urls ?? [],
+      media_urls: ((post.media_urls ?? []) as string[])
+        .map((path) => urlByPath.get(path) ?? "")
+        .filter(Boolean),
       has_user_marked_beneficial: markedIds.has(post.id),
       has_user_bookmarked: bookmarkedIds.has(post.id),
     }));
   }
 
   async function searchUsers(q: string, f: SearchFilterState): Promise<UserResult[]> {
+    // public_profiles: finds people you are not yet companions with (discovery)
+    // while honouring blocks, and exposes no private profile fields.
     let query = sb
-      .from("profiles")
-      .select("id, username, full_name, avatar_url, bio, is_verified_scholar, beneficial_count")
-      .or(`full_name.ilike.%${q}%,username.ilike.%${q}%`)
-      .order("beneficial_count", { ascending: false })
+      .from("public_profiles")
+      .select("id, username, display_name, avatar_url, is_verified_scholar")
+      .or(`display_name.ilike.%${q}%,username.ilike.%${q}%`)
+      .order("username", { ascending: true })
       .limit(20);
 
     if (f.verified === "verified") query = query.eq("is_verified_scholar", true);
@@ -233,7 +246,13 @@ function SearchPageContent() {
     const { data, error } = await query;
     if (error || !data) return [];
 
-    return (data as UserResult[]);
+    return (data as any[]).map((u) => ({
+      id: u.id,
+      username: u.username,
+      full_name: u.display_name,
+      avatar_url: u.avatar_url,
+      is_verified_scholar: u.is_verified_scholar,
+    }));
   }
 
   async function searchHalaqas(q: string, f: SearchFilterState): Promise<HalaqaResult[]> {
@@ -531,9 +550,7 @@ function UserCard({ user, large = false }: { user: UserResult; large?: boolean }
             <h3 className="font-semibold text-foreground">{user.full_name}</h3>
             {user.is_verified_scholar && <Sparkles className="w-4 h-4 text-primary-500" />}
           </div>
-          <p className="text-sm text-muted-foreground mb-3">@{user.username}</p>
-          {user.bio && <p className="text-sm text-foreground-secondary mb-4 line-clamp-3">{user.bio}</p>}
-          <p className="text-xs text-muted-foreground mb-4">{user.beneficial_count} beneficial marks</p>
+          <p className="text-sm text-muted-foreground mb-4">@{user.username}</p>
           <Button className="w-full" size="sm">Follow</Button>
         </div>
       </div>
@@ -555,7 +572,6 @@ function UserCard({ user, large = false }: { user: UserResult; large?: boolean }
             {user.is_verified_scholar && <Sparkles className="w-4 h-4 text-primary-500 flex-shrink-0" />}
           </div>
           <p className="text-sm text-muted-foreground">@{user.username}</p>
-          {user.bio && <p className="text-sm text-foreground-secondary mt-1 line-clamp-2">{user.bio}</p>}
         </div>
         <Button size="sm">Follow</Button>
       </div>

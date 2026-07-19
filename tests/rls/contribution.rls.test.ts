@@ -28,6 +28,13 @@ beforeAll(async () => {
     createTestUser(admin, "b"),
   ]);
 
+  // The review queue and review-recording are gated to granted reviewers
+  // (migration 20). Grant the role via service_role, the admin bootstrap path.
+  const { error: grantErr } = await admin
+    .from("user_roles")
+    .insert({ user_id: reviewer.id, role: "reviewer" });
+  if (grantErr) throw new Error(`grant reviewer role: ${grantErr.message}`);
+
   const { data: submitted, error: e1 } = await author.client
     .from("content_submissions")
     .insert({
@@ -60,6 +67,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await admin.from("content_submissions").delete().eq("contributor_id", author.id);
+  await admin.from("user_roles").delete().eq("user_id", reviewer.id);
   await Promise.all([author, reviewer].map((u) => deleteTestUser(admin, u)));
 });
 

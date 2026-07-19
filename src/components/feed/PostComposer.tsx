@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Image as ImageIcon,
@@ -9,6 +9,9 @@ import {
   Loader2,
   X,
   Sparkles,
+  Users,
+  Lock,
+  BookOpen,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -26,6 +29,26 @@ const SUGGESTED_TAGS = [
   "Aqeedah", "Dhikr", "Dua", "Islamic History", "Contemporary Issues",
 ];
 
+type Visibility = "companions" | "halaqa" | "private";
+
+// No "public" option: on Barakah a post reaches your companions, a halaqa you
+// belong to, or no one but you — never the open web.
+const VISIBILITY_OPTIONS: {
+  value: Visibility;
+  label: string;
+  hint: string;
+  icon: typeof Users;
+}[] = [
+  { value: "companions", label: "Companions", hint: "Everyone who has accepted you", icon: Users },
+  { value: "halaqa", label: "A halaqa", hint: "One study circle you belong to", icon: BookOpen },
+  { value: "private", label: "Only me", hint: "A private note to yourself", icon: Lock },
+];
+
+interface Halaqa {
+  id: string;
+  name: string;
+}
+
 interface PostComposerProps {
   onPostCreated?: () => void;
 }
@@ -42,13 +65,39 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
   const [isPosting, setIsPosting] = useState(false);
   const [showTagSelector, setShowTagSelector] = useState(false);
 
-  // Image state
+  // Audience
+  const [visibility, setVisibility] = useState<Visibility>("companions");
+  const [halaqas, setHalaqas] = useState<Halaqa[]>([]);
+  const [halaqaId, setHalaqaId] = useState<string>("");
+
+  // Image state — stores private object PATHS (signed for display on read).
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
-  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [imagePaths, setImagePaths] = useState<string[]>([]);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+
+  // Load the halaqas this member belongs to, so "A halaqa" can target one.
+  useEffect(() => {
+    if (!isExpanded || !user) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await (supabase as any)
+        .from("halaqa_members")
+        .select("halaqas!inner(id, name)")
+        .eq("user_id", user.id);
+      if (cancelled) return;
+      const list: Halaqa[] = (data ?? [])
+        .map((row: any) => row.halaqas)
+        .filter(Boolean);
+      setHalaqas(list);
+      if (list.length) setHalaqaId((prev) => prev || list[0].id);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isExpanded, user, supabase]);
 
   const getInitials = (name?: string) => {
     if (!name) return "U";
@@ -97,7 +146,8 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
         continue;
       }
 
-      setImageUrls((prev) => [...prev, data.publicUrl]);
+      // Store the object path, not a URL — the bucket is private now.
+      setImagePaths((prev) => [...prev, data.path]);
     }
 
     // Reset input so same file can be re-selected if needed
@@ -106,7 +156,7 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
 
   const removeImage = (index: number) => {
     setImagePreviews((prev) => prev.filter((_, i) => i !== index));
-    setImageUrls((prev) => prev.filter((_, i) => i !== index));
+    setImagePaths((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handlePost = async () => {
@@ -126,6 +176,10 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
       showError("Please wait for image upload to finish");
       return;
     }
+    if (visibility === "halaqa" && !halaqaId) {
+      showError("Choose a halaqa to share with, or pick another audience");
+      return;
+    }
 
     setIsPosting(true);
     try {
@@ -141,8 +195,9 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
           content: finalContent,
           post_type: "standard",
           tags: selectedTags,
-          media_urls: imageUrls,
-          beneficial_count: 0,
+          media_urls: imagePaths,
+          visibility,
+          halaqa_id: visibility === "halaqa" ? halaqaId : null,
         });
 
       if (error) {
@@ -157,7 +212,8 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
       setIsExpanded(false);
       setShowTagSelector(false);
       setImagePreviews([]);
-      setImageUrls([]);
+      setImagePaths([]);
+      setVisibility("companions");
       onPostCreated?.();
     } catch {
       showError("Failed to share post. Please try again.");
@@ -230,6 +286,53 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
                   ))}
                 </div>
               )}
+
+              {/* Audience picker — who will see this */}
+              <div className="space-y-2">
+                <div className="flex flex-wrap gap-2">
+                  {VISIBILITY_OPTIONS.map((opt) => {
+                    const Icon = opt.icon;
+                    const active = visibility === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setVisibility(opt.value)}
+                        disabled={isPosting}
+                        title={opt.hint}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
+                          active
+                            ? "border-primary-600 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400"
+                            : "border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+                        }`}
+                      >
+                        <Icon className="w-4 h-4" />
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {visibility === "halaqa" &&
+                  (halaqas.length > 0 ? (
+                    <select
+                      value={halaqaId}
+                      onChange={(e) => setHalaqaId(e.target.value)}
+                      disabled={isPosting}
+                      className="w-full sm:w-auto px-3 py-1.5 rounded-lg border border-border bg-background text-sm text-foreground"
+                    >
+                      {halaqas.map((h) => (
+                        <option key={h.id} value={h.id}>
+                          {h.name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      You haven&rsquo;t joined a halaqa yet — join one to share with a circle.
+                    </p>
+                  ))}
+              </div>
 
               {/* Character Counter */}
               <div className="flex items-center justify-between text-sm">
@@ -330,7 +433,8 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
                       setShowTagSelector(false);
                       setAddBismillah(false);
                       setImagePreviews([]);
-                      setImageUrls([]);
+                      setImagePaths([]);
+                      setVisibility("companions");
                     }}
                     disabled={isPosting}
                   >

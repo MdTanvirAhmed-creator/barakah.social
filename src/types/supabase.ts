@@ -78,11 +78,13 @@ export interface Database {
           post_type: PostType;
           media_urls: string[];
           tags: string[];
-          beneficial_count: number;
+          visibility: "public" | "companions" | "halaqa" | "private";
+          halaqa_id: string | null;
           created_at: string;
           updated_at: string;
           is_pinned: boolean;
           is_deleted: boolean;
+          deleted_at: string | null;
         };
         Insert: {
           id?: string;
@@ -91,11 +93,13 @@ export interface Database {
           post_type?: PostType;
           media_urls?: string[];
           tags?: string[];
-          beneficial_count?: number;
+          visibility?: "public" | "companions" | "halaqa" | "private";
+          halaqa_id?: string | null;
           created_at?: string;
           updated_at?: string;
           is_pinned?: boolean;
           is_deleted?: boolean;
+          deleted_at?: string | null;
         };
         Update: {
           id?: string;
@@ -104,11 +108,13 @@ export interface Database {
           post_type?: PostType;
           media_urls?: string[];
           tags?: string[];
-          beneficial_count?: number;
+          visibility?: "public" | "companions" | "halaqa" | "private";
+          halaqa_id?: string | null;
           created_at?: string;
           updated_at?: string;
           is_pinned?: boolean;
           is_deleted?: boolean;
+          deleted_at?: string | null;
         };
       };
       comments: {

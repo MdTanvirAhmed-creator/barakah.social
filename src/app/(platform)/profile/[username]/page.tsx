@@ -21,6 +21,7 @@ import { BookmarksList } from "@/components/profile/BookmarksList";
 import { EditProfile } from "@/components/profile/EditProfile";
 import { formatRelativeTime } from "@/lib/date";
 import { createClient } from "@/lib/supabase/client";
+import { signPostMedia } from "@/lib/supabase/storage";
 
 interface ProfileData {
   id: string;
@@ -46,7 +47,8 @@ interface PostData {
     is_verified_scholar: boolean;
   };
   created_at: string;
-  beneficial_count: number;
+  beneficial_count?: number;
+  is_own_post: boolean;
   comment_count: number;
   tags: string[];
   media_urls: string[];
@@ -116,7 +118,7 @@ export default function UserProfilePage() {
         sb
           .from("posts")
           .select(
-            `id, content, tags, media_urls, beneficial_count, created_at,
+            `id, content, tags, media_urls, created_at,
              profiles!posts_author_id_fkey(id, username, full_name, avatar_url, is_verified_scholar),
              comments!comments_post_id_fkey(count)`
           )
@@ -136,17 +138,35 @@ export default function UserProfilePage() {
       if (!postsResult.data) return;
 
       const postIds = (postsResult.data as { id: string }[]).map((pp) => pp.id);
+      const viewingOwn = user?.id === p.id;
       const markedIds = new Set<string>();
       const bookmarkedIds = new Set<string>();
+      const ownCounts = new Map<string, number>();
 
       if (user && postIds.length) {
-        const [{ data: marks }, { data: bkmarks }] = await Promise.all([
+        const [{ data: marks }, { data: bkmarks }, { data: authorMarks }] = await Promise.all([
           sb.from("beneficial_marks").select("post_id").eq("user_id", user.id).in("post_id", postIds),
           sb.from("bookmarks").select("post_id").eq("user_id", user.id).in("post_id", postIds),
+          // The true per-post tally is visible only to the author, so only
+          // worth fetching when you are looking at your own profile.
+          viewingOwn
+            ? sb.from("beneficial_marks").select("post_id").in("post_id", postIds)
+            : Promise.resolve({ data: [] as { post_id: string }[] }),
         ]);
         (marks as { post_id: string }[] | null)?.forEach((m) => markedIds.add(m.post_id));
         (bkmarks as { post_id: string }[] | null)?.forEach((b) => bookmarkedIds.add(b.post_id));
+        (authorMarks as { post_id: string }[] | null)?.forEach((m) =>
+          ownCounts.set(m.post_id, (ownCounts.get(m.post_id) ?? 0) + 1)
+        );
       }
+
+      // Private media → short-lived signed URLs, one batch.
+      const allPaths = (postsResult.data as any[]).flatMap(
+        (post) => (post.media_urls ?? []) as string[]
+      );
+      const signed = await signPostMedia(allPaths);
+      const urlByPath = new Map<string, string>();
+      allPaths.forEach((path, i) => urlByPath.set(path, signed[i]));
 
       const transformed: PostData[] = (postsResult.data as any[]).map((post) => ({
         id: post.id,
@@ -159,10 +179,13 @@ export default function UserProfilePage() {
           is_verified_scholar: post.profiles.is_verified_scholar,
         },
         created_at: post.created_at,
-        beneficial_count: post.beneficial_count ?? 0,
+        is_own_post: viewingOwn,
+        beneficial_count: viewingOwn ? ownCounts.get(post.id) ?? 0 : undefined,
         comment_count: post.comments?.[0]?.count ?? 0,
         tags: post.tags ?? [],
-        media_urls: post.media_urls ?? [],
+        media_urls: ((post.media_urls ?? []) as string[])
+          .map((path) => urlByPath.get(path) ?? "")
+          .filter(Boolean),
         has_user_marked_beneficial: markedIds.has(post.id),
         has_user_bookmarked: bookmarkedIds.has(post.id),
       }));
@@ -248,10 +271,12 @@ export default function UserProfilePage() {
                     <div className="text-2xl font-bold text-foreground">{stats.postCount}</div>
                     <div className="text-sm text-muted-foreground">Posts</div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-primary-600">{profile.beneficial_count}</div>
-                    <div className="text-sm text-muted-foreground">Beneficial</div>
-                  </div>
+                  {isOwnProfile && (
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-primary-600">{profile.beneficial_count}</div>
+                      <div className="text-sm text-muted-foreground">Beneficial</div>
+                    </div>
+                  )}
                   <div className="text-center">
                     <div className="text-2xl font-bold text-foreground">{stats.halaqaCount}</div>
                     <div className="text-sm text-muted-foreground">Halaqas</div>

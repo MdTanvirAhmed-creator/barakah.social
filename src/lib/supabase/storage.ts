@@ -59,3 +59,33 @@ export function getPublicUrl(filePath: string, bucket: string): string {
   const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
   return data.publicUrl;
 }
+
+/**
+ * post-media is a PRIVATE bucket (migration 20): an image is only served to
+ * someone who may read its post, via a short-lived signed URL. Given a list of
+ * stored object paths, returns render-ready URLs in the same order. Storage RLS
+ * silently drops paths the caller may not see, so those come back empty and are
+ * simply not rendered. Legacy full-URL entries pass through untouched.
+ */
+export async function signPostMedia(
+  paths: string[],
+  expiresIn = 3600
+): Promise<string[]> {
+  if (!paths.length) return [];
+  const supabase = createClient();
+  const toSign = paths.filter((p) => p && !p.startsWith("http"));
+
+  const signed = new Map<string, string>();
+  if (toSign.length) {
+    const { data } = await supabase.storage
+      .from("post-media")
+      .createSignedUrls(toSign, expiresIn);
+    data?.forEach((entry) => {
+      if (entry.signedUrl && entry.path) signed.set(entry.path, entry.signedUrl);
+    });
+  }
+
+  return paths.map((p) =>
+    !p ? "" : p.startsWith("http") ? p : signed.get(p) ?? ""
+  );
+}

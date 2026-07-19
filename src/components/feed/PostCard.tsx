@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { motion } from "framer-motion";
 import {
   Heart,
@@ -37,7 +36,9 @@ interface PostCardProps {
       is_verified_scholar?: boolean;
     };
     created_at: string;
-    beneficial_count: number;
+    /** Only present for the viewer's own posts — marks are private to the author. */
+    beneficial_count?: number;
+    is_own_post?: boolean;
     comment_count?: number;
     tags?: string[];
     media_urls?: string[];
@@ -54,11 +55,14 @@ export function PostCard({ post }: PostCardProps) {
   const { success } = useToast();
   const { user } = useSupabaseAuth();
   const supabase = createClient();
+  const isOwnPost = post.is_own_post ?? user?.id === post.author.id;
   const [isMarkedBeneficial, setIsMarkedBeneficial] = useState(
     post.has_user_marked_beneficial || false
   );
+  // The tally is shown only on your own posts — everywhere else a mark is a
+  // private du'a between the marker and the author, never a public number.
   const [beneficialCount, setBeneficialCount] = useState(
-    post.beneficial_count || 0
+    post.beneficial_count ?? 0
   );
   const [isBookmarked, setIsBookmarked] = useState(
     post.has_user_bookmarked || false
@@ -238,29 +242,30 @@ export function PostCard({ post }: PostCardProps) {
           )}
         </div>
 
-        {/* Media Gallery */}
+        {/* Media Gallery — private media served via short-lived signed URLs, so
+            plain <img> (not next/image, which proxies through its optimizer). */}
         {post.media_urls && post.media_urls.length > 0 && (
           <div className="mb-4">
             {post.media_urls.length === 1 ? (
               <div className="relative w-full h-96">
-                <Image
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
                   src={post.media_urls[0]}
                   alt="Post media"
-                  fill
-                  className="object-cover rounded-lg"
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  loading="lazy"
+                  className="absolute inset-0 w-full h-full object-cover rounded-lg"
                 />
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-2">
                 {post.media_urls.slice(0, 4).map((url, index) => (
                   <div key={index} className="relative h-48">
-                    <Image
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
                       src={url}
                       alt={`Post media ${index + 1}`}
-                      fill
-                      className="object-cover rounded-lg"
-                      sizes="(max-width: 768px) 50vw, 25vw"
+                      loading="lazy"
+                      className="absolute inset-0 w-full h-full object-cover rounded-lg"
                     />
                     {index === 3 && post.media_urls!.length > 4 && (
                       <div className="absolute inset-0 bg-black/60 rounded-lg flex items-center justify-center text-white font-semibold text-lg">
@@ -306,9 +311,9 @@ export function PostCard({ post }: PostCardProps) {
                 isMarkedBeneficial ? "fill-success" : ""
               }`}
             />
-            <span className="text-sm font-medium">
-              {beneficialCount > 0 && beneficialCount}
-            </span>
+            {isOwnPost && beneficialCount > 0 && (
+              <span className="text-sm font-medium">{beneficialCount}</span>
+            )}
             <span className="hidden sm:inline text-sm">
               {isMarkedBeneficial ? "Beneficial" : "نافع"}
             </span>

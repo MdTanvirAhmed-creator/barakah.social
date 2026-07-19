@@ -5,10 +5,22 @@ import { motion } from "framer-motion";
 import { RefreshCw, Sparkles } from "lucide-react";
 import { PostCard } from "./PostCard";
 import { Button } from "@/components/ui/button";
-import { GirihPattern, TazhibCorner, GoldDiamond } from "@/components/ui/girih";
+import {
+  GirihPattern,
+  TazhibCorner,
+  GoldDiamond,
+  IlluminatedDivider,
+} from "@/components/ui/girih";
 import { createClient } from "@/lib/supabase/client";
+import { signPostMedia } from "@/lib/supabase/storage";
 
 const PAGE_SIZE = 20;
+
+/** Keyset cursor: the (created_at, id) of the last row seen. */
+interface Cursor {
+  createdAt: string;
+  id: string;
+}
 
 function PostSkeleton() {
   return (
@@ -124,7 +136,9 @@ interface Post {
     is_verified_scholar: boolean;
   };
   created_at: string;
-  beneficial_count: number;
+  /** Only populated for the viewer's own posts — marks are private to the author. */
+  beneficial_count?: number;
+  is_own_post: boolean;
   comment_count: number;
   tags: string[];
   media_urls: string[];
@@ -142,9 +156,12 @@ export function FeedList({ feedType = "for-you", onRefresh }: FeedListProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasMore, setHasMore] = useState(false);
-  const offsetRef = useRef(0);
+  const cursorRef = useRef<Cursor | null>(null);
   const supabase = createClient();
 
+  // The tab filters are an *author* narrowing layered on top of RLS, which
+  // already returns only the posts this viewer may see (own + companions +
+  // their halaqas). Returning null means "no extra narrowing" (the main feed).
   async function resolveAuthorIds(userId: string | undefined): Promise<string[] | null> {
     if (feedType === "verified") {
       const { data } = await (supabase as any)
@@ -173,23 +190,25 @@ export function FeedList({ feedType = "for-you", onRefresh }: FeedListProps) {
     }
 
     if (feedType === "companions" && userId) {
-      const { data: connections } = await (supabase as any)
-        .from("companion_connections")
-        .select("requester_id, recipient_id")
-        .or(`requester_id.eq.${userId},recipient_id.eq.${userId}`)
+      // The privacy relationship is `companionships` (requester_id/addressee_id),
+      // accepted only. RLS enforces the same set; this narrows the feed to it.
+      const { data: bonds } = await (supabase as any)
+        .from("companionships")
+        .select("requester_id, addressee_id")
+        .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`)
         .eq("status", "accepted");
 
       return (
-        (connections as { requester_id: string; recipient_id: string }[] | null)?.map((c) =>
-          c.requester_id === userId ? c.recipient_id : c.requester_id
+        (bonds as { requester_id: string; addressee_id: string }[] | null)?.map((b) =>
+          b.requester_id === userId ? b.addressee_id : b.requester_id
         ) ?? []
       );
     }
 
-    return null; // null = no filter (for-you)
+    return null; // null = no filter (main feed)
   }
 
-  async function fetchPage(currentOffset: number): Promise<{ posts: Post[]; hasMore: boolean }> {
+  async function fetchPage(cursor: Cursor | null): Promise<{ posts: Post[]; hasMore: boolean }> {
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -205,17 +224,27 @@ export function FeedList({ feedType = "for-you", onRefresh }: FeedListProps) {
       .from("posts")
       .select(
         `
-          id, content, post_type, media_urls, tags, beneficial_count, created_at, author_id,
+          id, content, post_type, media_urls, tags, created_at, author_id,
           profiles!posts_author_id_fkey (id, username, full_name, avatar_url, is_verified_scholar),
           comments!comments_post_id_fkey(count)
         `
       )
       .eq("is_deleted", false)
+      // Keyset order: newest first, id as the deterministic tie-breaker.
       .order("created_at", { ascending: false })
-      .range(currentOffset, currentOffset + PAGE_SIZE - 1);
+      .order("id", { ascending: false })
+      .limit(PAGE_SIZE);
 
     if (authorIds !== null) {
       query = query.in("author_id", authorIds);
+    }
+
+    // Keyset seek: strictly older than the cursor. Stable under inserts, no
+    // drift or duplicates the way OFFSET has.
+    if (cursor) {
+      query = query.or(
+        `created_at.lt.${cursor.createdAt},and(created_at.eq.${cursor.createdAt},id.lt.${cursor.id})`
+      );
     }
 
     const { data: postsData, error } = await query;
@@ -225,13 +254,17 @@ export function FeedList({ feedType = "for-you", onRefresh }: FeedListProps) {
       return { posts: [], hasMore: false };
     }
 
-    // Fetch this user's beneficial marks and bookmarks in parallel
-    const postIds = (postsData as { id: string }[]).map((p) => p.id);
+    const rows = postsData as any[];
+    const postIds = rows.map((p) => p.id);
+    const ownPostIds = user ? rows.filter((p) => p.author_id === user.id).map((p) => p.id) : [];
+
     const markedIds = new Set<string>();
     const bookmarkedIds = new Set<string>();
+    const ownCounts = new Map<string, number>();
 
     if (user && postIds.length > 0) {
-      const [{ data: marks }, { data: bookmarks }] = await Promise.all([
+      const [{ data: marks }, { data: bookmarks }, { data: authorMarks }] = await Promise.all([
+        // Which of these has the viewer personally marked (their own toggle).
         (supabase as any)
           .from("beneficial_marks")
           .select("post_id")
@@ -242,51 +275,77 @@ export function FeedList({ feedType = "for-you", onRefresh }: FeedListProps) {
           .select("post_id")
           .eq("user_id", user.id)
           .in("post_id", postIds),
+        // The true tally, only for the viewer's own posts. RLS returns every
+        // mark on a post you authored, and nothing on posts you didn't.
+        ownPostIds.length
+          ? (supabase as any).from("beneficial_marks").select("post_id").in("post_id", ownPostIds)
+          : Promise.resolve({ data: [] }),
       ]);
       (marks as { post_id: string }[] | null)?.forEach((m) => markedIds.add(m.post_id));
       (bookmarks as { post_id: string }[] | null)?.forEach((b) => bookmarkedIds.add(b.post_id));
+      (authorMarks as { post_id: string }[] | null)?.forEach((m) =>
+        ownCounts.set(m.post_id, (ownCounts.get(m.post_id) ?? 0) + 1)
+      );
     }
 
-    const transformed: Post[] = postsData.map((post: any) => ({
-      id: post.id,
-      content: post.content,
-      author: {
-        id: post.profiles.id,
-        username: post.profiles.username,
-        full_name: post.profiles.full_name,
-        avatar_url: post.profiles.avatar_url,
-        is_verified_scholar: post.profiles.is_verified_scholar,
-      },
-      created_at: post.created_at,
-      beneficial_count: post.beneficial_count ?? 0,
-      comment_count: post.comments?.[0]?.count ?? 0,
-      tags: post.tags ?? [],
-      media_urls: post.media_urls ?? [],
-      has_user_marked_beneficial: markedIds.has(post.id),
-      has_user_bookmarked: bookmarkedIds.has(post.id),
-    }));
+    // Private media: turn stored object paths into short-lived signed URLs in
+    // one batch. Anything the viewer may not see comes back empty and is dropped.
+    const allPaths = rows.flatMap((p) => (p.media_urls ?? []) as string[]);
+    const signed = await signPostMedia(allPaths);
+    const urlByPath = new Map<string, string>();
+    allPaths.forEach((path, i) => urlByPath.set(path, signed[i]));
 
-    return { posts: transformed, hasMore: transformed.length === PAGE_SIZE };
+    const transformed: Post[] = rows.map((post: any) => {
+      const isOwn = !!user && post.author_id === user.id;
+      return {
+        id: post.id,
+        content: post.content,
+        author: {
+          id: post.profiles.id,
+          username: post.profiles.username,
+          full_name: post.profiles.full_name,
+          avatar_url: post.profiles.avatar_url,
+          is_verified_scholar: post.profiles.is_verified_scholar,
+        },
+        created_at: post.created_at,
+        is_own_post: isOwn,
+        beneficial_count: isOwn ? ownCounts.get(post.id) ?? 0 : undefined,
+        comment_count: post.comments?.[0]?.count ?? 0,
+        tags: post.tags ?? [],
+        media_urls: ((post.media_urls ?? []) as string[])
+          .map((path) => urlByPath.get(path) ?? "")
+          .filter(Boolean),
+        has_user_marked_beneficial: markedIds.has(post.id),
+        has_user_bookmarked: bookmarkedIds.has(post.id),
+      };
+    });
+
+    return { posts: transformed, hasMore: rows.length === PAGE_SIZE };
+  }
+
+  function cursorFrom(list: Post[]): Cursor | null {
+    const last = list[list.length - 1];
+    return last ? { createdAt: last.created_at, id: last.id } : null;
   }
 
   async function loadInitial() {
     setIsLoading(true);
-    offsetRef.current = 0;
+    cursorRef.current = null;
     try {
-      const { posts: fresh, hasMore: more } = await fetchPage(0);
+      const { posts: fresh, hasMore: more } = await fetchPage(null);
       setPosts(fresh);
       setHasMore(more);
-      offsetRef.current = PAGE_SIZE;
+      cursorRef.current = cursorFrom(fresh);
     } finally {
       setIsLoading(false);
     }
   }
 
   async function loadMore() {
-    const { posts: next, hasMore: more } = await fetchPage(offsetRef.current);
+    const { posts: next, hasMore: more } = await fetchPage(cursorRef.current);
     setPosts((prev) => [...prev, ...next]);
     setHasMore(more);
-    offsetRef.current += PAGE_SIZE;
+    if (next.length) cursorRef.current = cursorFrom(next);
   }
 
   async function handleRefresh() {
@@ -340,15 +399,42 @@ export function FeedList({ feedType = "for-you", onRefresh }: FeedListProps) {
             </motion.div>
           ))}
 
-          {hasMore && (
+          {hasMore ? (
             <div className="text-center py-8">
               <Button variant="outline" className="px-8" onClick={loadMore}>
-                Load More Posts
+                Load more
               </Button>
             </div>
+          ) : (
+            <KhatamEnd />
           )}
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * The feed that ends. Rather than an infinite scroll that never resolves, the
+ * timeline closes with a quiet mark of completion (khatam) — you have seen
+ * everything your companions shared. A deliberate stopping point, not a void.
+ */
+function KhatamEnd() {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.6 }}
+      className="pt-6 pb-10 text-center"
+    >
+      <IlluminatedDivider />
+      <p className="mt-5 text-foreground-secondary">
+        You&rsquo;ve reached the end — you have seen everything your companions
+        shared.
+      </p>
+      <p className="mt-1 text-sm text-muted-foreground">
+        A good moment to step away, or to share something beneficial yourself.
+      </p>
+    </motion.div>
   );
 }
