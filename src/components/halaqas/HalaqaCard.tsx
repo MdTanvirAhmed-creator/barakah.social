@@ -95,16 +95,13 @@ export function HalaqaCard({ halaqa, viewMode, onMembershipChange }: HalaqaCardP
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const sb = supabase as any;
+      // member_count is kept true by a SECURITY DEFINER trigger (migration
+      // 21) — the client only mirrors it optimistically.
       if (joining) {
         const { error } = await sb
           .from("halaqa_members")
           .insert({ halaqa_id: halaqa.id, user_id: user.id, role: "member" });
         if (error) throw error;
-
-        await sb
-          .from("halaqas")
-          .update({ member_count: memberCount + 1 })
-          .eq("id", halaqa.id);
 
         setIsMember(true);
         setMemberCount((c) => c + 1);
@@ -116,11 +113,6 @@ export function HalaqaCard({ halaqa, viewMode, onMembershipChange }: HalaqaCardP
           .eq("halaqa_id", halaqa.id)
           .eq("user_id", user.id);
         if (error) throw error;
-
-        await sb
-          .from("halaqas")
-          .update({ member_count: Math.max(0, memberCount - 1) })
-          .eq("id", halaqa.id);
 
         setIsMember(false);
         setMemberCount((c) => Math.max(0, c - 1));

@@ -181,21 +181,34 @@ export default function HalaqasPage() {
   ): Promise<Record<string, Array<{ id: string; name: string; avatar: string | null }>>> {
     if (!halaqaIds.length) return {};
 
+    // Identities via the public card view — the private profiles table only
+    // returns self + companions, which would blank most previews.
     const { data } = await (supabase as any)
       .from("halaqa_members")
-      .select("halaqa_id, user_id, profiles!halaqa_members_user_id_fkey(id, full_name, avatar_url)")
+      .select("halaqa_id, user_id")
       .in("halaqa_id", halaqaIds)
       .limit(halaqaIds.length * 3); // up to 3 per halaqa
 
+    const rows = (data as any[] | null) ?? [];
+    const ids = [...new Set(rows.map((r) => r.user_id))];
+    const { data: cards } = ids.length
+      ? await (supabase as any)
+          .from("public_profiles")
+          .select("id, display_name, avatar_url")
+          .in("id", ids)
+      : { data: [] };
+    const cardById = new Map(((cards as any[]) ?? []).map((c) => [c.id, c]));
+
     const grouped: Record<string, Array<{ id: string; name: string; avatar: string | null }>> = {};
-    (data as any[] | null ?? []).forEach((row) => {
+    rows.forEach((row) => {
       const hid = row.halaqa_id;
       if (!grouped[hid]) grouped[hid] = [];
-      if (grouped[hid].length < 3 && row.profiles) {
+      const card = cardById.get(row.user_id);
+      if (grouped[hid].length < 3 && card) {
         grouped[hid].push({
-          id: row.profiles.id,
-          name: row.profiles.full_name ?? "Member",
-          avatar: row.profiles.avatar_url,
+          id: card.id,
+          name: card.display_name ?? "Member",
+          avatar: card.avatar_url,
         });
       }
     });

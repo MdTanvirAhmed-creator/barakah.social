@@ -282,7 +282,7 @@ function SearchPageContent() {
       const [{ data: members }, { data: memberships }] = await Promise.all([
         sb
           .from("halaqa_members")
-          .select("halaqa_id, user_id, profiles!halaqa_members_user_id_fkey(id, full_name, avatar_url)")
+          .select("halaqa_id, user_id")
           .in("halaqa_id", halaqaIds)
           .limit(halaqaIds.length * 3),
         user
@@ -290,14 +290,26 @@ function SearchPageContent() {
           : Promise.resolve({ data: [] }),
       ]);
 
-      (members as any[] | null ?? []).forEach((row: any) => {
+      // Identities via the public card view (profiles is companions-only).
+      const memberRows = (members as any[] | null) ?? [];
+      const previewIds = [...new Set(memberRows.map((r: any) => r.user_id))];
+      const { data: cards } = previewIds.length
+        ? await sb
+            .from("public_profiles")
+            .select("id, display_name, avatar_url")
+            .in("id", previewIds)
+        : { data: [] };
+      const cardById = new Map(((cards as any[]) ?? []).map((c: any) => [c.id, c]));
+
+      memberRows.forEach((row: any) => {
         const hid = row.halaqa_id;
         if (!memberPreviews[hid]) memberPreviews[hid] = [];
-        if (memberPreviews[hid].length < 3 && row.profiles) {
+        const card = cardById.get(row.user_id);
+        if (memberPreviews[hid].length < 3 && card) {
           memberPreviews[hid].push({
-            id: row.profiles.id,
-            name: row.profiles.full_name ?? "Member",
-            avatar: row.profiles.avatar_url,
+            id: card.id,
+            name: card.display_name ?? "Member",
+            avatar: card.avatar_url,
           });
         }
       });

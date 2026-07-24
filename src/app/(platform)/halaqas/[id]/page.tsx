@@ -41,90 +41,6 @@ import { CommentSection } from "@/components/comments/CommentSection";
 import { CompanionDiscoveryCard } from "@/components/halaqas/CompanionDiscoveryCard";
 import { useHalaqaCompanions } from "@/hooks/useHalaqaCompanions";
 
-// Mock data for the specific Halaqa
-const HALAQA_DATA = {
-  id: "1",
-  name: "Quran Study Circle",
-  description: "Weekly study of the Holy Quran with tafsir and reflection. We focus on understanding the deeper meanings and applying them in our daily lives. Open to all levels - beginners welcome!",
-  category: "Quran",
-  member_count: 45,
-  max_members: 50,
-  is_public: true,
-  cover_image: null,
-  rules: [
-    "Respectful discussion only - maintain adab at all times",
-    "Come prepared with questions and reflections",
-    "No controversial topics or heated debates",
-    "Support fellow members in their learning journey",
-    "Regular attendance encouraged but not mandatory",
-  ],
-  created_at: "2024-01-15",
-  last_activity: "2024-01-20T10:30:00Z",
-  created_by: {
-    id: "creator1",
-    username: "sheikh_ahmad",
-    full_name: "Sheikh Ahmad Al-Maliki",
-    avatar_url: null,
-  },
-  members: [
-    { id: "1", name: "Ahmad", avatar: null, role: "admin", joined_at: "2024-01-15" },
-    { id: "2", name: "Fatima", avatar: null, role: "member", joined_at: "2024-01-16" },
-    { id: "3", name: "Omar", avatar: null, role: "member", joined_at: "2024-01-17" },
-    { id: "4", name: "Aisha", avatar: null, role: "member", joined_at: "2024-01-18" },
-    { id: "5", name: "Yusuf", avatar: null, role: "member", joined_at: "2024-01-19" },
-    { id: "6", name: "Khadija", avatar: null, role: "member", joined_at: "2024-01-20" },
-  ],
-  is_member: true,
-  role: "admin",
-};
-
-const PINNED_POSTS = [
-  {
-    id: "pinned1",
-    content: "Welcome to our Quran Study Circle! Please read the rules and introduce yourself in the comments.",
-    author: {
-      id: "creator1",
-      username: "sheikh_ahmad",
-      full_name: "Sheikh Ahmad Al-Maliki",
-      avatar_url: null,
-    },
-    created_at: "2024-01-15T10:00:00Z",
-    beneficial_count: 12,
-    comment_count: 8,
-  },
-];
-
-const RECENT_POSTS = [
-  {
-    id: "post1",
-    content: "Today we discussed Surah Al-Fatiha. The opening chapter teaches us about Allah's mercy and guidance. What are your thoughts on verse 6: 'Guide us to the straight path'?",
-    author: {
-      id: "2",
-      username: "fatima_student",
-      full_name: "Fatima Rahman",
-      avatar_url: null,
-    },
-    created_at: "2024-01-20T10:30:00Z",
-    beneficial_count: 15,
-    comment_count: 7,
-    tags: ["Surah Al-Fatiha", "Guidance"],
-  },
-  {
-    id: "post2",
-    content: "Can someone explain the difference between Al-Rahman and Al-Raheem? I've heard both mean 'merciful' but there must be a distinction.",
-    author: {
-      id: "3",
-      username: "omar_learner",
-      full_name: "Omar Ahmed",
-      avatar_url: null,
-    },
-    created_at: "2024-01-19T15:45:00Z",
-    beneficial_count: 8,
-    comment_count: 12,
-    tags: ["Names of Allah", "Question"],
-  },
-];
-
 interface HalaqaDetailPageProps {
   params: { id: string };
 }
@@ -162,7 +78,7 @@ export default function HalaqaDetailPage({ params }: HalaqaDetailPageProps) {
   const { id } = useParams();
   const router = useRouter();
   const { user } = useSupabaseAuth();
-  const { success } = useToast();
+  const { success, error: showError } = useToast();
   const supabase = createClient();
   
   const [halaqa, setHalaqa] = useState<Halaqa | null>(null);
@@ -173,6 +89,7 @@ export default function HalaqaDetailPage({ params }: HalaqaDetailPageProps) {
   const [postContent, setPostContent] = useState("");
   const [isPosting, setIsPosting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isJoiningCircle, setIsJoiningCircle] = useState(false);
   const [showManageDropdown, setShowManageDropdown] = useState(false);
   const [posts, setPosts] = useState<any[]>([]);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -210,47 +127,50 @@ export default function HalaqaDetailPage({ params }: HalaqaDetailPageProps) {
   const loadHalaqa = async () => {
     try {
       setLoading(true);
-      
-      // Fetch Halaqa data
+
+      // The halaqa row itself. RLS: visible when public, or when the viewer
+      // belongs to it — an invisible circle correctly renders "not found".
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: halaqaData, error } = await (supabase as any)
         .from('halaqas')
-        .select(`
-          *,
-          profiles!halaqas_created_by_fkey (
-            id,
-            username,
-            full_name,
-            avatar_url
-          )
-        `)
+        .select('*')
         .eq('id', id || params.id)
-        .single();
+        .maybeSingle();
 
       if (error || !halaqaData) {
-        console.error("Error loading Halaqa:", error);
-        // Fallback to mock data
-        setHalaqa(HALAQA_DATA as any);
+        if (error) console.error("Error loading Halaqa:", error);
+        setHalaqa(null);
         setLoading(false);
         return;
       }
 
-      // Fetch members
+      // Membership rows, then identities from the public card view —
+      // the private profiles table only returns self + companions, which
+      // would blank out most member names.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: membersData } = await (supabase as any)
         .from('halaqa_members')
-        .select(`
-          *,
-          profiles!halaqa_members_user_id_fkey (
-            id,
-            username,
-            full_name,
-            avatar_url
-          )
-        `)
+        .select('user_id, role, joined_at')
         .eq('halaqa_id', halaqaData.id);
 
-      // Transform data
+      const memberRows = (membersData as any[]) ?? [];
+      const identityIds = [
+        ...new Set([...memberRows.map((m) => m.user_id), halaqaData.created_by]),
+      ];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: cards } = identityIds.length
+        ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (supabase as any)
+            .from('public_profiles')
+            .select('id, username, display_name, avatar_url')
+            .in('id', identityIds)
+        : { data: [] };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const cardById = new Map(((cards as any[]) ?? []).map((c) => [c.id, c]));
+
+      const creatorCard = cardById.get(halaqaData.created_by);
+      const myRow = memberRows.find((m) => m.user_id === user?.id);
+
       const transformedHalaqa: Halaqa = {
         id: halaqaData.id,
         name: halaqaData.name,
@@ -264,29 +184,50 @@ export default function HalaqaDetailPage({ params }: HalaqaDetailPageProps) {
         created_at: halaqaData.created_at,
         last_activity: halaqaData.updated_at || halaqaData.created_at,
         created_by: {
-          id: halaqaData.profiles.id,
-          username: halaqaData.profiles.username,
-          full_name: halaqaData.profiles.full_name,
-          avatar_url: halaqaData.profiles.avatar_url,
+          id: halaqaData.created_by,
+          username: creatorCard?.username ?? "member",
+          full_name: creatorCard?.display_name ?? "A community member",
+          avatar_url: creatorCard?.avatar_url ?? null,
         },
-        members: membersData?.map((m: any) => ({
-          id: m.profiles.id,
-          name: m.profiles.full_name,
-          avatar: m.profiles.avatar_url,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        members: memberRows.map((m: any) => ({
+          id: m.user_id,
+          name: cardById.get(m.user_id)?.display_name ?? "A community member",
+          avatar: cardById.get(m.user_id)?.avatar_url ?? null,
           role: m.role,
           joined_at: m.joined_at,
-        })) || [],
-        is_member: membersData?.some((m: any) => m.user_id === user?.id) || true, // Temporary: always show as member for testing
-        role: membersData?.find((m: any) => m.user_id === user?.id)?.role || "admin", // Temporary: always show as admin for testing
+        })),
+        is_member: !!myRow,
+        role: myRow?.role ?? undefined,
       };
 
       setHalaqa(transformedHalaqa);
     } catch (error) {
       console.error("Error:", error);
-      // Fallback to mock data
-      setHalaqa(HALAQA_DATA as any);
+      setHalaqa(null);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleJoinHalaqa = async () => {
+    if (!user || !halaqa) return;
+    try {
+      setIsJoiningCircle(true);
+      // Always as a plain member — seats of responsibility are granted, not
+      // claimed (RLS enforces this regardless).
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
+        .from('halaqa_members')
+        .insert({ halaqa_id: halaqa.id, user_id: user.id, role: 'member' });
+      if (error) throw error;
+      success("Welcome to the circle!");
+      await loadHalaqa();
+    } catch (err) {
+      console.error("Error joining halaqa:", err);
+      showError("Could not join this halaqa. Please try again.");
+    } finally {
+      setIsJoiningCircle(false);
     }
   };
 
@@ -582,11 +523,11 @@ export default function HalaqaDetailPage({ params }: HalaqaDetailPageProps) {
                 </div>
               </div>
 
-              {/* Always show buttons for testing */}
               <div className="flex items-center gap-2 flex-wrap">
+                {halaqa.role === "admin" && (
                 <div className="relative" data-manage-dropdown>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     onClick={() => setShowManageDropdown(!showManageDropdown)}
                   >
@@ -673,17 +614,36 @@ export default function HalaqaDetailPage({ params }: HalaqaDetailPageProps) {
                     </div>
                   )}
                 </div>
-                <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium ${
-                  halaqa.role === "admin" 
-                    ? "bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400"
-                    : halaqa.role === "moderator"
-                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400"
-                    : "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400"
-                }`}>
-                  {halaqa.role === "admin" && <Crown className="w-4 h-4" />}
-                  {halaqa.role === "moderator" && <UserCheck className="w-4 h-4" />}
-                  {halaqa.role}
-                </div>
+                )}
+                {halaqa.is_member && halaqa.role ? (
+                  <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium ${
+                    halaqa.role === "admin"
+                      ? "bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400"
+                      : halaqa.role === "moderator"
+                      ? "bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400"
+                      : "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400"
+                  }`}>
+                    {halaqa.role === "admin" && <Crown className="w-4 h-4" />}
+                    {halaqa.role === "moderator" && <UserCheck className="w-4 h-4" />}
+                    {halaqa.role}
+                  </div>
+                ) : (
+                  <Button
+                    size="sm"
+                    onClick={handleJoinHalaqa}
+                    disabled={isJoiningCircle}
+                    className="bg-primary-600 hover:bg-primary-700"
+                  >
+                    {isJoiningCircle ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Joining...
+                      </>
+                    ) : (
+                      "Join Halaqa"
+                    )}
+                  </Button>
+                )}
               </div>
             </div>
 
@@ -696,7 +656,7 @@ export default function HalaqaDetailPage({ params }: HalaqaDetailPageProps) {
         {/* Tabs */}
         <div className="flex border-b border-border mb-6">
           {[
-            { id: "feed", label: "Feed", count: RECENT_POSTS.length },
+            { id: "feed", label: "Feed", count: posts.length },
             { id: "members", label: "Members", count: halaqa.member_count },
             { id: "about", label: "About", count: halaqa.rules.length },
           ].map((tab) => {
@@ -739,8 +699,8 @@ export default function HalaqaDetailPage({ params }: HalaqaDetailPageProps) {
           <div className="lg:col-span-2">
             {activeTab === "feed" && (
               <div className="space-y-6">
-                {/* Create Post Composer - Always visible for testing */}
-                {true && (
+                {/* Sharing into the circle is for its members */}
+                {halaqa.is_member && (
                   <div className="bg-card rounded-lg shadow-md border border-border p-4">
                     {!showPostComposer ? (
                       <Button 

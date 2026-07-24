@@ -84,6 +84,13 @@ test("a client cannot forge a notification for someone else", async () => {
   expect(error?.code).toBe("42501");
 });
 
+test("the daily digest function is not callable by clients", async () => {
+  // It aggregates across all users — service_role only (Phase 6 mailer).
+  const { error } = await requester.client.rpc("daily_notification_digest");
+  expect(error).not.toBeNull();
+  expect(error?.code).toBe("42501");
+});
+
 test("marking a post beneficial produces no notification", async () => {
   const { data: post } = await admin
     .from("posts")

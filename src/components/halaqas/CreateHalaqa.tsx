@@ -163,18 +163,19 @@ export function CreateHalaqa({ isOpen, onClose, onSuccess }: CreateHalaqaProps) 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sb = supabase as any;
     try {
-      const { data: halaqaData, error } = await sb
+      // The DB seats the founder as admin member and keeps member_count true
+      // (SECURITY DEFINER triggers, migration 21) — no client bookkeeping.
+      const { error } = await sb
         .from('halaqas')
         .insert({
           name: data.name,
           description: data.description,
           category: data.category,
           rules: data.rules.join('\n'),
-          member_count: 1,
           is_public: data.is_public,
           created_by: user.id
         })
-        .select()
+        .select('id')
         .single();
 
       if (error) {
@@ -183,24 +184,6 @@ export function CreateHalaqa({ isOpen, onClose, onSuccess }: CreateHalaqaProps) 
         return;
       }
 
-      // Add creator as admin member
-      const { error: memberError } = await sb
-        .from('halaqa_members')
-        .insert({
-          halaqa_id: halaqaData.id,
-          user_id: user.id,
-          role: 'admin'
-        });
-
-      if (memberError) {
-        console.error("Error adding member:", memberError);
-        console.error("Error details:", JSON.stringify(memberError, null, 2));
-        success("Halaqa created! (Note: Member addition had an issue, but you can still join manually)");
-        onSuccess();
-        handleClose();
-        return;
-      }
-      
       success("Halaqa created successfully!");
       onSuccess();
       handleClose();
