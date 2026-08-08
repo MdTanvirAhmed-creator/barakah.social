@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { Home, Users, BookOpen, Handshake, User } from "lucide-react";
-import { useCompanionData } from "@/hooks/useCompanionData";
 
 const MOBILE_NAV_ITEMS = [
   {
@@ -36,7 +35,6 @@ const MOBILE_NAV_ITEMS = [
 
 export function MobileNav() {
   const pathname = usePathname();
-  const { stats } = useCompanionData();
 
   return (
     <>
@@ -45,7 +43,6 @@ export function MobileNav() {
           {MOBILE_NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const isActive = pathname?.startsWith(item.href);
-            const badge = item.name === "Companions" ? stats?.pending_requests : undefined;
 
             return (
               <Link
@@ -74,24 +71,13 @@ export function MobileNav() {
                     />
                   )}
 
-                  {/* Icon */}
+                  {/* Icon — no badges anywhere: the inbox waits quietly */}
                   <div className="relative z-10">
                     <Icon
                       className={`w-6 h-6 ${
                         isActive ? "text-primary-600" : "text-current"
                       }`}
                     />
-
-                    {/* Notification Badge */}
-                    {badge && badge > 0 ? (
-                      <motion.span
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        className="absolute -top-1 -right-1 min-w-[16px] h-[16px] bg-primary-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1"
-                      >
-                        {badge > 9 ? "9+" : badge}
-                      </motion.span>
-                    ) : null}
                   </div>
 
                   {/* Label */}

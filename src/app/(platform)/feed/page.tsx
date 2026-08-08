@@ -1,14 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Suspense } from "react";
 import { PostComposer } from "@/components/feed/PostComposer";
 import { WelcomeShamsa } from "@/components/feed/WelcomeShamsa";
 import { FeedList } from "@/components/feed/FeedList";
-import { DailyCompanionCard } from "@/components/feed/DailyCompanionCard";
-import { createClient } from "@/lib/supabase/client";
-import type { CompanionSuggestion } from "@/types/companion";
 
 type FeedTab = "for-you" | "halaqas" | "verified" | "companions";
 
@@ -38,79 +35,6 @@ const FEED_TABS: { id: FeedTab; label: string; description: string }[] = [
 export default function FeedPage() {
   const [activeTab, setActiveTab] = useState<FeedTab>("for-you");
   const [refreshKey, setRefreshKey] = useState(0);
-  const [dailySuggestion, setDailySuggestion] = useState<CompanionSuggestion | null>(null);
-  const [showDailySuggestion, setShowDailySuggestion] = useState(false);
-  const supabase = createClient();
-
-  const loadDailySuggestion = async () => {
-    try {
-      // Check if user has already seen today's suggestion
-      const lastSeenKey = 'daily_companion_last_seen';
-      const lastSeen = localStorage.getItem(lastSeenKey);
-      const today = new Date().toDateString();
-
-      if (lastSeen === today) {
-        return; // Already seen today
-      }
-
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      // Get a high-quality match
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: profiles } = await (supabase as any)
-        .from('profiles')
-        .select('*')
-        .eq('is_available_for_connections', true)
-        .neq('id', user.id)
-        .limit(10) as { data: any[] | null };
-
-      if (!profiles || profiles.length === 0) return;
-
-      // Pick one at random (in real app, use the matching algorithm)
-      const randomProfile = profiles[Math.floor(Math.random() * profiles.length)];
-
-      // Get user's interests for comparison
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: userProfile } = await (supabase as any)
-        .from('profiles')
-        .select('interests')
-        .eq('id', user.id)
-        .single() as { data: { interests: string[] } | null };
-
-      const sharedInterests = randomProfile.interests?.filter((interest: string) =>
-        userProfile?.interests?.includes(interest)
-      ) || [];
-
-      const suggestion: CompanionSuggestion = {
-        profile: randomProfile,
-        match_score: 75 + Math.floor(Math.random() * 20), // 75-95
-        shared_interests: sharedInterests,
-        reason: sharedInterests.length > 2
-          ? "Perfect match based on shared interests!"
-          : sharedInterests.length > 0
-          ? "You share similar learning goals"
-          : "Recommended companion for your journey",
-      };
-
-      setDailySuggestion(suggestion);
-      setShowDailySuggestion(true);
-    } catch (error) {
-      console.error('Error loading daily suggestion:', error);
-    }
-  };
-
-  // Load daily companion suggestion
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { loadDailySuggestion(); }, []);
-
-  const handleDismissSuggestion = () => {
-    // Mark as seen for today
-    const lastSeenKey = 'daily_companion_last_seen';
-    const today = new Date().toDateString();
-    localStorage.setItem(lastSeenKey, today);
-    setShowDailySuggestion(false);
-  };
 
   const handlePostCreated = () => {
     // Refresh feed when new post is created
@@ -173,14 +97,6 @@ export default function FeedPage() {
 
           {/* Post Composer */}
           <PostComposer onPostCreated={handlePostCreated} />
-
-          {/* Daily Companion Suggestion */}
-          {showDailySuggestion && dailySuggestion && activeTab === "for-you" && (
-            <DailyCompanionCard
-              suggestion={dailySuggestion}
-              onDismiss={handleDismissSuggestion}
-            />
-          )}
 
           {/* Feed */}
           <FeedList key={refreshKey} feedType={activeTab} />

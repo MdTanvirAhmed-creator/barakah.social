@@ -12,6 +12,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { GirihEmptyState } from '@/components/ui/girih';
 
 interface Report {
   id: string;
@@ -23,12 +24,21 @@ interface Report {
   created_at: string;
   reviewed_at: string | null;
   resolution_note: string | null;
-  reporter: { username: string; full_name: string } | null;
+  reporter_id: string;
+}
+
+interface ReporterCard {
+  id: string;
+  username: string;
+  display_name: string;
 }
 
 export default function ReportsPage() {
   const supabase = createClient();
   const [reports, setReports] = useState<Report[]>([]);
+  const [reporters, setReporters] = useState<Record<string, ReporterCard>>({});
+  const [contentById, setContentById] = useState<Record<string, string>>({});
+  const [isModerator, setIsModerator] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -38,14 +48,39 @@ export default function ReportsPage() {
   const loadReports = useCallback(async () => {
     try {
       setLoading(true);
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Moderation is a granted responsibility (user_roles); the legacy
+      // profiles.role admin flag is honoured too. RLS enforces the same
+      // boundary regardless of what this UI shows.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const [{ data: roleRows }, { data: profile }] = await Promise.all([
+        (supabase as any)
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .in('role', ['moderator', 'admin']),
+        (supabase as any)
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .maybeSingle(),
+      ]);
+      const allowed = (roleRows?.length ?? 0) > 0 || profile?.role === 'admin';
+      setIsModerator(allowed);
+      if (!allowed) {
+        setLoading(false);
+        return;
+      }
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let query = (supabase as any)
         .from('reports')
-        .select(`
-          id, reason, content_type, content_id, description, status,
-          created_at, reviewed_at, resolution_note,
-          reporter:profiles!reports_reporter_id_fkey(username, full_name)
-        `)
+        .select(
+          'id, reason, content_type, content_id, description, status, created_at, reviewed_at, resolution_note, reporter_id'
+        )
         .order('created_at', { ascending: false })
         .limit(100);
 
@@ -53,7 +88,43 @@ export default function ReportsPage() {
       if (typeFilter !== 'all') query = query.eq('content_type', typeFilter);
 
       const { data, error } = await query;
-      if (!error) setReports((data as Report[]) ?? []);
+      if (error || !data) return;
+      const rows = data as Report[];
+      setReports(rows);
+
+      // Reporter identities via the public card view (profiles is
+      // companions-only and would blank most names).
+      const reporterIds = [...new Set(rows.map((r) => r.reporter_id))];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: cards } = reporterIds.length
+        ? await (supabase as any)
+            .from('public_profiles')
+            .select('id, username, display_name')
+            .in('id', reporterIds)
+        : { data: [] };
+      const cardMap: Record<string, ReporterCard> = {};
+      (cards as ReporterCard[] | null)?.forEach((c) => (cardMap[c.id] = c));
+      setReporters(cardMap);
+
+      // The reported content itself — RLS lets moderators read exactly the
+      // reported rows (and nothing else), so the judgement is informed.
+      const postIds = rows.filter((r) => r.content_type === 'post').map((r) => r.content_id);
+      const commentIds = rows.filter((r) => r.content_type === 'comment').map((r) => r.content_id);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const [{ data: posts }, { data: comments }] = await Promise.all([
+        postIds.length
+          ? (supabase as any).from('posts').select('id, content').in('id', postIds)
+          : Promise.resolve({ data: [] }),
+        commentIds.length
+          ? (supabase as any).from('comments').select('id, content').in('id', commentIds)
+          : Promise.resolve({ data: [] }),
+      ]);
+      const preview: Record<string, string> = {};
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (posts as any[] | null)?.forEach((p) => (preview[p.id] = p.content));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (comments as any[] | null)?.forEach((c) => (preview[c.id] = c.content));
+      setContentById(preview);
     } catch (err) {
       console.error('Failed to load reports:', err);
     } finally {
@@ -66,16 +137,31 @@ export default function ReportsPage() {
   }, [loadReports]);
 
   async function updateStatus(id: string, newStatus: 'resolved' | 'dismissed') {
+    const note = window.prompt(
+      newStatus === 'resolved'
+        ? 'Resolution note (what action was taken):'
+        : 'Dismissal note (why no action is needed):'
+    );
+    if (note === null) return; // cancelled
+
     setActionLoading(id);
+    const { data: { user } } = await supabase.auth.getUser();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await (supabase as any)
       .from('reports')
-      .update({ status: newStatus, reviewed_at: new Date().toISOString() })
+      .update({
+        status: newStatus,
+        reviewed_by: user?.id,
+        reviewed_at: new Date().toISOString(),
+        resolution_note: note.trim() || null,
+      })
       .eq('id', id);
 
     if (!error) {
       setReports((prev) =>
-        prev.map((r) => r.id === id ? { ...r, status: newStatus } : r)
+        prev.map((r) =>
+          r.id === id ? { ...r, status: newStatus, resolution_note: note.trim() || null } : r
+        )
       );
     }
     setActionLoading(null);
@@ -97,12 +183,17 @@ export default function ReportsPage() {
     }
   };
 
+  // The report_reason enum is values-aware: ghibah (backbiting), takfir,
+  // fitna, hate_speech, misinformation, inappropriate, spam.
   const getReasonColor = (reason: string) => {
     switch (reason) {
-      case 'spam': return 'bg-red-100 text-red-800';
-      case 'inappropriate_content': return 'bg-orange-100 text-orange-800';
+      case 'ghibah': return 'bg-purple-100 text-purple-800';
+      case 'takfir': return 'bg-red-100 text-red-800';
+      case 'fitna': return 'bg-orange-100 text-orange-800';
+      case 'hate_speech': return 'bg-red-100 text-red-800';
       case 'misinformation': return 'bg-yellow-100 text-yellow-800';
-      case 'harassment': return 'bg-pink-100 text-pink-800';
+      case 'inappropriate': return 'bg-pink-100 text-pink-800';
+      case 'spam': return 'bg-gray-100 text-gray-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -128,6 +219,19 @@ export default function ReportsPage() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto" />
           <p className="mt-4 text-gray-600">Loading reports...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isModerator) {
+    return (
+      <div className="min-h-screen bg-background p-6">
+        <div className="max-w-xl mx-auto">
+          <GirihEmptyState
+            title="Moderator access"
+            description="The reports queue is handled by members entrusted with the moderator role. If you believe you should have access, ask an administrator."
+          />
         </div>
       </div>
     );
@@ -224,9 +328,22 @@ export default function ReportsPage() {
                     <p className="text-gray-700 mb-3">{report.description}</p>
                   )}
 
+                  {/* The reported content itself, scoped by RLS to reported rows only */}
+                  {contentById[report.content_id] && (
+                    <blockquote className="mb-3 border-s-4 border-gray-300 bg-gray-50 rounded-e-lg px-4 py-3 text-sm text-gray-800 whitespace-pre-wrap">
+                      {contentById[report.content_id].slice(0, 500)}
+                      {contentById[report.content_id].length > 500 && '…'}
+                    </blockquote>
+                  )}
+
                   <div className="flex items-center gap-4 text-sm text-gray-500">
-                    {report.reporter && (
-                      <span>Reported by: <span className="font-medium text-gray-700">@{report.reporter.username}</span></span>
+                    {reporters[report.reporter_id] && (
+                      <span>
+                        Reported by:{' '}
+                        <span className="font-medium text-gray-700">
+                          @{reporters[report.reporter_id].username}
+                        </span>
+                      </span>
                     )}
                     <span>{new Date(report.created_at).toLocaleDateString()}</span>
                     {report.reviewed_at && (

@@ -38,8 +38,6 @@ import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { createClient } from "@/lib/supabase/client";
 import { signPostMedia } from "@/lib/supabase/storage";
 import { CommentSection } from "@/components/comments/CommentSection";
-import { CompanionDiscoveryCard } from "@/components/halaqas/CompanionDiscoveryCard";
-import { useHalaqaCompanions } from "@/hooks/useHalaqaCompanions";
 
 interface HalaqaDetailPageProps {
   params: { id: string };
@@ -97,7 +95,6 @@ export default function HalaqaDetailPage({ params }: HalaqaDetailPageProps) {
   const [expandedComments, setExpandedComments] = useState<string | null>(null);
   
   // Load companion matches for this Halaqa
-  const { matches: companionMatches, loading: companionsLoading } = useHalaqaCompanions(id as string);
 
   useEffect(() => {
     loadHalaqa();
@@ -1397,15 +1394,6 @@ export default function HalaqaDetailPage({ params }: HalaqaDetailPageProps) {
                 </div>
               </div>
             </div>
-
-            {/* Companion Discovery */}
-            {!companionsLoading && companionMatches.length > 0 && halaqa && (
-              <CompanionDiscoveryCard
-                halaqaId={halaqa.id}
-                halaqaTopic={halaqa.name}
-                matches={companionMatches}
-              />
-            )}
 
             {/* Recent Members */}
             <div className="bg-card rounded-lg shadow-md border border-border p-6">
