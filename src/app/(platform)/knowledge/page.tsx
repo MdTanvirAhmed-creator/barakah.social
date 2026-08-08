@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import Link from "next/link";
 import { LearningPath } from "@/components/knowledge/LearningPath";
 import { FilterPanel } from "@/components/knowledge/FilterPanel";
 import { StudyTogetherBanner } from "@/components/knowledge/StudyTogetherBanner";
@@ -246,6 +247,32 @@ export default function KnowledgePage() {
               </motion.div>
             ))}
           </div>
+        </div>
+
+        {/* The Qur'an — the heart of the reference hub */}
+        <div className="mb-12">
+          <Link
+            href="/knowledge/quran"
+            className="relative block overflow-hidden rounded-lg border border-border bg-card p-8 hover:border-primary-600/50 hover:shadow-lg transition-all group"
+          >
+            <GirihPattern subtle />
+            <TazhibCorner corner="top-end" size={44} />
+            <div className="relative flex flex-col sm:flex-row items-center gap-6">
+              <span className="flex-shrink-0 w-16 h-16 rotate-45 rounded craft-tile-teal flex items-center justify-center">
+                <BookOpen className="-rotate-45 w-7 h-7 text-accent-strong" />
+              </span>
+              <span className="flex-1 text-center sm:text-start">
+                <span className="block font-display text-2xl font-bold text-foreground group-hover:text-primary-600 transition-colors">
+                  The Noble Qur&rsquo;an
+                </span>
+                <span className="block mt-1 text-foreground-secondary">
+                  All 114 surahs — verified Uthmani text (Tanzil Project) with the
+                  Saheeh International translation, and a link for every ayah.
+                </span>
+              </span>
+              <span className="text-sm font-medium text-accent-strong">Read →</span>
+            </div>
+          </Link>
         </div>
 
         {/* Category Grid */}

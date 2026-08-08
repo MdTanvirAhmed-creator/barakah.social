@@ -20,10 +20,50 @@ export interface QuranTextProps {
   citation: string;
   /** Optional translation, rendered separately below the Arabic. */
   translation?: string;
+  /**
+   * "quote" (default): a single framed passage, for citing an ayah inside
+   * other content. "reader": the compact continuous form used by the
+   * Al-Hikmah mushaf reader — no ornamental frame, ayah number as the
+   * end-of-ayah marker, citation carried for accessibility.
+   */
+  variant?: "quote" | "reader";
+  /** Anchor id for deep links (reader variant), e.g. "ayah-255". */
+  id?: string;
   className?: string;
 }
 
-export function QuranText({ children, citation, translation, className }: QuranTextProps) {
+export function QuranText({
+  children,
+  citation,
+  translation,
+  variant = "quote",
+  id,
+  className,
+}: QuranTextProps) {
+  if (variant === "reader") {
+    return (
+      <figure
+        id={id}
+        aria-label={citation}
+        className={cn("px-2 py-5 scroll-mt-24 border-b border-border/60", className)}
+      >
+        <blockquote
+          lang="ar"
+          dir="rtl"
+          className="quran-text text-2xl leading-loose text-foreground"
+        >
+          {children}
+        </blockquote>
+        {translation && (
+          <p className="mt-3 font-reading text-base text-foreground-secondary leading-relaxed">
+            {translation}
+          </p>
+        )}
+        <figcaption className="mt-2 text-xs text-muted-foreground">{citation}</figcaption>
+      </figure>
+    );
+  }
+
   return (
     <figure className={cn("my-10 px-6 py-8 text-center", className)}>
       <div aria-hidden="true" className="flex items-center justify-center gap-4 mb-6">
