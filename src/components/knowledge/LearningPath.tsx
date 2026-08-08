@@ -12,11 +12,8 @@ import {
   ChevronRight,
   Users,
   BookOpen,
-  UserPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useLearningPathCompanions } from "@/hooks/useLearningPathCompanions";
 
 interface LearningPathProps {
   path: {
@@ -67,21 +64,11 @@ const TYPE_COLORS = {
 
 export function LearningPath({ path }: LearningPathProps) {
   const [showItems, setShowItems] = useState(false);
-  const { partners, loading, totalLearners } = useLearningPathCompanions(path.id);
 
   const getProgressColor = () => {
     if (path.progress >= 80) return "bg-green-500";
     if (path.progress >= 50) return "bg-yellow-500";
     return "bg-blue-500";
-  };
-
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
   };
 
   return (
@@ -127,57 +114,6 @@ export function LearningPath({ path }: LearningPathProps) {
             </div>
           </div>
         </div>
-
-        {/* Study Partners Section */}
-        {!loading && partners.length > 0 && (
-          <div className="mb-4 p-3 bg-primary-50 dark:bg-primary-900/10 rounded-lg border border-primary-200 dark:border-primary-800">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-primary-600" />
-                <span className="text-sm font-semibold text-foreground">
-                  Study Partners on this path
-                </span>
-              </div>
-              <span className="text-xs text-muted-foreground">
-                {totalLearners} learners
-              </span>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div className="flex -space-x-2">
-                {partners.slice(0, 5).map((partner, index) => (
-                  <motion.div
-                    key={partner.profile.id}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: index * 0.05 }}
-                    className="relative group"
-                  >
-                    <Avatar className="h-8 w-8 border-2 border-white dark:border-gray-800 cursor-pointer">
-                      <AvatarImage src={partner.profile.avatar_url || undefined} />
-                      <AvatarFallback className="bg-gradient-to-br from-primary-500 to-primary-700 text-white text-xs">
-                        {getInitials(partner.profile.full_name)}
-                      </AvatarFallback>
-                    </Avatar>
-                    {/* Tooltip */}
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
-                      {partner.profile.full_name} • {partner.progress}% complete
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-              
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-primary-600 hover:text-primary-700 hover:bg-primary-100 dark:hover:bg-primary-900/20"
-              >
-                <UserPlus className="w-4 h-4 mr-1" />
-                Find Study Buddy
-              </Button>
-            </div>
-          </div>
-        )}
 
         {/* Action Buttons */}
         <div className="flex gap-3">

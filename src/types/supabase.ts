@@ -250,38 +250,6 @@ export interface Database {
           joined_at?: string;
         };
       };
-      companion_connections: {
-        Row: {
-          id: string;
-          requester_id: string;
-          recipient_id: string;
-          status: ConnectionStatus;
-          connection_strength: number;
-          last_interaction: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          requester_id: string;
-          recipient_id: string;
-          status?: ConnectionStatus;
-          connection_strength?: number;
-          last_interaction?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          requester_id?: string;
-          recipient_id?: string;
-          status?: ConnectionStatus;
-          connection_strength?: number;
-          last_interaction?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
       reports: {
         Row: {
           id: string;
@@ -360,7 +328,6 @@ export type BeneficialMark = Tables<"beneficial_marks">;
 export type Bookmark = Tables<"bookmarks">;
 export type Halaqa = Tables<"halaqas">;
 export type HalaqaMember = Tables<"halaqa_members">;
-export type CompanionConnection = Tables<"companion_connections">;
 export type Report = Tables<"reports">;
 
 // Extended types with relations
