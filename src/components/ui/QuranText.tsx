@@ -49,6 +49,12 @@ export interface QuranTextProps {
   tajweedMarkup?: string;
   /** Recite mode: the larger of the two reading sizes (token-driven). */
   reciteSize?: boolean;
+  /**
+   * The end-of-ayah rosette, rendered inline after the text so it flows with
+   * it. Passed in rather than drawn here because it carries the ayah's
+   * actions (see AyahEndMarker).
+   */
+  endMarker?: React.ReactNode;
   className?: string;
 }
 
@@ -110,6 +116,7 @@ export function QuranText({
   words,
   tajweedMarkup,
   reciteSize,
+  endMarker,
   className,
 }: QuranTextProps) {
   if (variant === "reader") {
@@ -141,6 +148,7 @@ export function QuranText({
                 </span>
               </span>
             ))}
+            {endMarker ? <span className="self-center ps-1">{endMarker}</span> : null}
           </div>
         ) : (
           <blockquote
@@ -149,6 +157,7 @@ export function QuranText({
             className={cn("quran-text text-foreground", reciteSize && "quran-text--recite")}
           >
             {tajweedMarkup ? renderTajweed(tajweedMarkup) : children}
+            {endMarker ? <>{" "}{endMarker}</> : null}
           </blockquote>
         )}
         {translation && (

@@ -11,11 +11,19 @@ import {
   Play,
   Pause,
   BookOpen,
+  Bookmark,
+  BookmarkCheck,
+  PenLine,
+  Palette,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { QuranText, QuranWord } from "@/components/ui/QuranText";
 import { GirihLoader, IlluminatedDivider } from "@/components/ui/girih";
 import { TafsirPanel, type TafsirEdition } from "@/components/quran/TafsirPanel";
+import { AyahEndMarker } from "@/components/quran/AyahEndMarker";
+import { AyahNote } from "@/components/quran/AyahNote";
+import { RadialWordMenu, type RadialMenuItem } from "@/components/quran/RadialWordMenu";
+import { useWordActivation } from "@/hooks/useWordActivation";
 import { buildAyahAudioUrl } from "@/lib/quran/audio";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/hooks/useToast";
@@ -74,6 +82,17 @@ export default function SurahReaderPage() {
   const [reciters, setReciters] = useState<{ id: string; name: string; url_template: string }[]>([]);
   const [reciterId, setReciterId] = useState<string>("");
   const [openTafsir, setOpenTafsir] = useState<number | null>(null);
+  const [openNote, setOpenNote] = useState<number | null>(null);
+  const [bookmarked, setBookmarked] = useState<Set<number>>(new Set());
+  const [noted, setNoted] = useState<Set<number>>(new Set());
+
+  // Radial menu: which ayah (and optionally which word) it was opened from.
+  const [menuAnchor, setMenuAnchor] = useState<DOMRect | null>(null);
+  const [menuTarget, setMenuTarget] = useState<{
+    ayahId: number;
+    ayahNumber: number;
+    wordIndex: number | null;
+  } | null>(null);
 
   // One audio element for the whole surah: only one ayah recites at a time.
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -229,6 +248,97 @@ export default function SurahReaderPage() {
       setPlayingAyah(null);
       showError("Could not play this recitation. Please try again.");
     });
+  };
+
+  // A reader's own marks for this surah (private; migration 26).
+  useEffect(() => {
+    if (!ayat.length) return;
+    const ids = ayat.map((a) => a.id);
+    (async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sb = supabase as any;
+      const [{ data: bm }, { data: nt }] = await Promise.all([
+        sb.from("user_ayah_bookmarks").select("ayah_id").in("ayah_id", ids),
+        sb.from("user_ayah_notes").select("ayah_id").in("ayah_id", ids),
+      ]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setBookmarked(new Set(((bm as any[]) ?? []).map((r) => r.ayah_id)));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setNoted(new Set(((nt as any[]) ?? []).map((r) => r.ayah_id)));
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ayat]);
+
+  const toggleBookmark = async (ayahId: number, citation: string) => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+    const has = bookmarked.has(ayahId);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = supabase as any;
+    const { error } = has
+      ? await sb.from("user_ayah_bookmarks").delete().eq("ayah_id", ayahId)
+      : await sb.from("user_ayah_bookmarks").insert({ user_id: user.id, ayah_id: ayahId });
+    if (error) {
+      showError("Could not update your bookmark.");
+      return;
+    }
+    setBookmarked((prev) => {
+      const next = new Set(prev);
+      if (has) next.delete(ayahId);
+      else next.add(ayahId);
+      return next;
+    });
+    success(has ? `Bookmark removed — ${citation}` : `Bookmarked ${citation}`);
+  };
+
+  const wordHandlers = useWordActivation(setMenuAnchor);
+
+  /**
+   * The radial menu's five actions. Tafsir and Audio are no longer greyed
+   * out — both are backed by imported, provenance-carrying data now.
+   */
+  const buildMenuItems = (): RadialMenuItem[] => {
+    const t = menuTarget;
+    if (!t) return [];
+    const citation = `${surah?.name_transliterated ?? ""} ${surahNumber}:${t.ayahNumber}`.trim();
+    return [
+      {
+        id: "tajweed",
+        label: mode === "tajweed" ? "Plain reading" : "Tajweed",
+        icon: Palette,
+        onSelect: () => void switchMode(mode === "tajweed" ? "plain" : "tajweed"),
+      },
+      {
+        id: "audio",
+        label: playingAyah === t.ayahNumber ? "Pause" : "Recite",
+        icon: playingAyah === t.ayahNumber ? Pause : Play,
+        onSelect: () => toggleAudio(t.ayahNumber),
+        disabled: reciters.length === 0,
+        disabledReason: "No reciter available",
+      },
+      {
+        id: "tafsir",
+        label: "Tafsir",
+        icon: BookOpen,
+        onSelect: () => setOpenTafsir((cur) => (cur === t.ayahId ? null : t.ayahId)),
+        disabled: editions.length === 0,
+        disabledReason: "No tafsir imported",
+      },
+      {
+        id: "bookmark",
+        label: bookmarked.has(t.ayahId) ? "Remove bookmark" : "Bookmark",
+        icon: bookmarked.has(t.ayahId) ? BookmarkCheck : Bookmark,
+        onSelect: () => void toggleBookmark(t.ayahId, citation),
+      },
+      {
+        id: "note",
+        label: noted.has(t.ayahId) ? "Your note" : "Note",
+        icon: PenLine,
+        onSelect: () => setOpenNote((cur) => (cur === t.ayahId ? null : t.ayahId)),
+      },
+    ];
   };
 
   const copyAyahLink = (ayahNumber: number) => {
@@ -408,13 +518,52 @@ export default function SurahReaderPage() {
                     translation={showTranslation ? a.translation : undefined}
                     tajweedMarkup={mode === "tajweed" ? tajweedByAyah?.[a.id] : undefined}
                     words={mode === "words" ? wordsByAyah?.[a.id] : undefined}
+                    endMarker={
+                      <AyahEndMarker
+                        ayahNumber={a.ayah}
+                        citation={citation}
+                        onActivate={(rect) => {
+                          setMenuTarget({ ayahId: a.id, ayahNumber: a.ayah, wordIndex: null });
+                          setMenuAnchor(rect);
+                        }}
+                      />
+                    }
                   >
-                    {p.text}
+                    {/* Each word is its own handle, so the radial menu can
+                        open on a word rather than the whole ayah. Split from
+                        the canonical Tanzil text — never re-joined from the
+                        word dataset, whose orthography is a different
+                        edition's. */}
+                    {p.text.split(/\s+/).map((token, i, all) => (
+                      <span key={i}>
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          aria-label={`Word ${i + 1} of ${all.length}, ${citation}`}
+                          aria-haspopup="menu"
+                          {...wordHandlers}
+                          onClick={(e) => {
+                            setMenuTarget({ ayahId: a.id, ayahNumber: a.ayah, wordIndex: i });
+                            wordHandlers.onClick(e);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              setMenuTarget({ ayahId: a.id, ayahNumber: a.ayah, wordIndex: i });
+                            }
+                            wordHandlers.onKeyDown(e);
+                          }}
+                          className="rounded px-0.5 cursor-pointer transition-colors duration-150 hover:bg-[rgb(var(--primary-600)/0.10)] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600"
+                        >
+                          {token}
+                        </span>
+                        {i < all.length - 1 ? " " : null}
+                      </span>
+                    ))}
                   </QuranText>
 
                   <div
                     className={`absolute top-4 end-0 flex items-center gap-0.5 transition-opacity ${
-                      isPlaying || openTafsir === a.id
+                      isPlaying || openTafsir === a.id || openNote === a.id
                         ? "opacity-100"
                         : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
                     }`}
@@ -453,6 +602,39 @@ export default function SurahReaderPage() {
                       </button>
                     )}
                     <button
+                      onClick={() => toggleBookmark(a.id, citation)}
+                      aria-label={
+                        bookmarked.has(a.id)
+                          ? `Remove bookmark from ${citation}`
+                          : `Bookmark ${citation}`
+                      }
+                      title={bookmarked.has(a.id) ? "Bookmarked" : "Bookmark"}
+                      className={`p-1.5 rounded-md transition-colors hover:bg-muted ${
+                        bookmarked.has(a.id)
+                          ? "text-accent-strong"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {bookmarked.has(a.id) ? (
+                        <BookmarkCheck className="w-3.5 h-3.5" />
+                      ) : (
+                        <Bookmark className="w-3.5 h-3.5" />
+                      )}
+                    </button>
+                    <button
+                      onClick={() => setOpenNote((cur) => (cur === a.id ? null : a.id))}
+                      aria-label={`Note on ${citation}`}
+                      aria-expanded={openNote === a.id}
+                      title={noted.has(a.id) ? "Your note" : "Add a note"}
+                      className={`p-1.5 rounded-md transition-colors hover:bg-muted ${
+                        noted.has(a.id) || openNote === a.id
+                          ? "text-accent-strong"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <PenLine className="w-3.5 h-3.5" />
+                    </button>
+                    <button
                       onClick={() => copyAyahLink(a.ayah)}
                       aria-label={`Copy link to ${citation}`}
                       title="Copy link"
@@ -480,6 +662,22 @@ export default function SurahReaderPage() {
                   )}
                 </div>
 
+                {openNote === a.id && (
+                  <AyahNote
+                    ayahId={a.id}
+                    citation={citation}
+                    onClose={() => setOpenNote(null)}
+                    onSaved={(has) =>
+                      setNoted((prev) => {
+                        const next = new Set(prev);
+                        if (has) next.add(a.id);
+                        else next.delete(a.id);
+                        return next;
+                      })
+                    }
+                  />
+                )}
+
                 {openTafsir === a.id && (
                   <TafsirPanel
                     ayahId={a.id}
@@ -492,6 +690,18 @@ export default function SurahReaderPage() {
             );
           })}
         </div>
+
+        {/* The radial menu — one instance, retargeted per word/ayah. */}
+        <RadialWordMenu
+          anchorRect={menuAnchor}
+          label={
+            menuTarget
+              ? `Actions for ${surah.name_transliterated} ${surahNumber}:${menuTarget.ayahNumber}`
+              : "Ayah actions"
+          }
+          onClose={() => setMenuAnchor(null)}
+          items={buildMenuItems()}
+        />
 
         {/* One shared audio element for the surah. */}
         <audio
