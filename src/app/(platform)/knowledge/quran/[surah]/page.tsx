@@ -176,15 +176,27 @@ export default function SurahReaderPage() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data } = await (supabase as any)
         .from("quran_sources")
-        .select("id, name, translator, kind, url_template")
+        .select("id, name, translator, kind, url_template, language")
         .in("kind", ["tafsir", "audio"]);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const rows = ((data as any[]) ?? []);
       // Concise first: al-Jalalayn is the one that reads well inline.
       const tafsir = rows
         .filter((r) => r.kind === "tafsir")
-        .sort((a, b) => (a.id === "ar-tafsir-al-jalalayn" ? -1 : b.id === "ar-tafsir-al-jalalayn" ? 1 : a.name.localeCompare(b.name)));
-      setEditions(tafsir.map((r) => ({ id: r.id, name: r.name, translator: r.translator })));
+        // al-Jalalayn leads in both languages: it is the concise one that
+        // reads well inline, where the others are essays.
+        .sort((a, b) => {
+          const lead = (r: { id: string }) => (/-tafsir-al-jalalayn$/.test(r.id) ? 0 : 1);
+          return lead(a) - lead(b) || a.name.localeCompare(b.name);
+        });
+      setEditions(
+        tafsir.map((r) => ({
+          id: r.id,
+          name: r.name,
+          translator: r.translator,
+          language: r.language ?? "ar",
+        }))
+      );
       const audio = rows.filter((r) => r.kind === "audio" && r.url_template);
       setReciters(audio.map((r) => ({ id: r.id, name: r.name, url_template: r.url_template })));
       setReciterId((prev) => prev || audio[0]?.id || "");

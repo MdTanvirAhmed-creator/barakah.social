@@ -27,6 +27,58 @@ const LICENCE =
   "Classical work, public domain by age. Aggregated dataset spa5k/tafsir_api " +
   `(MIT), pinned at commit ${PIN.slice(0, 10)}.`;
 
+/**
+ * English editions, deliberately limited to the Royal Aal al-Bayt Institute's
+ * "Great Commentaries of the Holy Qur'an" series (altafsir.com), which is
+ * distributed freely for non-commercial use.
+ *
+ * NOT imported, on purpose: the English Ibn Kathir (Darussalam's abridged
+ * translation), Maarif-ul-Quran (Maktaba Darul Uloom) and Tazkirul Quran
+ * (d. 2021) are modern commercial translations under copyright. An Arabic
+ * original being public domain by age says nothing about the rights in a
+ * 20th-century English rendering of it — so those stay out, and the English
+ * tab is honestly empty for editions we cannot carry.
+ *
+ * Note also that the slugs are NOT a clean `ar-` -> `en-` swap:
+ * `en-tafisr-ibn-kathir` is misspelt upstream and others break the pattern
+ * entirely, so each is listed explicitly rather than derived.
+ */
+const ENGLISH_LICENCE =
+  "Translation from the Royal Aal al-Bayt Institute's Great Commentaries of " +
+  "the Holy Qur'an (altafsir.com), distributed freely for non-commercial use. " +
+  `Aggregated via spa5k/tafsir_api (MIT), pinned at commit ${PIN.slice(0, 10)}.`;
+
+const ENGLISH_EDITIONS = [
+  {
+    slug: "en-al-jalalayn",
+    id: "en-tafsir-al-jalalayn",
+    name: "Tafsir al-Jalalayn (English)",
+    translator: "tr. Feras Hamza",
+    language: "en",
+  },
+  {
+    slug: "en-tafsir-ibn-abbas",
+    id: "en-tafsir-ibn-abbas",
+    name: "Tanwir al-Miqbas min Tafsir Ibn Abbas (English)",
+    translator: "tr. Mokrane Guezzou",
+    language: "en",
+  },
+  {
+    slug: "en-tafsir-al-tustari",
+    id: "en-tafsir-al-tustari",
+    name: "Tafsir al-Tustari (English)",
+    translator: "tr. Annabel Keeler and Ali Keeler",
+    language: "en",
+  },
+  {
+    slug: "en-asbab-al-nuzul-by-al-wahidi",
+    id: "en-asbab-al-nuzul",
+    name: "Asbab al-Nuzul by al-Wahidi (English)",
+    translator: "tr. Mokrane Guezzou",
+    language: "en",
+  },
+];
+
 const EDITIONS = [
   {
     slug: "ar-tafsir-al-jalalayn",
@@ -98,6 +150,10 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function fetchJson(url, attempt = 1) {
   try {
     const res = await fetch(url, { redirect: "follow" });
+    // A missing surah bundle is data, not an error: selective works such as
+    // Asbab al-Nuzul only cover the ayat that have a recorded occasion of
+    // revelation, so whole surahs are simply absent upstream.
+    if (res.status === 404) return null;
     if (!res.ok) throw new Error(`${res.status}`);
     return await res.json();
   } catch (err) {
@@ -120,6 +176,7 @@ async function fetchEdition(slug) {
       batch.map((s) => fetchJson(`${BASE}/${slug}/${s}.json`))
     );
     results.forEach((rows) => {
+      if (!rows) return; // surah absent from this edition
       const list = Array.isArray(rows) ? rows : rows?.ayahs ?? [];
       for (const r of list) {
         const text = (r.text ?? "").trim();
@@ -136,7 +193,8 @@ async function main() {
   const target = resolveTarget();
   const onlyIdx = process.argv.indexOf("--only");
   const only = onlyIdx !== -1 ? process.argv[onlyIdx + 1] : null;
-  const editions = only ? EDITIONS.filter((e) => e.slug === only || e.id === only) : EDITIONS;
+  const ALL = [...EDITIONS, ...ENGLISH_EDITIONS];
+  const editions = only ? ALL.filter((e) => e.slug === only || e.id === only) : ALL;
   if (!editions.length) {
     console.error(`No edition matches --only ${only}`);
     process.exit(1);
@@ -212,9 +270,9 @@ async function main() {
           id: ed.id,
           kind: "tafsir",
           name: ed.name,
-          language: "ar",
+          language: ed.language ?? "ar",
           translator: ed.translator,
-          license: LICENCE,
+          license: ed.language === "en" ? ENGLISH_LICENCE : LICENCE,
           source_url: `https://github.com/spa5k/tafsir_api/tree/${PIN}/tafsir/${ed.slug}`,
           checksum,
           imported_at: now,

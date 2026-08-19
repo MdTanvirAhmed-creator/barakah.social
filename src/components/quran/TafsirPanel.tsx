@@ -24,6 +24,7 @@ export interface TafsirEdition {
   id: string;
   name: string;
   translator: string | null;
+  language: string;
 }
 
 interface TafsirPanelProps {
@@ -58,9 +59,33 @@ function renderWithApparatus(text: string): React.ReactNode[] {
   return out;
 }
 
+/** `ar-tafsir-al-jalalayn` and `en-tafsir-al-jalalayn` are the same work. */
+function workKey(id: string): string {
+  return id.replace(/^(ar|en)-/, "");
+}
+
 export function TafsirPanel({ ayahId, citation, editions, onClose }: TafsirPanelProps) {
   const supabase = createClient();
+  // Arabic and English are separate editions, not two columns of one: the
+  // English works are different translators of different originals, and some
+  // (al-Tustari, Asbab al-Nuzul) are selective by nature. Switching language
+  // therefore switches the set of editions on offer.
+  const [lang, setLang] = React.useState<"ar" | "en">("ar");
+  const inLang = React.useMemo(
+    () => editions.filter((e) => e.language === lang),
+    [editions, lang]
+  );
   const [editionId, setEditionId] = React.useState(editions[0]?.id ?? "");
+
+  // Switching language should keep you on the same *work* where a counterpart
+  // exists — reading al-Jalalayn in Arabic and tapping English should give
+  // you al-Jalalayn in English, not drop you on an unrelated commentary.
+  // Only when there is no counterpart does it fall back to the first edition.
+  React.useEffect(() => {
+    if (!inLang.length || inLang.some((e) => e.id === editionId)) return;
+    const counterpart = inLang.find((e) => workKey(e.id) === workKey(editionId));
+    setEditionId((counterpart ?? inLang[0]).id);
+  }, [inLang, editionId]);
   const [cache, setCache] = React.useState<Record<string, string | null>>({});
   const [loading, setLoading] = React.useState(false);
 
@@ -89,6 +114,8 @@ export function TafsirPanel({ ayahId, citation, editions, onClose }: TafsirPanel
   }, [ayahId, editionId, key, cache, supabase]);
 
   const active = editions.find((e) => e.id === editionId);
+  const languages: ("ar" | "en")[] = ["ar", "en"];
+  const hasLang = (l: string) => editions.some((e) => e.language === l);
 
   return (
     <div className="my-4 rounded-lg border border-border bg-card overflow-hidden">
@@ -108,9 +135,30 @@ export function TafsirPanel({ ayahId, citation, editions, onClose }: TafsirPanel
         </button>
       </div>
 
+      {/* Language */}
+      {languages.filter(hasLang).length > 1 && (
+        <div className="flex gap-1 px-3 pt-3">
+          {languages.filter(hasLang).map((l) => (
+            <button
+              key={l}
+              onClick={() => setLang(l)}
+              aria-pressed={lang === l}
+              className={cn(
+                "px-2.5 py-1 rounded text-xs font-medium transition-colors",
+                lang === l
+                  ? "bg-muted text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {l === "ar" ? "العربية" : "English"}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Edition tabs */}
       <div className="flex flex-wrap gap-1 px-3 pt-3" role="tablist" aria-label="Tafsir edition">
-        {editions.map((e) => (
+        {inLang.map((e) => (
           <button
             key={e.id}
             role="tab"
@@ -123,7 +171,7 @@ export function TafsirPanel({ ayahId, citation, editions, onClose }: TafsirPanel
                 : "text-muted-foreground hover:bg-muted hover:text-foreground"
             )}
           >
-            {e.name.replace(/\s*\(Arabic\)$/, "")}
+            {e.name.replace(/\s*\((Arabic|English)\)$/, "")}
           </button>
         ))}
       </div>
@@ -135,15 +183,18 @@ export function TafsirPanel({ ayahId, citation, editions, onClose }: TafsirPanel
           </div>
         ) : text ? (
           <p
-            lang="ar"
-            dir="rtl"
-            className="arabic text-base leading-loose text-foreground-secondary whitespace-pre-wrap"
+            lang={active?.language ?? "ar"}
+            dir={active?.language === "en" ? "ltr" : "rtl"}
+            className={cn(
+              "text-base leading-loose text-foreground-secondary whitespace-pre-wrap",
+              active?.language === "en" ? "font-reading" : "arabic"
+            )}
           >
             {renderWithApparatus(text)}
           </p>
         ) : (
           <p className="text-sm text-muted-foreground py-4 text-center">
-            {active?.name.replace(/\s*\(Arabic\)$/, "")} has no separate passage
+            {active?.name.replace(/\s*\((Arabic|English)\)$/, "")} has no separate passage
             for this ayah.
           </p>
         )}
