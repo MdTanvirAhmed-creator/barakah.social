@@ -168,8 +168,13 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
           NEXT_PUBLIC_APP_URL: http://localhost:3000
 
+      # Chromium only. The stateful specs drive the desktop layout (the
+      # sidebar search does not exist on the mobile breakpoint), so running
+      # the full five-project matrix fails for reasons that have nothing to
+      # do with the code under test. Broader browser coverage needs specs
+      # written for it — a separate piece of work.
       - name: Run Playwright tests
-        run: npx playwright test
+        run: npx playwright test --project=chromium
         env:
           E2E_LOCAL_SUPABASE: '1'
 

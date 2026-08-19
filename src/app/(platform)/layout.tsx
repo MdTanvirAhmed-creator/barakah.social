@@ -29,6 +29,7 @@ export default function PlatformLayout({
 
       {/* Main Content */}
       <main
+        id="main-content"
         className={`
           min-h-screen
           md:ml-[280px]

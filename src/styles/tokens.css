@@ -24,7 +24,7 @@
   --surface: #f1e9d8;       /* raised cards */
   --surface-sunk: #dcd2bc;  /* inputs, wells */
   --ink: #2a2620;
-  --ink-muted: #6e6656;
+  --ink-muted: #615948;      /* AA on bg (5.18), surface and sunk */
   --hairline: rgba(42, 38, 32, 0.12);
   --primary-hex: #1c7f72;   /* zellij teal — the working accent */
   --primary-contrast: #ffffff;
@@ -90,7 +90,7 @@
   --background-tertiary: 220 210 188;   /* --surface-sunk */
 
   --foreground: 42 38 32;               /* --ink */
-  --foreground-secondary: 110 102 86;   /* --ink-muted */
+  --foreground-secondary: 97 89 72;     /* --ink-muted */
   --foreground-tertiary: 100 92 76;
   --foreground-inverse: 241 233 216;
 
@@ -99,7 +99,7 @@
   --popover: 248 242 229;
   --popover-foreground: 42 38 32;
   --muted: 220 210 188;
-  --muted-foreground: 110 102 86;
+  --muted-foreground: 97 89 72;
 
   --primary: 28 127 114;                /* zellij teal */
   --primary-foreground: 255 255 255;

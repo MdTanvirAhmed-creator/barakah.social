@@ -19,8 +19,10 @@ const pairs = [
   ["courtyard: ink / bg", "#2A2620", "#E7DECB", 4.5],
   ["courtyard: ink / surface", "#2A2620", "#F1E9D8", 4.5],
   ["courtyard: ink / sunk", "#2A2620", "#DCD2BC", 4.5],
-  ["courtyard: muted / bg", "#6E6656", "#E7DECB", 4.2],
-  ["courtyard: muted / surface", "#6E6656", "#F1E9D8", 4.5],
+  // Was pinned at 4.2 — below AA — so the gate passed a colour that
+  // Lighthouse's axe run correctly failed. AA for body text is 4.5.
+  ["courtyard: muted / bg", "#615948", "#E7DECB", 4.5],
+  ["courtyard: muted / surface", "#615948", "#F1E9D8", 4.5],
   ["courtyard: white / teal button", "#FFFFFF", "#1C7F72", 4.5],
   ["courtyard: teal-600 link / bg", "#17685E", "#E7DECB", 4.5],
   ["courtyard: lapis / bg", "#2B5FA6", "#E7DECB", 4.5],

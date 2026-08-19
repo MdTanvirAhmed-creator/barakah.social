@@ -6,7 +6,7 @@ import { GoogleAuthButton } from "@/components/auth/GoogleAuthButton";
 
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col">
+    <main id="main-content" className="flex min-h-screen flex-col">
       {/* Navigation Header */}
       <header className="bg-background-secondary/95 backdrop-blur-sm border-b border-border sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -52,19 +52,23 @@ export default function Home() {
         <div className="max-w-6xl mx-auto text-center">
           <div className="mb-8">
             <h1 className="text-5xl font-bold text-foreground mb-4">
-              Welcome to <span className="text-primary-300">Barakah.Social</span>
+              Welcome to <span className="text-accent-strong">Barakah.Social</span>
             </h1>
             <p className="text-xl text-foreground-secondary mb-8 max-w-3xl mx-auto">
               A modern Islamic social platform for meaningful connections, knowledge sharing, and spiritual growth.
             </p>
           </div>
 
-          {/* Main Navigation Cards */}
+          {/* Main Navigation Cards. The cards' titles are h3, so this
+              section needs its own h2 — otherwise the outline jumps h1 -> h3
+              and screen-reader users lose a level. Visually redundant beside
+              the cards, so it is available to assistive tech only. */}
+          <h2 className="sr-only">Explore Barakah.Social</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
             <Card className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5 text-primary-300" />
+                  <Users className="h-5 w-5 text-accent-strong" />
                   Community
                 </CardTitle>
                 <CardDescription>
@@ -84,7 +88,7 @@ export default function Home() {
             <Card className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <BookOpen className="h-5 w-5 text-primary-300" />
+                  <BookOpen className="h-5 w-5 text-accent-strong" />
                   Knowledge Hub
                 </CardTitle>
                 <CardDescription>
@@ -104,7 +108,7 @@ export default function Home() {
             <Card className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <MessageCircle className="h-5 w-5 text-primary-300" />
+                  <MessageCircle className="h-5 w-5 text-accent-strong" />
                   Halaqas
                 </CardTitle>
                 <CardDescription>
@@ -124,7 +128,9 @@ export default function Home() {
 
           {/* Authentication Section */}
           <div className="mb-12">
-            <h3 className="text-2xl font-semibold mb-6">Get Started</h3>
+            {/* A section heading, so it must be h2: jumping h1 -> h3 breaks
+                the outline screen-reader users navigate by. */}
+            <h2 className="text-2xl font-semibold mb-6">Get Started</h2>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <GoogleAuthButton mode="signin" className="w-full sm:w-auto" />
               <Link href="/login">
@@ -179,21 +185,21 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="text-center">
               <div className="bg-primary-500/15 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Shield className="h-8 w-8 text-primary-300" />
+                <Shield className="h-8 w-8 text-accent-strong" />
               </div>
               <h3 className="text-lg font-semibold mb-2">Verified Content</h3>
               <p className="text-foreground-secondary">Scholarly reviewed and community-verified Islamic content</p>
             </div>
             <div className="text-center">
               <div className="bg-primary-500/15 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <BookMarked className="h-8 w-8 text-primary-300" />
+                <BookMarked className="h-8 w-8 text-accent-strong" />
               </div>
               <h3 className="text-lg font-semibold mb-2">Learning Paths</h3>
               <p className="text-foreground-secondary">Structured learning journeys for spiritual growth</p>
             </div>
             <div className="text-center">
               <div className="bg-primary-500/15 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Users className="h-8 w-8 text-primary-300" />
+                <Users className="h-8 w-8 text-accent-strong" />
               </div>
               <h3 className="text-lg font-semibold mb-2">Companion System</h3>
               <p className="text-foreground-secondary">Find study companions and accountability partners</p>
