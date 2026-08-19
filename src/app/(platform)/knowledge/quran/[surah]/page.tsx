@@ -1,12 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ChevronLeft, ChevronRight, Languages, Link as LinkIcon } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Languages,
+  Link as LinkIcon,
+  Play,
+  Pause,
+  BookOpen,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { QuranText, QuranWord } from "@/components/ui/QuranText";
 import { GirihLoader, IlluminatedDivider } from "@/components/ui/girih";
+import { TafsirPanel, type TafsirEdition } from "@/components/quran/TafsirPanel";
+import { buildAyahAudioUrl } from "@/lib/quran/audio";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/hooks/useToast";
 
@@ -43,7 +53,7 @@ export default function SurahReaderPage() {
   const params = useParams();
   const surahNumber = Number(params?.surah);
   const supabase = createClient();
-  const { success } = useToast();
+  const { success, error: showError } = useToast();
 
   const [surah, setSurah] = useState<Surah | null>(null);
   const [ayat, setAyat] = useState<Ayah[]>([]);
@@ -57,6 +67,18 @@ export default function SurahReaderPage() {
   const [tajweedByAyah, setTajweedByAyah] = useState<Record<number, string> | null>(null);
   const [wordsByAyah, setWordsByAyah] = useState<Record<number, QuranWord[]> | null>(null);
   const [modeLoading, setModeLoading] = useState(false);
+
+  // Tafsir editions and reciters come from the provenance ledger, so the
+  // reader always names what it is quoting and who is reciting.
+  const [editions, setEditions] = useState<TafsirEdition[]>([]);
+  const [reciters, setReciters] = useState<{ id: string; name: string; url_template: string }[]>([]);
+  const [reciterId, setReciterId] = useState<string>("");
+  const [openTafsir, setOpenTafsir] = useState<number | null>(null);
+
+  // One audio element for the whole surah: only one ayah recites at a time.
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [playingAyah, setPlayingAyah] = useState<number | null>(null);
+  const [progress, setProgress] = useState(0);
 
   const switchMode = async (next: "plain" | "tajweed" | "words") => {
     setMode(next);
@@ -147,6 +169,55 @@ export default function SurahReaderPage() {
     scroll();
     document.fonts?.ready.then(scroll).catch(() => {});
   }, [loading]);
+
+  // Provenance ledger: which tafsir editions and reciters exist.
+  useEffect(() => {
+    (async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data } = await (supabase as any)
+        .from("quran_sources")
+        .select("id, name, translator, kind, url_template")
+        .in("kind", ["tafsir", "audio"]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rows = ((data as any[]) ?? []);
+      // Concise first: al-Jalalayn is the one that reads well inline.
+      const tafsir = rows
+        .filter((r) => r.kind === "tafsir")
+        .sort((a, b) => (a.id === "ar-tafsir-al-jalalayn" ? -1 : b.id === "ar-tafsir-al-jalalayn" ? 1 : a.name.localeCompare(b.name)));
+      setEditions(tafsir.map((r) => ({ id: r.id, name: r.name, translator: r.translator })));
+      const audio = rows.filter((r) => r.kind === "audio" && r.url_template);
+      setReciters(audio.map((r) => ({ id: r.id, name: r.name, url_template: r.url_template })));
+      setReciterId((prev) => prev || audio[0]?.id || "");
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Stop any recitation when the surah changes.
+  useEffect(() => {
+    audioRef.current?.pause();
+    setPlayingAyah(null);
+    setProgress(0);
+    setOpenTafsir(null);
+  }, [surahNumber]);
+
+  const toggleAudio = (ayahNumber: number) => {
+    const reciter = reciters.find((r) => r.id === reciterId);
+    if (!reciter) return;
+    const el = audioRef.current;
+    if (!el) return;
+    if (playingAyah === ayahNumber) {
+      el.pause();
+      setPlayingAyah(null);
+      return;
+    }
+    el.src = buildAyahAudioUrl(reciter.url_template, surahNumber, ayahNumber);
+    setProgress(0);
+    setPlayingAyah(ayahNumber);
+    el.play().catch(() => {
+      setPlayingAyah(null);
+      showError("Could not play this recitation. Please try again.");
+    });
+  };
 
   const copyAyahLink = (ayahNumber: number) => {
     navigator.clipboard.writeText(
@@ -253,6 +324,24 @@ export default function SurahReaderPage() {
               <Languages className="w-4 h-4 me-2" />
               {showTranslation ? "Hide translation" : "Show translation"}
             </Button>
+            {reciters.length > 1 && (
+              <select
+                value={reciterId}
+                onChange={(e) => {
+                  audioRef.current?.pause();
+                  setPlayingAyah(null);
+                  setReciterId(e.target.value);
+                }}
+                aria-label="Reciter"
+                className="px-3 py-1.5 rounded-lg border border-border bg-card text-sm text-foreground"
+              >
+                {reciters.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name.replace(/\s*\(128kbps\)$/, "")}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           {/* Tajweed legend */}
@@ -294,31 +383,123 @@ export default function SurahReaderPage() {
         <div>
           {ayat.map((a) => {
             const p = presentAyah(a);
+            const citation = `${surah.name_transliterated} ${surahNumber}:${a.ayah}`;
+            const isPlaying = playingAyah === a.ayah;
             return (
-              <div key={a.id} className="group relative">
-                <QuranText
-                  variant="reader"
-                  id={`ayah-${a.ayah}`}
-                  citation={`${surah.name_transliterated} ${surahNumber}:${a.ayah}`}
-                  translation={showTranslation ? a.translation : undefined}
-                  tajweedMarkup={
-                    mode === "tajweed" ? tajweedByAyah?.[a.id] : undefined
-                  }
-                  words={mode === "words" ? wordsByAyah?.[a.id] : undefined}
-                >
-                  {p.text}
-                </QuranText>
-                <button
-                  onClick={() => copyAyahLink(a.ayah)}
-                  title={`Copy link to ${surahNumber}:${a.ayah}`}
-                  className="absolute top-5 end-0 p-1.5 rounded-md text-muted-foreground opacity-0 group-hover:opacity-100 focus:opacity-100 hover:bg-muted transition-opacity"
-                >
-                  <LinkIcon className="w-3.5 h-3.5" />
-                </button>
+              <div key={a.id}>
+                {/* Chrome appears on engagement, never permanently. */}
+                <div className="group relative">
+                  <QuranText
+                    variant="reader"
+                    id={`ayah-${a.ayah}`}
+                    citation={citation}
+                    translation={showTranslation ? a.translation : undefined}
+                    tajweedMarkup={mode === "tajweed" ? tajweedByAyah?.[a.id] : undefined}
+                    words={mode === "words" ? wordsByAyah?.[a.id] : undefined}
+                  >
+                    {p.text}
+                  </QuranText>
+
+                  <div
+                    className={`absolute top-4 end-0 flex items-center gap-0.5 transition-opacity ${
+                      isPlaying || openTafsir === a.id
+                        ? "opacity-100"
+                        : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
+                    }`}
+                  >
+                    {reciters.length > 0 && (
+                      <button
+                        onClick={() => toggleAudio(a.ayah)}
+                        aria-label={
+                          isPlaying ? `Pause ${citation}` : `Recite ${citation}`
+                        }
+                        title={isPlaying ? "Pause" : "Recite"}
+                        className="p-1.5 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                      >
+                        {isPlaying ? (
+                          <Pause className="w-3.5 h-3.5" />
+                        ) : (
+                          <Play className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                    )}
+                    {editions.length > 0 && (
+                      <button
+                        onClick={() =>
+                          setOpenTafsir((cur) => (cur === a.id ? null : a.id))
+                        }
+                        aria-label={`Tafsir for ${citation}`}
+                        aria-expanded={openTafsir === a.id}
+                        title="Tafsir"
+                        className={`p-1.5 rounded-md transition-colors hover:bg-muted ${
+                          openTafsir === a.id
+                            ? "text-accent-strong"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        <BookOpen className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => copyAyahLink(a.ayah)}
+                      aria-label={`Copy link to ${citation}`}
+                      title="Copy link"
+                      className="p-1.5 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                    >
+                      <LinkIcon className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  {/* Recitation progress: a filling track, not a decoded waveform. */}
+                  {isPlaying && (
+                    <div
+                      className="absolute bottom-0 inset-x-0 h-0.5 bg-muted overflow-hidden"
+                      role="progressbar"
+                      aria-label={`Recitation progress, ${citation}`}
+                      aria-valuenow={Math.round(progress * 100)}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                    >
+                      <div
+                        className="h-full bg-primary-600"
+                        style={{ width: `${progress * 100}%` }}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {openTafsir === a.id && (
+                  <TafsirPanel
+                    ayahId={a.id}
+                    citation={citation}
+                    editions={editions}
+                    onClose={() => setOpenTafsir(null)}
+                  />
+                )}
               </div>
             );
           })}
         </div>
+
+        {/* One shared audio element for the surah. */}
+        <audio
+          ref={audioRef}
+          onTimeUpdate={(e) => {
+            const el = e.currentTarget;
+            if (el.duration) setProgress(el.currentTime / el.duration);
+          }}
+          onEnded={() => {
+            setPlayingAyah(null);
+            setProgress(0);
+          }}
+          onError={() => {
+            if (playingAyah !== null) {
+              setPlayingAyah(null);
+              showError("That recitation could not be loaded.");
+            }
+          }}
+          className="hidden"
+        />
 
         {/* Closing + navigation */}
         <div className="mt-10">
