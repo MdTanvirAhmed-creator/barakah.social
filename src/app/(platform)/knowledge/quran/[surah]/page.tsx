@@ -23,6 +23,7 @@ import { TafsirPanel, type TafsirEdition } from "@/components/quran/TafsirPanel"
 import { AyahEndMarker } from "@/components/quran/AyahEndMarker";
 import { AyahNote } from "@/components/quran/AyahNote";
 import { RadialWordMenu, type RadialMenuItem } from "@/components/quran/RadialWordMenu";
+import { SurahHeader } from "@/components/quran/SurahHeader";
 import { useWordActivation } from "@/hooks/useWordActivation";
 import { buildAyahAudioUrl } from "@/lib/quran/audio";
 import { createClient } from "@/lib/supabase/client";
@@ -98,6 +99,13 @@ export default function SurahReaderPage() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playingAyah, setPlayingAyah] = useState<number | null>(null);
   const [progress, setProgress] = useState(0);
+
+  // Sticky header: which ayah is in view, and whether the title block has
+  // scrolled away. The header only appears once it has, so nothing floats
+  // over the opening of a surah.
+  const titleRef = useRef<HTMLDivElement | null>(null);
+  const [headerVisible, setHeaderVisible] = useState(false);
+  const [currentAyah, setCurrentAyah] = useState(1);
 
   const switchMode = async (next: "plain" | "tajweed" | "words") => {
     setMode(next);
@@ -293,6 +301,56 @@ export default function SurahReaderPage() {
     success(has ? `Bookmark removed — ${citation}` : `Bookmarked ${citation}`);
   };
 
+  // Title block out of view -> show the sticky header.
+  useEffect(() => {
+    const el = titleRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => setHeaderVisible(!entry.isIntersecting),
+      { rootMargin: "-8px 0px 0px 0px" }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [loading]);
+
+  // Which ayah is being read. Also the reader's saved position: written at
+  // most once every few seconds, and only ever for themselves.
+  useEffect(() => {
+    if (loading || !ayat.length) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        const top = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+        if (!top) return;
+        const n = Number((top.target as HTMLElement).dataset.ayahNumber);
+        if (Number.isInteger(n)) setCurrentAyah(n);
+      },
+      { rootMargin: "-40% 0px -50% 0px" }
+    );
+    document.querySelectorAll("[data-ayah-number]").forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, [loading, ayat, mode]);
+
+  useEffect(() => {
+    if (loading || !ayat.length) return;
+    const row = ayat.find((a) => a.ayah === currentAyah);
+    if (!row) return;
+    const t = setTimeout(async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from("user_reading_position").upsert(
+        { user_id: user.id, ayah_id: row.id, updated_at: new Date().toISOString() },
+        { onConflict: "user_id" }
+      );
+    }, 3000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentAyah, loading, ayat]);
+
   const wordHandlers = useWordActivation(setMenuAnchor);
 
   /**
@@ -397,8 +455,21 @@ export default function SurahReaderPage() {
   return (
     <div className="min-h-screen bg-background pb-20">
       <div className="container-custom py-8 max-w-3xl">
+        <SurahHeader
+          nameArabic={surah.name_arabic}
+          nameTransliterated={surah.name_transliterated}
+          nameEnglish={surah.name_english}
+          currentAyah={currentAyah}
+          ayahCount={surah.ayah_count}
+          mode={mode}
+          onModeChange={(m) => void switchMode(m)}
+          showTranslation={showTranslation}
+          onToggleTranslation={() => setShowTranslation((v) => !v)}
+          visible={headerVisible}
+        />
+
         {/* Surah header */}
-        <div className="text-center mb-6">
+        <div ref={titleRef} className="text-center mb-6">
           <Link
             href="/knowledge/quran"
             className="text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -508,7 +579,7 @@ export default function SurahReaderPage() {
             const citation = `${surah.name_transliterated} ${surahNumber}:${a.ayah}`;
             const isPlaying = playingAyah === a.ayah;
             return (
-              <div key={a.id}>
+              <div key={a.id} data-ayah-number={a.ayah}>
                 {/* Chrome appears on engagement, never permanently. */}
                 <div className="group relative">
                   <QuranText

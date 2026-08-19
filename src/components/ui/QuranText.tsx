@@ -124,7 +124,7 @@ export function QuranText({
       <figure
         id={id}
         aria-label={citation}
-        className={cn("px-2 py-5 scroll-mt-24 border-b border-border/60", className)}
+        className={cn("px-2 py-5 scroll-mt-32 border-b border-border/60", className)}
       >
         {words && words.length > 0 ? (
           <div dir="rtl" lang="ar" className="flex flex-wrap gap-x-2 gap-y-5">

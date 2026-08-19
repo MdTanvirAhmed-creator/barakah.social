@@ -84,6 +84,10 @@
   --quran-marker-size: 1.6em;
   --quran-marker-number-scale: 0.6;
 
+  /* Height of the platform's sticky search bar. Anything else that sticks
+     inside the page must offset by this, or it hides beneath it. */
+  --app-header-h: 77px;
+
   /* ---------- Legacy semantic layer (RGB triplets) ---------- */
   --background: 231 222 203;            /* --bg */
   --background-secondary: 241 233 216;  /* --surface */
