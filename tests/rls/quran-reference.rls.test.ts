@@ -103,6 +103,13 @@ beforeAll(async () => {
     markup: "fixture markup",
   });
   if (tjErr) throw new Error(`tajweed fixture: ${tjErr.message}`);
+
+  const { error: tfErr } = await admin.from("quran_tafsir").insert({
+    ayah_id: SENTINEL_AYAH_ID,
+    source_id: SENTINEL_TRANS_SOURCE,
+    text: "fixture commentary",
+  });
+  if (tfErr) throw new Error(`tafsir fixture: ${tfErr.message}`);
 });
 
 afterAll(async () => {
@@ -175,6 +182,35 @@ test("tajweed rows are readable, and sealed to write", async () => {
     ayah_id: SENTINEL_AYAH_ID,
     source_id: SENTINEL_SOURCE,
     markup: "forged",
+  });
+  expect(error).not.toBeNull();
+  expect(error?.code).toBe("42501");
+});
+
+test("tafsir is readable, and sealed to write", async () => {
+  const { data } = await member.client
+    .from("quran_tafsir")
+    .select("text")
+    .eq("ayah_id", SENTINEL_AYAH_ID);
+  expect(data).toEqual([{ text: "fixture commentary" }]);
+
+  const { error } = await member.client.from("quran_tafsir").insert({
+    ayah_id: SENTINEL_AYAH_ID,
+    source_id: SENTINEL_SOURCE,
+    text: "forged commentary",
+  });
+  expect(error).not.toBeNull();
+  expect(error?.code).toBe("42501");
+});
+
+test("reciter provenance rows are readable and sealed", async () => {
+  // Audio is linked, not stored — but who is reciting is still on record.
+  const { error } = await member.client.from("quran_sources").insert({
+    id: "forged-reciter",
+    kind: "audio",
+    name: "forged",
+    license: "none",
+    source_url: "https://example.invalid",
   });
   expect(error).not.toBeNull();
   expect(error?.code).toBe("42501");
