@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 /**
@@ -49,7 +49,13 @@ const EMPTY_STATE: CompanionsState = {
 };
 
 export function useCompanions() {
-  const supabase = createClient();
+  // Memoised deliberately. createClient() returns a fresh object per call,
+  // and this client is a dependency of fetchCards -> refresh -> the effect
+  // below, so an unmemoised client gives `refresh` a new identity on every
+  // render and the effect re-fires forever. This hook is the only one that
+  // feeds the client into an effect dependency chain, which is why it alone
+  // hung on "Loading…" in a production build.
+  const supabase = useMemo(() => createClient(), []);
   const [userId, setUserId] = useState<string | null>(null);
   const [state, setState] = useState<CompanionsState>(EMPTY_STATE);
   const [loading, setLoading] = useState(true);

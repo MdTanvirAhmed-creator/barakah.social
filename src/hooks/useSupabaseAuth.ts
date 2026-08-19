@@ -101,12 +101,23 @@ export function useSupabaseAuth(): UseSupabaseAuthReturn {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, currentSession) => {
+    } = supabase.auth.onAuthStateChange((_event, currentSession) => {
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
 
       if (currentSession?.user) {
-        await fetchProfile(currentSession.user.id);
+        // Deferred out of the callback on purpose. supabase-js holds its
+        // auth lock (navigator.locks) for the whole duration of this
+        // handler, so awaiting another Supabase call from inside it
+        // deadlocks every concurrent auth call in the tab: they wait on a
+        // lock that cannot be released until this returns. The symptom is
+        // brutal to diagnose — getUser() never resolves and never even
+        // issues a network request, so a page just sits on its loading
+        // state forever. Yielding to the task queue first lets the lock go.
+        const uid = currentSession.user.id;
+        setTimeout(() => {
+          void fetchProfile(uid);
+        }, 0);
       } else {
         setProfile(null);
       }
