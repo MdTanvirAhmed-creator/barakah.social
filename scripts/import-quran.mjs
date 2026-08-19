@@ -111,7 +111,7 @@ function parsePipeText(body, label) {
 function parseSurahMetadata(xml) {
   const surahs = [];
   const re =
-    /<sura index="(\d+)" ayas="(\d+)"[^>]*? name="([^"]+)" tname="([^"]+)" ename="([^"]+)" type="([^"]+)"/g;
+    /<sura index="(\d+)" ayas="(\d+)"[^>]*? name="([^"]+)" tname="([^"]+)" ename="([^"]+)" type="([^"]+)" order="(\d+)"/g;
   let m;
   while ((m = re.exec(xml)) !== null) {
     surahs.push({
@@ -121,6 +121,8 @@ function parseSurahMetadata(xml) {
       name_transliterated: m[4],
       name_english: m[5],
       revelation_place: m[6] === "Meccan" ? "makkah" : "madinah",
+      // Order of revelation, distinct from position in the mushaf.
+      revelation_order: Number(m[7]),
     });
   }
   if (surahs.length !== 114) {

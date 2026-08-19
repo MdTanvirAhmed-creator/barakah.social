@@ -24,6 +24,7 @@ import { AyahEndMarker } from "@/components/quran/AyahEndMarker";
 import { AyahNote } from "@/components/quran/AyahNote";
 import { RadialWordMenu, type RadialMenuItem } from "@/components/quran/RadialWordMenu";
 import { SurahHeader } from "@/components/quran/SurahHeader";
+import { SurahThreshold } from "@/components/quran/SurahThreshold";
 import { useWordActivation } from "@/hooks/useWordActivation";
 import { buildAyahAudioUrl } from "@/lib/quran/audio";
 import { createClient } from "@/lib/supabase/client";
@@ -44,6 +45,7 @@ function stripArabicMarks(s: string): string {
 
 interface Surah {
   number: number;
+  revelation_order: number | null;
   name_arabic: string;
   name_transliterated: string;
   name_english: string;
@@ -106,6 +108,12 @@ export default function SurahReaderPage() {
   const titleRef = useRef<HTMLDivElement | null>(null);
   const [headerVisible, setHeaderVisible] = useState(false);
   const [currentAyah, setCurrentAyah] = useState(1);
+
+  // Threshold: where this reader left off in *this* surah, what they have
+  // marked memorised here, and a named commentary on its opening.
+  const [continueAyah, setContinueAyah] = useState<number | null>(null);
+  const [memorisedCount, setMemorisedCount] = useState(0);
+  const [intro, setIntro] = useState<{ editionName: string; text: string } | null>(null);
 
   const switchMode = async (next: "plain" | "tajweed" | "words") => {
     setMode(next);
@@ -351,6 +359,50 @@ export default function SurahReaderPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentAyah, loading, ayat]);
 
+  const goToAyah = (n: number) => {
+    document
+      .getElementById(`ayah-${n}`)
+      ?.scrollIntoView({ block: "start", behavior: "smooth" });
+  };
+
+  // Threshold data: saved position (if it falls in this surah), memorised
+  // count here, and a named commentary on the opening ayah.
+  useEffect(() => {
+    if (!ayat.length || !surah) return;
+    const ids = new Set(ayat.map((a) => a.id));
+    (async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sb = supabase as any;
+      const [{ data: pos }, { data: mem }] = await Promise.all([
+        sb.from("user_reading_position").select("ayah_id").maybeSingle(),
+        sb.from("user_memorization").select("ayah_id").eq("state", "memorised"),
+      ]);
+      const posId = pos?.ayah_id as number | undefined;
+      const here = posId && ids.has(posId) ? ayat.find((a) => a.id === posId) : undefined;
+      setContinueAyah(here ? here.ayah : null);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setMemorisedCount((((mem as any[]) ?? []).filter((r) => ids.has(r.ayah_id))).length);
+
+      // The opening ayah's tafsir, from whichever edition leads. Shown as
+      // what it is — commentary on the opening — not as a surah summary.
+      const lead = editions[0];
+      if (lead && ayat[0]) {
+        const { data: t } = await sb
+          .from("quran_tafsir")
+          .select("text")
+          .eq("ayah_id", ayat[0].id)
+          .eq("source_id", lead.id)
+          .maybeSingle();
+        setIntro(
+          t?.text
+            ? { editionName: lead.name.replace(/\s*\((Arabic|English)\)$/, ""), text: t.text }
+            : null
+        );
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ayat, surah, editions]);
+
   const wordHandlers = useWordActivation(setMenuAnchor);
 
   /**
@@ -469,24 +521,42 @@ export default function SurahReaderPage() {
         />
 
         {/* Surah header */}
-        <div ref={titleRef} className="text-center mb-6">
+        <div ref={titleRef}>
           <Link
             href="/knowledge/quran"
             className="text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             ← All surahs
           </Link>
-          <h1 lang="ar" dir="rtl" className="font-arabic text-4xl text-foreground mt-4">
-            {surah.name_arabic}
-          </h1>
-          <p className="mt-2 font-display text-xl text-foreground">
-            {surah.name_transliterated}{" "}
-            <span className="text-foreground-secondary font-normal">— {surah.name_english}</span>
-          </p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {surah.revelation_place === "makkah" ? "Makkan" : "Madinan"} · {surah.ayah_count} ayat
-          </p>
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+
+          <SurahThreshold
+            nameArabic={surah.name_arabic}
+            nameTransliterated={surah.name_transliterated}
+            nameEnglish={surah.name_english}
+            revelationPlace={surah.revelation_place}
+            revelationOrder={surah.revelation_order}
+            ayahCount={surah.ayah_count}
+            openingAyah={
+              ayat[0]
+                ? {
+                    text: presentAyah(ayat[0]).text,
+                    translation: ayat[0].translation,
+                    citation: `${surah.name_transliterated} ${surahNumber}:${ayat[0].ayah}`,
+                  }
+                : undefined
+            }
+            continueAyah={continueAyah}
+            memorisedCount={memorisedCount}
+            intro={intro}
+            onBeginReading={() => goToAyah(ayat[0]?.ayah ?? 1)}
+            onListen={() => toggleAudio(ayat[0]?.ayah ?? 1)}
+            onContinue={() => continueAyah && goToAyah(continueAyah)}
+            onOpenIntro={
+              ayat[0] ? () => setOpenTafsir(ayat[0].id) : undefined
+            }
+          />
+
+          <div className="mb-6 flex flex-wrap items-center justify-center gap-2">
             {/* Reading mode */}
             <div className="inline-flex rounded-lg border border-border overflow-hidden">
               {(
