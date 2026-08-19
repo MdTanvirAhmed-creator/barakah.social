@@ -240,15 +240,31 @@
   /* Qur'anic text renders ONLY through the QuranText component,
      which applies this class. Uthmanic face, still, complete. */
   .quran-text {
-    font-family: var(--font-quran), var(--font-arabic), serif;
+    /* The per-script rule above (`:not(html):not(body)[lang="ar"]`) has
+       specificity 0,3,0 and would otherwise outrank this single class —
+       which silently rendered the Qur'an in the general Arabic face at the
+       general Arabic size. Scripture's face, size and leading must always
+       win, so they are marked, exactly like letter-spacing and motion. */
+    font-family: var(--font-quran), var(--font-arabic), serif !important;
+    font-size: var(--quran-size) !important;
+    line-height: var(--quran-leading) !important;
     direction: rtl;
-    text-align: center;
+    /* Continuous mushaf flow starts at the right edge; a cited passage is
+       centred instead (.quran-text--center). */
+    text-align: start !important;
     letter-spacing: 0 !important;
+    word-spacing: var(--quran-word-spacing);
     font-synthesis: none;
-    line-height: 2.2;
     animation: none !important;
     transition: none !important;
   }
+
+  /* Size roles. Never set a Tailwind text-* or leading-* utility on
+     Qur'anic text: it overrides these tokens, and a shrunken line box
+     lets tashkeel and descenders spill into whatever sits below. */
+  .quran-text--recite { font-size: var(--quran-size-recite) !important; }
+  .quran-text--word { font-size: var(--quran-size-word) !important; }
+  .quran-text--center { text-align: center !important; }
 
   /* Direction-aware icons: flip arrows/chevrons in RTL */
   [dir="rtl"] .flip-rtl {

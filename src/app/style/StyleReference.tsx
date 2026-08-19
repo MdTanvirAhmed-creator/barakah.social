@@ -16,7 +16,101 @@ import {
   LeafMoment,
 } from "@/components/ui/girih";
 import { QuranText } from "@/components/ui/QuranText";
+import { RadialWordMenu, type RadialMenuItem } from "@/components/quran/RadialWordMenu";
+import { useWordActivation } from "@/hooks/useWordActivation";
+import { Palette, Play, BookOpen, Bookmark, PenLine } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
+
+/** The one Qur'anic specimen on this page, shared by both sections below. */
+const SPECIMEN = "فَٱذْكُرُونِىٓ أَذْكُرْكُمْ وَٱشْكُرُوا۟ لِى وَلَا تَكْفُرُونِ";
+const SPECIMEN_CITATION = "Al-Baqarah 2:152";
+const SPECIMEN_TRANSLATION =
+  "So remember Me; I will remember you. And be grateful to Me and do not deny Me.";
+
+/**
+ * Prototype of the reader's signature interaction. The words are rendered
+ * *through* QuranText (as tokenized children), which is how the reader will
+ * do it — so the menu never needs to draw Qur'anic text itself.
+ */
+function RadialMenuPrototype() {
+  const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
+  const [activeWord, setActiveWord] = useState<number | null>(null);
+  const [lastAction, setLastAction] = useState<string | null>(null);
+  const handlers = useWordActivation(setAnchorRect);
+  const words = SPECIMEN.split(" ");
+
+  const act = (name: string) => () =>
+    setLastAction(`${name} — word ${(activeWord ?? 0) + 1}`);
+
+  const items: RadialMenuItem[] = [
+    { id: "tajweed", label: "Tajweed", icon: Palette, onSelect: act("Tajweed") },
+    {
+      id: "audio",
+      label: "Audio",
+      icon: Play,
+      onSelect: () => {},
+      disabled: true,
+      disabledReason: "No licence-cleared recitation imported yet",
+    },
+    {
+      id: "tafsir",
+      label: "Tafsir",
+      icon: BookOpen,
+      onSelect: () => {},
+      disabled: true,
+      disabledReason: "Awaiting a public-domain tafsir import",
+    },
+    { id: "bookmark", label: "Bookmark", icon: Bookmark, onSelect: act("Bookmark") },
+    { id: "note", label: "Note", icon: PenLine, onSelect: act("Note") },
+  ];
+
+  return (
+    <div>
+      <QuranText citation={SPECIMEN_CITATION} translation={SPECIMEN_TRANSLATION}>
+        {words.map((w, i) => (
+          <span key={i}>
+            <span
+              role="button"
+              tabIndex={0}
+              aria-label={`Word ${i + 1} of ${words.length}, ${SPECIMEN_CITATION}`}
+              aria-haspopup="menu"
+              aria-expanded={anchorRect !== null && activeWord === i}
+              onFocus={() => setActiveWord(i)}
+              {...handlers}
+              onClick={(e) => {
+                setActiveWord(i);
+                handlers.onClick(e);
+              }}
+              className="rounded px-1 cursor-pointer transition-colors duration-150 hover:bg-[rgb(var(--primary-600)/0.10)] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600"
+            >
+              {w}
+            </span>
+            {i < words.length - 1 ? " " : null}
+          </span>
+        ))}
+      </QuranText>
+
+      <p className="text-sm text-foreground-secondary text-center">
+        Click a word (or long-press on touch, or focus it and press Enter).
+        Arrow keys walk the ring, Escape closes it.
+      </p>
+      <p className="mt-2 text-center text-sm">
+        {lastAction ? (
+          <span className="text-accent-strong font-medium">{lastAction}</span>
+        ) : (
+          <span className="text-muted-foreground">No action taken yet.</span>
+        )}
+      </p>
+
+      <RadialWordMenu
+        anchorRect={anchorRect}
+        items={items}
+        label={`Actions for word ${(activeWord ?? 0) + 1}, ${SPECIMEN_CITATION}`}
+        onClose={() => setAnchorRect(null)}
+      />
+    </div>
+  );
+}
 
 const SWATCHES = [
   { name: "bg · stone", style: { background: "var(--bg)", border: "1px solid var(--hairline)" } },
@@ -252,12 +346,13 @@ export function StyleReference() {
         </Section>
 
         <Section title="Qur'an — Uthmanic face, complete, still, attributed">
-          <QuranText
-            citation="Al-Baqarah 2:152"
-            translation="So remember Me; I will remember you. And be grateful to Me and do not deny Me."
-          >
-            فَٱذْكُرُونِىٓ أَذْكُرْكُمْ وَٱشْكُرُوا۟ لِى وَلَا تَكْفُرُونِ
+          <QuranText citation={SPECIMEN_CITATION} translation={SPECIMEN_TRANSLATION}>
+            {SPECIMEN}
           </QuranText>
+        </Section>
+
+        <Section title="Radial word menu — the reader's signature interaction">
+          <RadialMenuPrototype />
         </Section>
 
         <Section title="Illuminated divider and gold-leaf moment">

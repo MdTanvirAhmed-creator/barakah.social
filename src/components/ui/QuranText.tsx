@@ -47,6 +47,8 @@ export interface QuranTextProps {
    * allowlisting parser — never raw HTML.
    */
   tajweedMarkup?: string;
+  /** Recite mode: the larger of the two reading sizes (token-driven). */
+  reciteSize?: boolean;
   className?: string;
 }
 
@@ -107,6 +109,7 @@ export function QuranText({
   id,
   words,
   tajweedMarkup,
+  reciteSize,
   className,
 }: QuranTextProps) {
   if (variant === "reader") {
@@ -123,10 +126,10 @@ export function QuranText({
                 key={i}
                 className="inline-flex flex-col items-center px-2 py-1.5 rounded-md hover:bg-muted/60 transition-colors"
               >
-                {/* No leading override (.quran-text's 2.2 line-height holds
-                    the tashkeel), plus padding for descenders, which overflow
+                {/* Size and leading come from tokens (.quran-text--word), never
+                    Tailwind utilities; pb-2 clears descenders, which overflow
                     the line box's lower leading in the Uthmani face. */}
-                <span className="quran-text block text-2xl text-foreground pb-2">
+                <span className="quran-text quran-text--word block text-foreground pb-2">
                   {w.arabic}
                 </span>
                 <span
@@ -143,7 +146,7 @@ export function QuranText({
           <blockquote
             lang="ar"
             dir="rtl"
-            className="quran-text text-2xl leading-loose text-foreground"
+            className={cn("quran-text text-foreground", reciteSize && "quran-text--recite")}
           >
             {tajweedMarkup ? renderTajweed(tajweedMarkup) : children}
           </blockquote>
@@ -165,7 +168,11 @@ export function QuranText({
         <span className="w-1.5 h-1.5 rotate-45 bg-[var(--accent-rare)]" />
         <span className="w-24 border-t border-border" />
       </div>
-      <blockquote lang="ar" dir="rtl" className="quran-text text-2xl text-foreground">
+      <blockquote
+        lang="ar"
+        dir="rtl"
+        className="quran-text quran-text--center text-foreground"
+      >
         {children}
       </blockquote>
       {translation && (

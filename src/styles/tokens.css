@@ -71,6 +71,19 @@
   --leading-latin: 1.6;
   --leading-arabic: 2;
 
+  /* ---------- Qur'anic text (Al-Hikmah reader) ----------
+     Sizes are fluid, so the mushaf breathes on a phone and fills a
+     desktop measure without a media-query staircase. Never letter-space
+     Arabic; word-spacing is the only safe loosening. */
+  --quran-size: clamp(1.5rem, 1.05rem + 1.6vw, 2rem);           /* 24 → 32px */
+  --quran-size-recite: clamp(1.75rem, 1.15rem + 2.2vw, 2.375rem); /* 28 → 38px */
+  --quran-size-word: clamp(1.375rem, 1.1rem + 1vw, 1.75rem);      /* 22 → 28px */
+  --quran-leading: 2.2;
+  --quran-word-spacing: 0.05em;
+  /* The ۝ end-marker, sized against the Arabic run it terminates. */
+  --quran-marker-size: 1.6em;
+  --quran-marker-number-scale: 0.6;
+
   /* ---------- Legacy semantic layer (RGB triplets) ---------- */
   --background: 231 222 203;            /* --bg */
   --background-secondary: 241 233 216;  /* --surface */

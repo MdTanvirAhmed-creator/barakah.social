@@ -10,6 +10,19 @@ import { GirihLoader, IlluminatedDivider } from "@/components/ui/girih";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/hooks/useToast";
 
+/**
+ * Strips Arabic combining marks (harakat, maddah, superscript alef, tatweel)
+ * for comparison only — never for display. Scripture is rendered verbatim.
+ */
+function stripArabicMarks(s: string): string {
+  // Combining marks: harakat (U+064B-U+065F), Qur'anic annotation
+  // (U+0610-U+061A, U+06D6-U+06ED), superscript alef (U+0670), tatweel.
+  return s.replace(
+    /[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED\u0640]/g,
+    ""
+  );
+}
+
 interface Surah {
   number: number;
   name_arabic: string;
@@ -143,21 +156,28 @@ export default function SurahReaderPage() {
   };
 
   /**
-   * Tanzil prefixes the basmalah to ayah 1 of every surah except 1 and 9.
+   * Tanzil prefixes the Bismillah to ayah 1 of every surah except 1 and 9.
    * Present it on its own line per mushaf convention — display only, the
-   * stored text is verbatim.
+   * stored text is passed through verbatim.
+   *
+   * Matching ignores harakat: a few surahs (95, 97) carry an extra shadda
+   * on the bā', so an exact prefix comparison silently fails to split them.
    */
   const presentAyah = (a: Ayah): { prefix?: string; text: string } => {
-    if (
-      a.ayah === 1 &&
-      surahNumber !== 1 &&
-      surahNumber !== 9 &&
-      bismillah &&
-      a.text_uthmani.startsWith(bismillah)
-    ) {
-      return { prefix: bismillah, text: a.text_uthmani.slice(bismillah.length).trimStart() };
+    if (a.ayah !== 1 || surahNumber === 1 || surahNumber === 9 || !bismillah) {
+      return { text: a.text_uthmani };
     }
-    return { text: a.text_uthmani };
+    const wordCount = bismillah.trim().split(/\s+/).length;
+    const parts = a.text_uthmani.trim().split(/\s+/);
+    const candidate = parts.slice(0, wordCount).join(" ");
+    if (stripArabicMarks(candidate) !== stripArabicMarks(bismillah)) {
+      return { text: a.text_uthmani };
+    }
+    return {
+      // Keep the surah's own orthography for the prefix, not surah 1's.
+      prefix: candidate,
+      text: parts.slice(wordCount).join(" "),
+    };
   };
 
   if (loading) {
