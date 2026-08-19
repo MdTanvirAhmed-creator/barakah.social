@@ -37,6 +37,30 @@ const pairs = [
   ["dusk: leaf / bg", "#CBA24B", "#14231F", 4.5],
   ["dusk: white / danger button (large)", "#FFFFFF", "#C56663", 3],
   ["dusk: focus ring / bg", "#2FA58F", "#14231F", 3],
+
+  // Tajweed rule colours (Al-Hikmah reader). These ride on 24px Qur'anic
+  // text, so large-text AA (3.0) applies — scripture is never below AA,
+  // including the deliberately receding "silent" hue.
+  ["courtyard: tajweed silent / bg", "#807768", "#E7DECB", 3],
+  ["courtyard: tajweed ghunnah / bg", "#2E7D32", "#E7DECB", 3],
+  ["courtyard: tajweed ikhfa / bg", "#0F766E", "#E7DECB", 3],
+  ["courtyard: tajweed idgham / bg", "#6D28D9", "#E7DECB", 3],
+  ["courtyard: tajweed iqlab / bg", "#2B5FA6", "#E7DECB", 3],
+  ["courtyard: tajweed qalqalah / bg", "#B3372B", "#E7DECB", 3],
+  ["courtyard: tajweed madd normal / bg", "#B45309", "#E7DECB", 3],
+  ["courtyard: tajweed madd permissible / bg", "#C2570F", "#E7DECB", 3],
+  ["courtyard: tajweed madd obligatory / bg", "#B91C1C", "#E7DECB", 3],
+  ["courtyard: tajweed madd necessary / bg", "#991B1B", "#E7DECB", 3],
+  ["dusk: tajweed silent / bg", "#A79F8F", "#14231F", 3],
+  ["dusk: tajweed ghunnah / bg", "#7BC67E", "#14231F", 3],
+  ["dusk: tajweed ikhfa / bg", "#4FB8AE", "#14231F", 3],
+  ["dusk: tajweed idgham / bg", "#B79DF2", "#14231F", 3],
+  ["dusk: tajweed iqlab / bg", "#8FB4E8", "#14231F", 3],
+  ["dusk: tajweed qalqalah / bg", "#F08C7D", "#14231F", 3],
+  ["dusk: tajweed madd normal / bg", "#E2B34E", "#14231F", 3],
+  ["dusk: tajweed madd permissible / bg", "#F0A050", "#14231F", 3],
+  ["dusk: tajweed madd obligatory / bg", "#F27D5C", "#14231F", 3],
+  ["dusk: tajweed madd necessary / bg", "#F26565", "#14231F", 3],
 ];
 
 let fail = 0;

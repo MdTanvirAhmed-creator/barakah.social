@@ -103,6 +103,18 @@ test.describe("Qur'an reference hub (local stack)", () => {
     await expect(
       page.getByText("It is You we worship and You we ask for help.")
     ).toHaveCount(0);
+    await page.getByRole("button", { name: /show translation/i }).click();
+
+    // Tajweed mode colours rules and shows the legend.
+    await page.getByRole("button", { name: /^tajweed$/i }).click();
+    await expect(page.getByText("Qalqalah")).toBeVisible({ timeout: 15000 });
+    await expect(page.locator(".tj-ghunnah").first()).toBeVisible();
+
+    // Word-by-word mode shows per-word glosses.
+    await page.getByRole("button", { name: /word by word/i }).click();
+    await expect(page.getByText("All praises and thanks", { exact: false })).toBeVisible({
+      timeout: 15000,
+    });
 
     // Deep link lands on the ayah (the reader re-scrolls after the Uthmani
     // font loads, so poll rather than sample once).

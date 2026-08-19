@@ -13,9 +13,16 @@ import { cn } from "@/lib/utils";
  * scripts/adab-check.sh verifies no Qur'anic text appears outside this
  * component, and never in CSS/SVG/backgrounds/loaders.
  */
+export interface QuranWord {
+  /** The word's Uthmani form. */
+  arabic: string;
+  /** Its word-by-word gloss. */
+  gloss: string;
+}
+
 export interface QuranTextProps {
   /** The ayah or passage, complete — never truncate or split for layout. */
-  children: React.ReactNode;
+  children?: React.ReactNode;
   /** Required attribution, e.g. "Al-Baqarah 2:152". */
   citation: string;
   /** Optional translation, rendered separately below the Arabic. */
@@ -29,7 +36,67 @@ export interface QuranTextProps {
   variant?: "quote" | "reader";
   /** Anchor id for deep links (reader variant), e.g. "ayah-255". */
   id?: string;
+  /**
+   * Word-by-word mode (reader variant): each word with its gloss beneath.
+   * Takes precedence over children/tajweedMarkup.
+   */
+  words?: QuranWord[];
+  /**
+   * Tajweed mode (reader variant): rule-annotated markup
+   * (`<tajweed class=rule>…</tajweed>`) rendered through a strict
+   * allowlisting parser — never raw HTML.
+   */
+  tajweedMarkup?: string;
   className?: string;
+}
+
+/** quran.com tajweed rule -> colour family (see globals.css .tj-*). */
+const TAJWEED_RULES: Record<string, string> = {
+  ham_wasl: "tj-silent",
+  slnt: "tj-silent",
+  laam_shamsiyah: "tj-silent",
+  ghunnah: "tj-ghunnah",
+  idgham_ghunnah: "tj-ghunnah",
+  ikhafa: "tj-ikhfa",
+  ikhafa_shafawi: "tj-ikhfa",
+  idgham_shafawi: "tj-idgham",
+  idgham_wo_ghunnah: "tj-idgham",
+  idgham_mutajanisayn: "tj-idgham",
+  idgham_mutaqaribayn: "tj-idgham",
+  iqlab: "tj-iqlab",
+  qalaqah: "tj-qalqalah",
+  madda_normal: "tj-madd-normal",
+  madda_permissible: "tj-madd-permissible",
+  madda_obligatory: "tj-madd-obligatory",
+  madda_necessary: "tj-madd-necessary",
+};
+
+/**
+ * Parse tajweed markup into React nodes. Only `<tajweed class=x>text</tajweed>`
+ * is honoured (allowlisted class map); the ayah-number `<span class=end>` and
+ * any other tag are dropped. Text is emitted as plain strings, so nothing in
+ * the markup can ever inject markup of its own.
+ */
+function renderTajweed(markup: string): React.ReactNode[] {
+  const nodes: React.ReactNode[] = [];
+  const re =
+    /<tajweed class=([a-z_]+)>([^<]*)<\/tajweed>|<span class=end>[^<]*<\/span>|<[^>]+>/g;
+  let last = 0;
+  let key = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(markup)) !== null) {
+    if (m.index > last) nodes.push(markup.slice(last, m.index));
+    if (m[1] !== undefined) {
+      nodes.push(
+        <span key={key++} className={TAJWEED_RULES[m[1]]}>
+          {m[2]}
+        </span>
+      );
+    }
+    last = re.lastIndex;
+  }
+  if (last < markup.length) nodes.push(markup.slice(last));
+  return nodes;
 }
 
 export function QuranText({
@@ -38,6 +105,8 @@ export function QuranText({
   translation,
   variant = "quote",
   id,
+  words,
+  tajweedMarkup,
   className,
 }: QuranTextProps) {
   if (variant === "reader") {
@@ -47,13 +116,38 @@ export function QuranText({
         aria-label={citation}
         className={cn("px-2 py-5 scroll-mt-24 border-b border-border/60", className)}
       >
-        <blockquote
-          lang="ar"
-          dir="rtl"
-          className="quran-text text-2xl leading-loose text-foreground"
-        >
-          {children}
-        </blockquote>
+        {words && words.length > 0 ? (
+          <div dir="rtl" lang="ar" className="flex flex-wrap gap-x-2 gap-y-5">
+            {words.map((w, i) => (
+              <span
+                key={i}
+                className="inline-flex flex-col items-center px-2 py-1.5 rounded-md hover:bg-muted/60 transition-colors"
+              >
+                {/* No leading override (.quran-text's 2.2 line-height holds
+                    the tashkeel), plus padding for descenders, which overflow
+                    the line box's lower leading in the Uthmani face. */}
+                <span className="quran-text block text-2xl text-foreground pb-2">
+                  {w.arabic}
+                </span>
+                <span
+                  dir="ltr"
+                  lang="en"
+                  className="mt-3 font-reading text-[11px] leading-snug text-muted-foreground max-w-[9rem] text-center"
+                >
+                  {w.gloss}
+                </span>
+              </span>
+            ))}
+          </div>
+        ) : (
+          <blockquote
+            lang="ar"
+            dir="rtl"
+            className="quran-text text-2xl leading-loose text-foreground"
+          >
+            {tajweedMarkup ? renderTajweed(tajweedMarkup) : children}
+          </blockquote>
+        )}
         {translation && (
           <p className="mt-3 font-reading text-base text-foreground-secondary leading-relaxed">
             {translation}

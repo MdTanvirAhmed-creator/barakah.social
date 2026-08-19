@@ -664,3 +664,30 @@ a {
    teal-600 on stone, bright teal on pine; AA in both. */
 .text-accent-strong { color: rgb(var(--accent-strong)); }
 .border-accent-strong { border-color: rgb(var(--accent-strong)); }
+
+/* ── Tajweed rule colours (Al-Hikmah reader) ───────────────────────────
+   Standard tajweed-mushaf colour families, tuned per theme: readable on
+   stone in Courtyard, lightened on pine in Dusk. Silent letters recede;
+   pronounced rules take established mushaf hues. Applied only inside
+   QuranText's allowlisting tajweed renderer. */
+.tj-silent            { color: #807768; }  /* recedes, but still AA (3.30:1) */
+.tj-ghunnah           { color: #2E7D32; }
+.tj-ikhfa             { color: #0F766E; }
+.tj-idgham            { color: #6D28D9; }
+.tj-iqlab             { color: #2B5FA6; }
+.tj-qalqalah          { color: #B3372B; }
+.tj-madd-normal       { color: #B45309; }
+.tj-madd-permissible  { color: #C2570F; }
+.tj-madd-obligatory   { color: #B91C1C; }
+.tj-madd-necessary    { color: #991B1B; }
+
+html[data-theme="dusk"] .tj-silent           { color: #A79F8F; }
+html[data-theme="dusk"] .tj-ghunnah          { color: #7BC67E; }
+html[data-theme="dusk"] .tj-ikhfa            { color: #4FB8AE; }
+html[data-theme="dusk"] .tj-idgham           { color: #B79DF2; }
+html[data-theme="dusk"] .tj-iqlab            { color: #8FB4E8; }
+html[data-theme="dusk"] .tj-qalqalah         { color: #F08C7D; }
+html[data-theme="dusk"] .tj-madd-normal      { color: #E2B34E; }
+html[data-theme="dusk"] .tj-madd-permissible { color: #F0A050; }
+html[data-theme="dusk"] .tj-madd-obligatory  { color: #F27D5C; }
+html[data-theme="dusk"] .tj-madd-necessary   { color: #F26565; }

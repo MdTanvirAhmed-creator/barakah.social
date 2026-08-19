@@ -87,6 +87,22 @@ beforeAll(async () => {
     text: "fixture translation",
   });
   if (transErr) throw new Error(`translation fixture: ${transErr.message}`);
+
+  const { error: wordErr } = await admin.from("quran_words").insert({
+    ayah_id: SENTINEL_AYAH_ID,
+    source_id: SENTINEL_TRANS_SOURCE,
+    position: 1,
+    text_uthmani: "fixture-word",
+    translation: "fixture gloss",
+  });
+  if (wordErr) throw new Error(`word fixture: ${wordErr.message}`);
+
+  const { error: tjErr } = await admin.from("quran_tajweed").insert({
+    ayah_id: SENTINEL_AYAH_ID,
+    source_id: SENTINEL_TRANS_SOURCE,
+    markup: "fixture markup",
+  });
+  if (tjErr) throw new Error(`tajweed fixture: ${tjErr.message}`);
 });
 
 afterAll(async () => {
@@ -128,6 +144,40 @@ test("the signed-out (anon) role can read — scripture is public", async () => 
     .eq("id", SENTINEL_AYAH_ID);
   expect(error).toBeNull();
   expect(data).toHaveLength(1);
+});
+
+test("word-by-word rows are readable, and sealed to write", async () => {
+  const { data } = await member.client
+    .from("quran_words")
+    .select("translation")
+    .eq("ayah_id", SENTINEL_AYAH_ID);
+  expect(data).toEqual([{ translation: "fixture gloss" }]);
+
+  const { error } = await member.client.from("quran_words").insert({
+    ayah_id: SENTINEL_AYAH_ID,
+    source_id: SENTINEL_TRANS_SOURCE,
+    position: 2,
+    text_uthmani: "forged",
+    translation: "forged",
+  });
+  expect(error).not.toBeNull();
+  expect(error?.code).toBe("42501");
+});
+
+test("tajweed rows are readable, and sealed to write", async () => {
+  const { data } = await member.client
+    .from("quran_tajweed")
+    .select("markup")
+    .eq("ayah_id", SENTINEL_AYAH_ID);
+  expect(data).toEqual([{ markup: "fixture markup" }]);
+
+  const { error } = await member.client.from("quran_tajweed").insert({
+    ayah_id: SENTINEL_AYAH_ID,
+    source_id: SENTINEL_SOURCE,
+    markup: "forged",
+  });
+  expect(error).not.toBeNull();
+  expect(error?.code).toBe("42501");
 });
 
 test("no client can write scripture — insert is rejected", async () => {
