@@ -6,7 +6,7 @@
  *   supabase start
  *   node scripts/import-quran.mjs --local
  *   npm run dev:local          (or let this spec reuse an existing :3000)
- *   E2E_LOCAL_SUPABASE=1 npx playwright test e2e/quran-reader.spec.ts --project=chromium
+ *   E2E_QURAN_DATA=1 npx playwright test e2e/quran-reader.spec.ts --project=chromium
  *
  * Covers:
  *   - the surah index lists all 114 surahs and is searchable
@@ -66,9 +66,12 @@ async function signIn(page: Page, email: string) {
 }
 
 test.describe("Qur'an reference hub (local stack)", () => {
+  // Gated separately from the other local-stack specs: this one needs the
+  // Qur'an corpus actually imported, which CI does not seed (it would mean
+  // re-importing from tanzil.net and api.quran.com on every push).
   test.skip(
-    process.env.E2E_LOCAL_SUPABASE !== "1",
-    "requires a local Supabase stack; set E2E_LOCAL_SUPABASE=1"
+    process.env.E2E_QURAN_DATA !== "1",
+    "requires the Qur'an corpus imported; set E2E_QURAN_DATA=1"
   );
 
   test.beforeAll(async () => {

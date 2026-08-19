@@ -44,7 +44,11 @@ export default defineConfig({
   webServer: {
     command: 'npm run dev',
     url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
+    // CI starts its own production server before invoking Playwright, so
+    // always reuse it. The default (!CI) made Playwright try to bind a
+    // second server on the same port, and the whole suite errored out
+    // before a single test ran.
+    reuseExistingServer: true,
   },
 });
 

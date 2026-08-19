@@ -146,18 +146,32 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
 
-      - name: Build and start server
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.109.0
+
+      # The companions spec drives two real accounts through the privacy
+      # boundary, so it needs a real stack — the same one the RLS job uses.
+      - name: Start local Supabase (applies migrations)
+        run: supabase start
+
+      - name: Build and start server against the local stack
         run: |
           npm run build
           npm run start &
           npx wait-on http://localhost:3000
         env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          # Standard `supabase start` demo anon key — fixed across every
+          # local stack and not a secret (the specs carry it too).
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
 
       - name: Run Playwright tests
         run: npx playwright test
+        env:
+          E2E_LOCAL_SUPABASE: '1'
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
