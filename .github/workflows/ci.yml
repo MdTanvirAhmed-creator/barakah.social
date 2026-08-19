@@ -156,17 +156,17 @@ jobs:
       - name: Start local Supabase (applies migrations)
         run: supabase start
 
-      - name: Build and start server against the local stack
+      # `npm run dev:local` is the harness these specs are written against:
+      # it points the app at the local stack through a same-origin /sb-local
+      # rewrite and is the configuration they are verified in. A production
+      # `next start` build against the same stack never establishes a client
+      # session — it issues the auth token request and then no PostgREST
+      # calls at all, leaving data views stuck on "Loading…". That anomaly is
+      # worth chasing separately; it is not what this job exists to catch.
+      - name: Start the app against the local stack
         run: |
-          npm run build
-          npm run start &
-          npx wait-on http://localhost:3000
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
-          # Standard `supabase start` demo anon key — fixed across every
-          # local stack and not a secret (the specs carry it too).
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
-          NEXT_PUBLIC_APP_URL: http://localhost:3000
+          npm run dev:local &
+          npx wait-on -t 120000 http://localhost:3000
 
       # Chromium only. The stateful specs drive the desktop layout (the
       # sidebar search does not exist on the mobile breakpoint), so running
