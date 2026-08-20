@@ -18,12 +18,14 @@ import {
   Handshake,
   Shield,
   Palette,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/useToast";
+import { TwoFactor } from "@/components/settings/TwoFactor";
 
-type SettingsSection = "notifications" | "privacy" | "email" | "connected" | "data" | "companions" | "parental" | "account";
+type SettingsSection = "security" | "notifications" | "privacy" | "email" | "connected" | "data" | "companions" | "parental" | "account";
 
 export default function SettingsPage() {
   const { success, error: showError } = useToast();
@@ -152,6 +154,13 @@ export default function SettingsPage() {
       description: "Choose what you want to be notified about",
       icon: Bell,
       color: "text-blue-600",
+    },
+    {
+      id: "security" as const,
+      title: "Security",
+      description: "Two-factor authentication and sign-in protection",
+      icon: ShieldCheck,
+      color: "text-accent-strong",
     },
     {
       id: "privacy" as const,
@@ -292,6 +301,8 @@ export default function SettingsPage() {
                       )}
 
                       {/* Privacy */}
+                      {section.id === "security" && <TwoFactor />}
+
                       {section.id === "privacy" && (
                         <div className="space-y-6">
                           <div>

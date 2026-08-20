@@ -8,6 +8,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
 import { Loader2, Mail, Lock, ArrowRight } from "lucide-react";
 import { signInWithEmail } from "@/lib/supabase/auth";
+import { createClient } from "@/lib/supabase/client";
+import { MfaChallenge } from "@/components/auth/MfaChallenge";
 import { loginSchema, type LoginInput } from "@/lib/validations/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +20,7 @@ import { useToast } from "@/hooks/useToast";
 export default function LoginPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [needsMfa, setNeedsMfa] = useState(false);
   const { success, error: showError } = useToast();
 
   const {
@@ -30,6 +33,19 @@ export default function LoginPage() {
       rememberMe: false,
     },
   });
+
+  const finishSignIn = () => {
+    success("Welcome back! Redirecting...");
+    setTimeout(() => {
+      router.push("/dashboard");
+      router.refresh();
+    }, 600);
+  };
+
+  const cancelMfa = async () => {
+    await createClient().auth.signOut();
+    setNeedsMfa(false);
+  };
 
   const onSubmit = async (data: LoginInput) => {
     try {
@@ -44,8 +60,19 @@ export default function LoginPage() {
         throw new Error(error.message);
       }
 
+      // A password gets a session at AAL1. If this account has a second
+      // factor, the session must be raised to AAL2 before it counts as
+      // signed in — so ask for the code rather than letting them through.
+      const { data: aal } =
+        await createClient().auth.mfa.getAuthenticatorAssuranceLevel();
+      if (aal && aal.nextLevel === "aal2" && aal.nextLevel !== aal.currentLevel) {
+        setNeedsMfa(true);
+        setIsLoading(false);
+        return;
+      }
+
       success("Welcome back! Redirecting...");
-      
+
       // Small delay for the toast to show
       setTimeout(() => {
         router.push("/dashboard");
@@ -80,7 +107,10 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {/* Form */}
+          {/* Second factor, when this account has one enrolled. */}
+          {needsMfa ? (
+            <MfaChallenge onVerified={finishSignIn} onCancel={cancelMfa} />
+          ) : (
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* Email */}
             <div className="space-y-2">
@@ -191,6 +221,7 @@ export default function LoginPage() {
               </Link>
             </p>
           </form>
+          )}
 
           {/* Footer Note */}
           <p className="mt-8 text-center text-xs text-muted-foreground">
