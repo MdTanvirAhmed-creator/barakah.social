@@ -41,17 +41,46 @@ const SOURCES = {
     license: "Creative Commons Attribution (cc-by), (C) 2008-2009 Tanzil.info",
     source_url: "https://tanzil.net/res/text/metadata/quran-data.xml",
   },
-  translation: {
+};
+
+/**
+ * English translations, all distributed by Tanzil. Pickthall (d. 1936) and
+ * Yusuf Ali (d. 1953) are the long-standing public-domain renderings that
+ * open Qur'an projects rely on; Saheeh International remains the default
+ * because it is the plainest modern English of the three.
+ */
+const TRANSLATIONS = [
+  {
     id: "en-sahih-intl",
     kind: "translation",
-    name: "Saheeh International (English)",
+    name: "Saheeh International",
     language: "en",
     translator: "Saheeh International",
     license:
       "Distributed via Tanzil.net translations collection with attribution; text unmodified.",
     source_url: "https://tanzil.net/trans/en.sahih",
   },
-};
+  {
+    id: "en-pickthall",
+    kind: "translation",
+    name: "Pickthall",
+    language: "en",
+    translator: "Mohammed Marmaduke William Pickthall",
+    license:
+      "Public domain (first published 1930). Distributed via Tanzil.net; text unmodified.",
+    source_url: "https://tanzil.net/trans/en.pickthall",
+  },
+  {
+    id: "en-yusufali",
+    kind: "translation",
+    name: "Yusuf Ali",
+    language: "en",
+    translator: "Abdullah Yusuf Ali",
+    license:
+      "Public domain (first published 1934). Distributed via Tanzil.net; text unmodified.",
+    source_url: "https://tanzil.net/trans/en.yusufali",
+  },
+];
 
 function resolveTarget() {
   const args = process.argv.slice(2);
@@ -147,15 +176,14 @@ async function main() {
   });
 
   console.log("Downloading from tanzil.net ...");
-  const [arabic, metadata, translation] = await Promise.all([
+  const [arabic, metadata, ...translationFiles] = await Promise.all([
     download(SOURCES.arabic.source_url),
     download(SOURCES.metadata.source_url),
-    download(SOURCES.translation.source_url),
+    ...TRANSLATIONS.map((t) => download(t.source_url)),
   ]);
 
   const surahs = parseSurahMetadata(metadata.body);
   const ayat = parsePipeText(arabic.body, "uthmani");
-  const trans = parsePipeText(translation.body, "en.sahih");
 
   // Global ayah id = position in canonical order (Tanzil files are ordered).
   const ayahRows = ayat.map((a, i) => ({
@@ -166,10 +194,13 @@ async function main() {
     source_id: SOURCES.arabic.id,
   }));
   const idByKey = new Map(ayahRows.map((a) => [`${a.surah}:${a.ayah}`, a.id]));
-  const transRows = trans.map((t) => {
-    const ayah_id = idByKey.get(`${t.surah}:${t.ayah}`);
-    if (!ayah_id) throw new Error(`translation for unknown ayah ${t.surah}:${t.ayah}`);
-    return { ayah_id, source_id: SOURCES.translation.id, text: t.text };
+  const transRows = [];
+  TRANSLATIONS.forEach((meta, i) => {
+    for (const t of parsePipeText(translationFiles[i].body, meta.id)) {
+      const ayah_id = idByKey.get(`${t.surah}:${t.ayah}`);
+      if (!ayah_id) throw new Error(`${meta.id}: unknown ayah ${t.surah}:${t.ayah}`);
+      transRows.push({ ayah_id, source_id: meta.id, text: t.text });
+    }
   });
 
   // Cross-check ayah counts per surah against the metadata.
@@ -186,7 +217,11 @@ async function main() {
   const sourceRows = [
     { ...SOURCES.arabic, checksum: arabic.checksum, imported_at: now },
     { ...SOURCES.metadata, checksum: metadata.checksum, imported_at: now },
-    { ...SOURCES.translation, checksum: translation.checksum, imported_at: now },
+    ...TRANSLATIONS.map((t, i) => ({
+      ...t,
+      checksum: translationFiles[i].checksum,
+      imported_at: now,
+    })),
   ];
 
   console.log("Upserting sources, surahs, ayat, translations ...");
@@ -206,12 +241,14 @@ async function main() {
     })
   );
   console.log(`surahs: ${nSurahs}, ayat: ${nAyat}, translations: ${nTrans}`);
-  if (nSurahs !== 114 || nAyat < 6236 || nTrans < 6236) {
+  if (nSurahs !== 114 || nAyat < 6236 || nTrans < 6236 * TRANSLATIONS.length) {
     throw new Error("post-import verification failed");
   }
-  console.log(`sha256 uthmani:     ${arabic.checksum}`);
-  console.log(`sha256 metadata:    ${metadata.checksum}`);
-  console.log(`sha256 translation: ${translation.checksum}`);
+  console.log(`sha256 uthmani:  ${arabic.checksum}`);
+  console.log(`sha256 metadata: ${metadata.checksum}`);
+  TRANSLATIONS.forEach((t, i) =>
+    console.log(`sha256 ${t.id.padEnd(14)}: ${translationFiles[i].checksum}`)
+  );
   console.log("Import complete, alhamdulillah.");
 }
 

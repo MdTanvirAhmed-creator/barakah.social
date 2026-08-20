@@ -28,6 +28,7 @@ import { RadialWordMenu, type RadialMenuItem } from "@/components/quran/RadialWo
 import { SurahHeader } from "@/components/quran/SurahHeader";
 import { SurahThreshold } from "@/components/quran/SurahThreshold";
 import { MemorizationBar } from "@/components/quran/MemorizationBar";
+import { AyahContext } from "@/components/quran/AyahContext";
 import { useWordActivation } from "@/hooks/useWordActivation";
 import { buildAyahAudioUrl } from "@/lib/quran/audio";
 import { createClient } from "@/lib/supabase/client";
@@ -61,7 +62,8 @@ interface Ayah {
   id: number;
   ayah: number;
   text_uthmani: string;
-  translation?: string;
+  /** Every imported translation, keyed by source id. */
+  translations: Record<string, string>;
 }
 
 export default function SurahReaderPage() {
@@ -88,6 +90,8 @@ export default function SurahReaderPage() {
   const [editions, setEditions] = useState<TafsirEdition[]>([]);
   const [reciters, setReciters] = useState<{ id: string; name: string; url_template: string }[]>([]);
   const [reciterId, setReciterId] = useState<string>("");
+  const [translations, setTranslations] = useState<{ id: string; name: string }[]>([]);
+  const [translationId, setTranslationId] = useState<string>("en-sahih-intl");
   const [openTafsir, setOpenTafsir] = useState<number | null>(null);
   const [openNote, setOpenNote] = useState<number | null>(null);
   const [bookmarked, setBookmarked] = useState<Set<number>>(new Set());
@@ -184,7 +188,7 @@ export default function SurahReaderPage() {
         sb.from("quran_surahs").select("*").eq("number", surahNumber).maybeSingle(),
         sb
           .from("quran_ayat")
-          .select("id, ayah, text_uthmani, quran_translations(text)")
+          .select("id, ayah, text_uthmani, quran_translations(text, source_id)")
           .eq("surah", surahNumber)
           .order("ayah"),
         // Canonical basmalah = ayah 1:1, used to present the bismillah
@@ -199,7 +203,11 @@ export default function SurahReaderPage() {
           id: r.id,
           ayah: r.ayah,
           text_uthmani: r.text_uthmani,
-          translation: r.quran_translations?.[0]?.text,
+          // All imported translations come back; pick the selected one.
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          translations: Object.fromEntries(
+            ((r.quran_translations ?? []) as any[]).map((t) => [t.source_id, t.text])
+          ),
         }))
       );
       setLoading(false);
@@ -224,7 +232,7 @@ export default function SurahReaderPage() {
       const { data } = await (supabase as any)
         .from("quran_sources")
         .select("id, name, translator, kind, url_template, language")
-        .in("kind", ["tafsir", "audio"]);
+        .in("kind", ["tafsir", "audio", "translation"]);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const rows = ((data as any[]) ?? []);
       // Concise first: al-Jalalayn is the one that reads well inline.
@@ -244,6 +252,15 @@ export default function SurahReaderPage() {
           language: r.language ?? "ar",
         }))
       );
+      // Saheeh first as the plainest modern English; the rest by name.
+      const trans = rows
+        .filter((r) => r.kind === "translation" && r.language === "en")
+        .sort((a, b) =>
+          a.id === "en-sahih-intl" ? -1 : b.id === "en-sahih-intl" ? 1 : a.name.localeCompare(b.name)
+        );
+      setTranslations(trans.map((r) => ({ id: r.id, name: r.name })));
+      if (trans.length) setTranslationId((prev) => (trans.some((t) => t.id === prev) ? prev : trans[0].id));
+
       const audio = rows.filter((r) => r.kind === "audio" && r.url_template);
       setReciters(audio.map((r) => ({ id: r.id, name: r.name, url_template: r.url_template })));
       setReciterId((prev) => prev || audio[0]?.id || "");
@@ -592,7 +609,9 @@ export default function SurahReaderPage() {
                     // translation while memorising, or the first ayah gives
                     // itself away before the reader has tested themselves.
                     translation:
-                      mode === "memorise" ? undefined : ayat[0].translation,
+                      mode === "memorise"
+                        ? undefined
+                        : ayat[0].translations[translationId],
                     citation: `${surah.name_transliterated} ${surahNumber}:${ayat[0].ayah}`,
                   }
                 : undefined
@@ -640,6 +659,20 @@ export default function SurahReaderPage() {
               <Languages className="w-4 h-4 me-2" />
               {showTranslation ? "Hide translation" : "Show translation"}
             </Button>
+            {translations.length > 1 && (
+              <select
+                value={translationId}
+                onChange={(e) => setTranslationId(e.target.value)}
+                aria-label="Translation"
+                className="px-3 py-1.5 rounded-lg border border-border bg-card text-sm text-foreground"
+              >
+                {translations.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            )}
             {reciters.length > 1 && (
               <select
                 value={reciterId}
@@ -743,7 +776,11 @@ export default function SurahReaderPage() {
                     variant="reader"
                     id={`ayah-${a.ayah}`}
                     citation={citation}
-                    translation={showTranslation && mode !== "memorise" ? a.translation : undefined}
+                    translation={
+                      showTranslation && mode !== "memorise"
+                        ? a.translations[translationId]
+                        : undefined
+                    }
                     tajweedMarkup={mode === "tajweed" ? tajweedByAyah?.[a.id] : undefined}
                     words={mode === "words" ? wordsByAyah?.[a.id] : undefined}
                     endMarker={
@@ -927,6 +964,10 @@ export default function SurahReaderPage() {
                       })
                     }
                   />
+                )}
+
+                {openTafsir === a.id && (
+                  <AyahContext ayahId={a.id} citation={citation} />
                 )}
 
                 {openTafsir === a.id && (
