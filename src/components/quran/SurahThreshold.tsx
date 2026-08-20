@@ -80,15 +80,11 @@ export function SurahThreshold({
           </span>
         </div>
 
-        {/* Centred inline: the per-script rule for [lang="ar"] sets
-            text-align: start at a specificity a class cannot beat, so an
-            Arabic heading otherwise drifts to the right edge. */}
         <h1
           id="surah-title"
           lang="ar"
           dir="rtl"
-          style={{ textAlign: "center" }}
-          className="font-arabic text-5xl text-foreground mt-6"
+          className="font-arabic arabic-center text-5xl text-foreground mt-6"
         >
           {nameArabic}
         </h1>

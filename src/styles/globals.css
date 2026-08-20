@@ -213,10 +213,39 @@
      Arabic — per-script rules (never letter-spaced,
      never fake-bold, own size + leading)
      ============================================ */
-  /* Per-script rules apply to Arabic TEXT RUNS, not the document root —
-     a root-level lang="ar" flips direction (dir attr) without forcing
-     Latin UI strings into an Arabic face. */
-  :not(html):not(body)[lang="ar"],
+  /* Two tiers, and the distinction matters:
+     
+     1. SCRIPT DEFAULTS apply automatically to anything marked lang="ar".
+        They are wrapped in :where(), which contributes ZERO specificity, so
+        any component class overrides them by simply existing. Previously
+        these were written as `:not(html):not(body)[lang="ar"]` — (0,1,2),
+        since each :not() carries its argument's weight — which quietly
+        outranked every single-class rule in the codebase. That cost us the
+        Qur'an rendering in the general Arabic face at the general Arabic
+        size and leading, and an Arabic heading refusing to centre. Anything
+        that must hold regardless of specificity (never letter-space Arabic)
+        is marked, and is marked deliberately.
+
+     2. OPT-IN CLASSES (.arabic, .arabic-display, .arabic-ui) keep ordinary
+        class specificity, because they are a choice the author made.
+
+     Per-script rules apply to Arabic TEXT RUNS, not the document root — a
+     root-level lang="ar" flips direction without forcing Latin UI strings
+     into an Arabic face. */
+  :where([lang="ar"]:not(html):not(body)) {
+    font-family: var(--font-arabic), "Noto Naskh Arabic", serif;
+    text-align: start;
+    letter-spacing: 0 !important;
+    font-synthesis: none;
+    line-height: var(--leading-arabic);
+    font-size: calc(1em * var(--arabic-scale));
+  }
+
+  :where([lang="ar"] h1, [lang="ar"] h2) {
+    font-family: var(--font-arabic-display), var(--font-arabic), serif;
+    letter-spacing: 0 !important;
+  }
+
   .arabic {
     font-family: var(--font-arabic), "Noto Naskh Arabic", serif;
     text-align: start;
@@ -226,7 +255,7 @@
     font-size: calc(1em * var(--arabic-scale));
   }
 
-  [lang="ar"] h1, [lang="ar"] h2, .arabic-display {
+  .arabic-display {
     font-family: var(--font-arabic-display), var(--font-arabic), serif;
     letter-spacing: 0 !important;
   }
@@ -240,18 +269,17 @@
   /* Qur'anic text renders ONLY through the QuranText component,
      which applies this class. Uthmanic face, still, complete. */
   .quran-text {
-    /* The per-script rule above (`:not(html):not(body)[lang="ar"]`) has
-       specificity 0,3,0 and would otherwise outrank this single class —
-       which silently rendered the Qur'an in the general Arabic face at the
-       general Arabic size. Scripture's face, size and leading must always
-       win, so they are marked, exactly like letter-spacing and motion. */
-    font-family: var(--font-quran), var(--font-arabic), serif !important;
-    font-size: var(--quran-size) !important;
-    line-height: var(--quran-leading) !important;
+    /* Plain declarations: the script defaults above are :where()-wrapped and
+       carry no specificity, so this class wins on its own merit. The two
+       marked rules below are adab guards, not specificity workarounds —
+       Arabic is never letter-spaced, and scripture never animates. */
+    font-family: var(--font-quran), var(--font-arabic), serif;
+    font-size: var(--quran-size);
+    line-height: var(--quran-leading);
     direction: rtl;
     /* Continuous mushaf flow starts at the right edge; a cited passage is
        centred instead (.quran-text--center). */
-    text-align: start !important;
+    text-align: start;
     letter-spacing: 0 !important;
     word-spacing: var(--quran-word-spacing);
     font-synthesis: none;
@@ -262,9 +290,12 @@
   /* Size roles. Never set a Tailwind text-* or leading-* utility on
      Qur'anic text: it overrides these tokens, and a shrunken line box
      lets tashkeel and descenders spill into whatever sits below. */
-  .quran-text--recite { font-size: var(--quran-size-recite) !important; }
-  .quran-text--word { font-size: var(--quran-size-word) !important; }
-  .quran-text--center { text-align: center !important; }
+  .quran-text--recite { font-size: var(--quran-size-recite); }
+  .quran-text--word { font-size: var(--quran-size-word); }
+  .quran-text--center { text-align: center; }
+
+  /* An Arabic heading that should centre rather than follow script default. */
+  .arabic-center { text-align: center; }
 
   /* Direction-aware icons: flip arrows/chevrons in RTL */
   [dir="rtl"] .flip-rtl {
