@@ -15,6 +15,8 @@ import {
   BookmarkCheck,
   PenLine,
   Palette,
+  Circle,
+  CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { QuranText, QuranWord } from "@/components/ui/QuranText";
@@ -25,10 +27,12 @@ import { AyahNote } from "@/components/quran/AyahNote";
 import { RadialWordMenu, type RadialMenuItem } from "@/components/quran/RadialWordMenu";
 import { SurahHeader } from "@/components/quran/SurahHeader";
 import { SurahThreshold } from "@/components/quran/SurahThreshold";
+import { MemorizationBar } from "@/components/quran/MemorizationBar";
 import { useWordActivation } from "@/hooks/useWordActivation";
 import { buildAyahAudioUrl } from "@/lib/quran/audio";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/hooks/useToast";
+import { cn } from "@/lib/utils";
 
 /**
  * Strips Arabic combining marks (harakat, maddah, superscript alef, tatweel)
@@ -74,7 +78,7 @@ export default function SurahReaderPage() {
 
   // Reading modes: plain Uthmani, tajweed colouring, or word-by-word.
   // Both extra datasets are fetched lazily on first use, then cached.
-  const [mode, setMode] = useState<"plain" | "tajweed" | "words">("plain");
+  const [mode, setMode] = useState<"plain" | "tajweed" | "words" | "memorise">("plain");
   const [tajweedByAyah, setTajweedByAyah] = useState<Record<number, string> | null>(null);
   const [wordsByAyah, setWordsByAyah] = useState<Record<number, QuranWord[]> | null>(null);
   const [modeLoading, setModeLoading] = useState(false);
@@ -115,7 +119,15 @@ export default function SurahReaderPage() {
   const [memorisedCount, setMemorisedCount] = useState(0);
   const [intro, setIntro] = useState<{ editionName: string; text: string } | null>(null);
 
-  const switchMode = async (next: "plain" | "tajweed" | "words") => {
+  // Memorisation: private marks, repetition settings, and self-testing.
+  const [memorised, setMemorised] = useState<Set<number>>(new Set());
+  const [repeat, setRepeat] = useState(3);
+  const [repeatDelay, setRepeatDelay] = useState(1);
+  const [concealed, setConcealed] = useState(false);
+  const [revealed, setRevealed] = useState<Set<number>>(new Set());
+  const repeatsLeft = useRef(0);
+
+  const switchMode = async (next: "plain" | "tajweed" | "words" | "memorise") => {
     setMode(next);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sb = supabase as any;
@@ -260,6 +272,8 @@ export default function SurahReaderPage() {
     el.src = buildAyahAudioUrl(reciter.url_template, surahNumber, ayahNumber);
     setProgress(0);
     setPlayingAyah(ayahNumber);
+    // Memorisation replays the same ayah; elsewhere it plays once.
+    repeatsLeft.current = mode === "memorise" ? Math.max(1, repeat) : 1;
     el.play().catch(() => {
       setPlayingAyah(null);
       showError("Could not play this recitation. Please try again.");
@@ -273,14 +287,21 @@ export default function SurahReaderPage() {
     (async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const sb = supabase as any;
-      const [{ data: bm }, { data: nt }] = await Promise.all([
+      const [{ data: bm }, { data: nt }, { data: mm }] = await Promise.all([
         sb.from("user_ayah_bookmarks").select("ayah_id").in("ayah_id", ids),
         sb.from("user_ayah_notes").select("ayah_id").in("ayah_id", ids),
+        sb
+          .from("user_memorization")
+          .select("ayah_id")
+          .eq("state", "memorised")
+          .in("ayah_id", ids),
       ]);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setBookmarked(new Set(((bm as any[]) ?? []).map((r) => r.ayah_id)));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setNoted(new Set(((nt as any[]) ?? []).map((r) => r.ayah_id)));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setMemorised(new Set(((mm as any[]) ?? []).map((r) => r.ayah_id)));
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ayat]);
@@ -451,6 +472,33 @@ export default function SurahReaderPage() {
     ];
   };
 
+  const toggleMemorised = async (ayahId: number, citation: string) => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+    const has = memorised.has(ayahId);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = supabase as any;
+    const { error } = has
+      ? await sb.from("user_memorization").delete().eq("ayah_id", ayahId)
+      : await sb.from("user_memorization").upsert(
+          { user_id: user.id, ayah_id: ayahId, state: "memorised", updated_at: new Date().toISOString() },
+          { onConflict: "user_id,ayah_id" }
+        );
+    if (error) {
+      showError("Could not update your memorisation mark.");
+      return;
+    }
+    setMemorised((prev) => {
+      const next = new Set(prev);
+      if (has) next.delete(ayahId);
+      else next.add(ayahId);
+      return next;
+    });
+    success(has ? `Unmarked ${citation}` : `Marked ${citation} memorised`);
+  };
+
   const copyAyahLink = (ayahNumber: number) => {
     navigator.clipboard.writeText(
       `${window.location.origin}/knowledge/quran/${surahNumber}#ayah-${ayahNumber}`
@@ -540,7 +588,11 @@ export default function SurahReaderPage() {
               ayat[0]
                 ? {
                     text: presentAyah(ayat[0]).text,
-                    translation: ayat[0].translation,
+                    // The epigraph follows the same rule as the mushaf: no
+                    // translation while memorising, or the first ayah gives
+                    // itself away before the reader has tested themselves.
+                    translation:
+                      mode === "memorise" ? undefined : ayat[0].translation,
                     citation: `${surah.name_transliterated} ${surahNumber}:${ayat[0].ayah}`,
                   }
                 : undefined
@@ -564,6 +616,7 @@ export default function SurahReaderPage() {
                   { value: "plain", label: "Reading" },
                   { value: "tajweed", label: "Tajweed" },
                   { value: "words", label: "Word by word" },
+                  { value: "memorise", label: "Memorise" },
                 ] as const
               ).map((opt) => (
                 <button
@@ -637,6 +690,22 @@ export default function SurahReaderPage() {
           </QuranText>
         )}
 
+        {mode === "memorise" && (
+          <MemorizationBar
+            repeat={repeat}
+            onRepeatChange={setRepeat}
+            delaySeconds={repeatDelay}
+            onDelayChange={setRepeatDelay}
+            concealed={concealed}
+            onToggleConceal={() => {
+              setConcealed((v) => !v);
+              setRevealed(new Set());
+            }}
+            memorised={ayat.filter((a) => memorised.has(a.id)).length}
+            total={ayat.length}
+          />
+        )}
+
         {/* The ayat */}
         {modeLoading && (
           <div className="flex justify-center py-8">
@@ -651,12 +720,30 @@ export default function SurahReaderPage() {
             return (
               <div key={a.id} data-ayah-number={a.ayah}>
                 {/* Chrome appears on engagement, never permanently. */}
-                <div className="group relative">
+                <div
+                  className={cn(
+                    "group relative",
+                    mode === "memorise" && concealed && !revealed.has(a.id)
+                      ? "cursor-pointer"
+                      : ""
+                  )}
+                  onClick={
+                    mode === "memorise" && concealed && !revealed.has(a.id)
+                      ? () =>
+                          setRevealed((prev) => new Set(prev).add(a.id))
+                      : undefined
+                  }
+                >
                   <QuranText
+                    className={
+                      mode === "memorise" && concealed && !revealed.has(a.id)
+                        ? "blur-sm select-none"
+                        : undefined
+                    }
                     variant="reader"
                     id={`ayah-${a.ayah}`}
                     citation={citation}
-                    translation={showTranslation ? a.translation : undefined}
+                    translation={showTranslation && mode !== "memorise" ? a.translation : undefined}
                     tajweedMarkup={mode === "tajweed" ? tajweedByAyah?.[a.id] : undefined}
                     words={mode === "words" ? wordsByAyah?.[a.id] : undefined}
                     endMarker={
@@ -704,7 +791,7 @@ export default function SurahReaderPage() {
 
                   <div
                     className={`absolute top-4 end-0 flex items-center gap-0.5 transition-opacity ${
-                      isPlaying || openTafsir === a.id || openNote === a.id
+                      isPlaying || openTafsir === a.id || openNote === a.id || mode === "memorise"
                         ? "opacity-100"
                         : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
                     }`}
@@ -740,6 +827,29 @@ export default function SurahReaderPage() {
                         }`}
                       >
                         <BookOpen className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    {mode === "memorise" && (
+                      <button
+                        onClick={() => toggleMemorised(a.id, citation)}
+                        aria-label={
+                          memorised.has(a.id)
+                            ? `Unmark ${citation} as memorised`
+                            : `Mark ${citation} memorised`
+                        }
+                        aria-pressed={memorised.has(a.id)}
+                        title={memorised.has(a.id) ? "Memorised" : "Mark memorised"}
+                        className={`p-1.5 rounded-md transition-colors hover:bg-muted ${
+                          memorised.has(a.id)
+                            ? "text-accent-strong"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {memorised.has(a.id) ? (
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                        ) : (
+                          <Circle className="w-3.5 h-3.5" />
+                        )}
                       </button>
                     )}
                     <button
@@ -852,6 +962,16 @@ export default function SurahReaderPage() {
             if (el.duration) setProgress(el.currentTime / el.duration);
           }}
           onEnded={() => {
+            const el = audioRef.current;
+            repeatsLeft.current -= 1;
+            if (el && repeatsLeft.current > 0) {
+              setProgress(0);
+              window.setTimeout(() => {
+                el.currentTime = 0;
+                void el.play().catch(() => setPlayingAyah(null));
+              }, repeatDelay * 1000);
+              return;
+            }
             setPlayingAyah(null);
             setProgress(0);
           }}

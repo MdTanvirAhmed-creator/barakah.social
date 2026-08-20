@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
  * The progress bar is position, not achievement: it says where in the surah
  * this ayah sits, and disappears with the header when you scroll back up.
  */
-export type ReadingMode = "plain" | "tajweed" | "words";
+export type ReadingMode = "plain" | "tajweed" | "words" | "memorise";
 
 export interface SurahHeaderProps {
   nameArabic: string;
@@ -36,6 +36,7 @@ const MODES: { value: ReadingMode; label: string }[] = [
   { value: "plain", label: "Reading" },
   { value: "tajweed", label: "Tajweed" },
   { value: "words", label: "Word by word" },
+  { value: "memorise", label: "Memorise" },
 ];
 
 export function SurahHeader({
