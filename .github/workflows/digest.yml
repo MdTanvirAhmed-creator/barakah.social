@@ -1,0 +1,56 @@
+name: Daily digest email
+
+# The sending half of the Phase 3 notification decision: a badge-free inbox
+# in the app, and at most one calm email a day. Nobody is emailed when there
+# is nothing unread, and anyone who has turned the digest off in Settings is
+# already excluded by the database function itself.
+#
+# Skips cleanly when the secrets are absent, so this is safe to merge before
+# Resend exists.
+#
+# Required repository secrets (see docs/phase-6-setup.md):
+#   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, RESEND_API_KEY
+# Optional:
+#   DIGEST_FROM, APP_URL
+
+on:
+  schedule:
+    - cron: "0 6 * * *" # 06:00 UTC — morning across much of the ummah
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Print what would be sent without sending"
+        type: boolean
+        default: true
+
+concurrency:
+  group: daily-digest
+  cancel-in-progress: false
+
+jobs:
+  digest:
+    name: Send
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Send digest
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          DIGEST_FROM: ${{ secrets.DIGEST_FROM }}
+          APP_URL: ${{ secrets.APP_URL }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::notice::Digest secrets are not configured yet — skipping. See docs/phase-6-setup.md."
+            exit 0
+          fi
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            node scripts/send-digest.mjs --dry-run
+          else
+            node scripts/send-digest.mjs
+          fi

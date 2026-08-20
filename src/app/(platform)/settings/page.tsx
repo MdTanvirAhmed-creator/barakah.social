@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/useToast";
 import { TwoFactor } from "@/components/settings/TwoFactor";
+import { DigestPreference } from "@/components/settings/DigestPreference";
 
 type SettingsSection = "security" | "notifications" | "privacy" | "email" | "connected" | "data" | "companions" | "parental" | "account";
 
@@ -364,6 +365,12 @@ export default function SettingsPage() {
                       )}
 
                       {/* Email */}
+                      {section.id === "email" && (
+                        <div className="mb-6 pb-6 border-b border-border">
+                          <DigestPreference />
+                        </div>
+                      )}
+
                       {section.id === "email" && (
                         <div className="space-y-4">
                           {Object.entries(settings.email).map(([key, value]) => (

@@ -159,7 +159,9 @@ export async function updateUserProfile(
 export async function signUpWithEmail(
   email: string,
   password: string,
-  metadata?: { full_name?: string; username?: string }
+  metadata?: { full_name?: string; username?: string },
+  /** Turnstile token, when a site key is configured. Supabase verifies it. */
+  captchaToken?: string
 ): Promise<AuthResult> {
   const supabase = createClient();
 
@@ -170,6 +172,7 @@ export async function signUpWithEmail(
       options: {
         data: metadata,
         emailRedirectTo: `${window.location.origin}/auth/callback`,
+        ...(captchaToken ? { captchaToken } : {}),
       },
     });
 

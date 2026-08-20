@@ -1,0 +1,108 @@
+name: Encrypted database backup
+
+# A backup we own, independent of the hosting provider. Supabase's own
+# point-in-time recovery only exists on paid plans, and a backup that lives
+# solely inside the thing it is protecting is not a backup.
+#
+# Runs daily and on demand. Every step is skipped cleanly when the secrets
+# are absent, so the workflow is safe to merge before the credentials exist.
+#
+# Required repository secrets (see docs/phase-6-setup.md):
+#   SUPABASE_DB_URL      postgresql://postgres:PASSWORD@db.<ref>.supabase.co:5432/postgres
+#   BACKUP_PASSPHRASE    long random string; without it the archive cannot be read
+#   R2_ACCOUNT_ID        Cloudflare account id
+#   R2_ACCESS_KEY_ID     R2 API token access key
+#   R2_SECRET_ACCESS_KEY R2 API token secret
+#   R2_BUCKET            bucket name, e.g. barakah-backups
+
+on:
+  schedule:
+    - cron: "17 3 * * *" # 03:17 UTC daily, off the hour to avoid the stampede
+  workflow_dispatch:
+
+concurrency:
+  group: db-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: Dump, encrypt, upload
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check credentials
+        id: creds
+        run: |
+          if [ -z "${{ secrets.SUPABASE_DB_URL }}" ] || [ -z "${{ secrets.BACKUP_PASSPHRASE }}" ] || [ -z "${{ secrets.R2_BUCKET }}" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Backup secrets are not configured yet — skipping. See docs/phase-6-setup.md."
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install PostgreSQL client
+        if: steps.creds.outputs.ready == 'true'
+        run: |
+          sudo sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/pgdg.gpg
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17
+
+      - name: Dump
+        if: steps.creds.outputs.ready == 'true'
+        env:
+          PGSSLMODE: require
+        run: |
+          STAMP="$(date -u +%Y-%m-%dT%H-%M-%SZ)"
+          echo "STAMP=$STAMP" >> "$GITHUB_ENV"
+          # Roles and tablespaces belong to the platform, not to us; --no-owner
+          # keeps the dump restorable into a fresh project.
+          pg_dump --no-owner --no-privileges --format=custom \
+            --file="barakah-$STAMP.dump" "${{ secrets.SUPABASE_DB_URL }}"
+          ls -lh "barakah-$STAMP.dump"
+
+      - name: Encrypt
+        if: steps.creds.outputs.ready == 'true'
+        run: |
+          # Symmetric AES-256. The passphrase never touches the archive, and
+          # without it the file is inert — including to whoever holds the bucket.
+          gpg --batch --yes --symmetric --cipher-algo AES256 \
+            --passphrase "${{ secrets.BACKUP_PASSPHRASE }}" \
+            --output "barakah-$STAMP.dump.gpg" "barakah-$STAMP.dump"
+          rm -f "barakah-$STAMP.dump"
+          ls -lh "barakah-$STAMP.dump.gpg"
+
+      - name: Upload to R2
+        if: steps.creds.outputs.ready == 'true'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+        run: |
+          aws s3 cp "barakah-$STAMP.dump.gpg" \
+            "s3://${{ secrets.R2_BUCKET }}/daily/barakah-$STAMP.dump.gpg" \
+            --endpoint-url "https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com"
+
+      - name: Prune backups older than 30 days
+        if: steps.creds.outputs.ready == 'true'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+        run: |
+          CUTOFF="$(date -u -d '30 days ago' +%Y-%m-%d)"
+          aws s3 ls "s3://${{ secrets.R2_BUCKET }}/daily/" \
+            --endpoint-url "https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com" \
+          | awk '{print $4}' | while read -r key; do
+              [ -z "$key" ] && continue
+              day="$(echo "$key" | sed -n 's/^barakah-\([0-9-]\{10\}\)T.*/\1/p')"
+              [ -z "$day" ] && continue
+              if [ "$day" \< "$CUTOFF" ]; then
+                echo "pruning $key"
+                aws s3 rm "s3://${{ secrets.R2_BUCKET }}/daily/$key" \
+                  --endpoint-url "https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com"
+              fi
+            done
+
+      - name: Report
+        if: steps.creds.outputs.ready == 'true'
+        run: echo "::notice::Backup barakah-$STAMP.dump.gpg uploaded and old copies pruned."

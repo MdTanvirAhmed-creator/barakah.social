@@ -17,6 +17,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { signUpWithEmail } from "@/lib/supabase/auth";
+import { Turnstile, turnstileEnabled } from "@/components/auth/Turnstile";
 import { createClient } from "@/lib/supabase/client";
 import {
   signupStep1Schema,
@@ -46,6 +47,7 @@ export default function SignupPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [signupData, setSignupData] = useState<Partial<SignupData>>({
     interests: [],
   });
@@ -115,7 +117,8 @@ export default function SignupPage() {
         {
           full_name: completeData.fullName,
           username: completeData.username,
-        }
+        },
+        captchaToken ?? undefined
       );
 
       if (authError) {
@@ -573,6 +576,9 @@ export default function SignupPage() {
                     </div>
                   </div>
 
+                  {/* Bot check, only when a site key is configured. */}
+                  <Turnstile onToken={setCaptchaToken} />
+
                   <div className="flex gap-4">
                     <Button
                       type="button"
@@ -587,7 +593,10 @@ export default function SignupPage() {
                     <Button
                       type="submit"
                       className="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 shadow-primary"
-                      disabled={isLoading}
+                      // With a site key configured, the challenge must pass
+                      // before an account can be created; without one this is
+                      // exactly as it was.
+                      disabled={isLoading || (turnstileEnabled && !captchaToken)}
                     >
                       {isLoading ? (
                         <>
