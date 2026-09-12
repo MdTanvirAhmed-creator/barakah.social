@@ -55,6 +55,7 @@ export function Turnstile({
   React.useEffect(() => {
     if (!SITE_KEY || !ref.current) return;
     let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
 
     const render = () => {
       if (cancelled || !ref.current || !window.turnstile) return;
@@ -68,24 +69,31 @@ export function Turnstile({
       });
     };
 
-    if (window.turnstile) {
-      render();
-    } else {
-      let script = document.querySelector<HTMLScriptElement>(
-        `script[src="${SCRIPT_SRC}"]`
-      );
-      if (!script) {
-        script = document.createElement("script");
-        script.src = SCRIPT_SRC;
-        script.async = true;
-        script.defer = true;
-        document.head.appendChild(script);
+    // Wait on the API itself rather than on a load event. Equivalent in the
+    // ordinary case, but it does not care whether this mount is the one that
+    // added the script, so a remount cannot end up listening for an event
+    // that has already fired, and repeated mounts do not stack listeners.
+    const waitForApi = () => {
+      if (cancelled) return;
+      if (window.turnstile) {
+        render();
+        return;
       }
-      script.addEventListener("load", render);
+      timer = setTimeout(waitForApi, 100);
+    };
+
+    if (!document.querySelector(`script[src="${SCRIPT_SRC}"]`)) {
+      const script = document.createElement("script");
+      script.src = SCRIPT_SRC;
+      script.async = true;
+      script.defer = true;
+      document.head.appendChild(script);
     }
+    waitForApi();
 
     return () => {
       cancelled = true;
+      if (timer) clearTimeout(timer);
       if (widgetId.current && window.turnstile) {
         window.turnstile.remove(widgetId.current);
         widgetId.current = null;

@@ -43,6 +43,16 @@ CAPTCHA, provider **Turnstile**, paste the secret.
 widget appears and **Create Account** stays disabled until it passes. With no
 site key set, signup behaves exactly as it does today.
 
+The integration is already verified against Cloudflare's published always-passes
+test keys, including that Supabase refuses a signup carrying no token. That spec
+is **opt-in and does not run in CI** — it needs the local stack restarted with
+captcha enabled, and leaving captcha on by default would break local signup for
+anyone without a site key. Run it with:
+
+```bash
+npm run test:turnstile
+```
+
 ---
 
 ## 2. Resend — real email, and the daily digest

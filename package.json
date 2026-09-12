@@ -20,7 +20,8 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "lighthouse": "lhci autorun",
-    "analyze": "ANALYZE=true next build"
+    "analyze": "ANALYZE=true next build",
+    "test:turnstile": "supabase/scripts/turnstile-e2e.sh"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
