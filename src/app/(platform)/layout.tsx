@@ -5,6 +5,7 @@ import { requireAuth } from "@/lib/supabase/route-protection";
 import { Sidebar } from "@/components/navigation/Sidebar";
 import { MobileNav } from "@/components/navigation/MobileNav";
 import { SearchBar } from "@/components/search/SearchBar";
+import { MithaqGate } from "@/components/auth/MithaqGate";
 
 export default function PlatformLayout({
   children,
@@ -18,6 +19,7 @@ export default function PlatformLayout({
   };
 
   return (
+    <MithaqGate>
     <div className="min-h-screen bg-background">
       {/* Desktop Sidebar */}
       <div className="hidden md:block">
@@ -55,6 +57,7 @@ export default function PlatformLayout({
       {/* Mobile Bottom Navigation */}
       <MobileNav />
     </div>
+  </MithaqGate>
   );
 }
 

@@ -136,6 +136,10 @@ export default function SignupPage() {
             full_name: completeData.fullName,
             interests: completeData.interests,
             madhab_preference: completeData.madhab || null,
+            // They read and accepted it on step 2; until now that was never
+            // written down anywhere.
+            mithaq_accepted_at: new Date().toISOString(),
+            mithaq_version: "1",
           })
           .eq("id", authData.user.id);
 

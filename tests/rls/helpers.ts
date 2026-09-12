@@ -96,7 +96,14 @@ const TEST_PASSWORD = "rls-test-password-1234";
  */
 export async function createTestUser(
   admin: SupabaseClient,
-  label: string
+  label: string,
+  /**
+   * Members accept the Mithaq at signup, and since migration 30 the database
+   * requires it before anyone may post or comment. Tests get an accepted
+   * member by default because that is what a member is; pass
+   * { acceptMithaq: false } to test the threshold itself.
+   */
+  options: { acceptMithaq?: boolean } = {}
 ): Promise<TestUser> {
   // Alphanumeric only — profiles.username has a username_format check constraint.
   const unique = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
@@ -125,6 +132,14 @@ export async function createTestUser(
   });
   if (signInError) {
     throw new Error(`Failed to sign in test user ${label}: ${signInError.message}`);
+  }
+
+  if (options.acceptMithaq !== false) {
+    // Written as admin: the point is the member's state, not the act.
+    await admin
+      .from("profiles")
+      .update({ mithaq_accepted_at: new Date().toISOString(), mithaq_version: "1" })
+      .eq("id", created.user.id);
   }
 
   return { id: created.user.id, email, client };

@@ -46,6 +46,23 @@ async function adminCreateUser(u: typeof reader): Promise<string> {
   });
   const body = (await res.json()) as { id?: string };
   if (!res.ok || !body.id) throw new Error(`admin createUser failed: ${JSON.stringify(body)}`);
+
+  // Members accept the Mithaq at signup. Since migration 30 the database
+  // requires it before anyone may post or comment, and the app holds anyone
+  // without it at /onboarding — so a user created straight through the admin
+  // API is not yet a member until this is recorded.
+  await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${body.id}`, {
+    method: "PATCH",
+    headers: {
+      apikey: SERVICE_KEY,
+      Authorization: `Bearer ${SERVICE_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      mithaq_accepted_at: new Date().toISOString(),
+      mithaq_version: "1",
+    }),
+  });
   return body.id;
 }
 
