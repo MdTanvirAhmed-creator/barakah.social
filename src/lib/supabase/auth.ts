@@ -203,7 +203,13 @@ export async function signUpWithEmail(
 // Sign in with email and password
 export async function signInWithEmail(
   email: string,
-  password: string
+  password: string,
+  /**
+   * Turnstile token. Supabase's captcha protection guards EVERY auth
+   * endpoint, not just signup — so sign-in needs one too whenever captcha is
+   * enabled on the project.
+   */
+  captchaToken?: string
 ): Promise<AuthResult> {
   const supabase = createClient();
 
@@ -211,6 +217,7 @@ export async function signInWithEmail(
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
+      ...(captchaToken ? { options: { captchaToken } } : {}),
     });
 
     if (error) {
@@ -307,12 +314,16 @@ export async function signOut(): Promise<AuthResult> {
 }
 
 // Reset password
-export async function resetPassword(email: string): Promise<AuthResult> {
+export async function resetPassword(
+  email: string,
+  captchaToken?: string
+): Promise<AuthResult> {
   const supabase = createClient();
 
   try {
     const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/auth/reset-password`,
+      ...(captchaToken ? { captchaToken } : {}),
     });
 
     if (error) {

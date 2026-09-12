@@ -10,6 +10,7 @@ import { Loader2, Mail, Lock, ArrowRight } from "lucide-react";
 import { signInWithEmail } from "@/lib/supabase/auth";
 import { createClient } from "@/lib/supabase/client";
 import { MfaChallenge } from "@/components/auth/MfaChallenge";
+import { Turnstile, turnstileEnabled } from "@/components/auth/Turnstile";
 import { loginSchema, type LoginInput } from "@/lib/validations/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [needsMfa, setNeedsMfa] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const { success, error: showError } = useToast();
 
   const {
@@ -53,7 +55,8 @@ export default function LoginPage() {
 
       const { data: authData, error } = await signInWithEmail(
         data.email,
-        data.password
+        data.password,
+        captchaToken ?? undefined
       );
 
       if (error) {
@@ -175,12 +178,16 @@ export default function LoginPage() {
               </label>
             </div>
 
+            {/* Bot check. Supabase's captcha guards every auth endpoint, so
+                signing in needs a token exactly as signing up does. */}
+            <Turnstile onToken={setCaptchaToken} />
+
             {/* Submit Button */}
             <Button
               type="submit"
               className="w-full bg-primary-600 hover:bg-primary-700"
               size="lg"
-              disabled={isLoading}
+              disabled={isLoading || (turnstileEnabled && !captchaToken)}
             >
               {isLoading ? (
                 <>
