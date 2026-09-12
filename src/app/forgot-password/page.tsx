@@ -8,6 +8,7 @@ import { z } from "zod";
 import { motion } from "framer-motion";
 import { Loader2, Mail, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { resetPassword } from "@/lib/supabase/auth";
+import { Turnstile, turnstileEnabled } from "@/components/auth/Turnstile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +22,7 @@ type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 
 export default function ForgotPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [emailSent, setEmailSent] = useState(false);
   const { success, error: showError } = useToast();
 
@@ -37,7 +39,7 @@ export default function ForgotPasswordPage() {
     try {
       setIsLoading(true);
 
-      const { error } = await resetPassword(data.email);
+      const { error } = await resetPassword(data.email, captchaToken ?? undefined);
 
       if (error) {
         throw new Error(error.message);
@@ -96,11 +98,15 @@ export default function ForgotPasswordPage() {
                 )}
               </div>
 
+              {/* Password reset is an auth endpoint like any other, so the
+                  captcha guards it too. */}
+              <Turnstile onToken={setCaptchaToken} />
+
               <Button
                 type="submit"
                 className="w-full bg-primary-600 hover:bg-primary-700"
                 size="lg"
-                disabled={isLoading}
+                disabled={isLoading || (turnstileEnabled && !captchaToken)}
               >
                 {isLoading ? (
                   <>
