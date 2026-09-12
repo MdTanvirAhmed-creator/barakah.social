@@ -282,8 +282,8 @@ export default function SignupPage() {
                       />
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Must be at least 8 characters with uppercase, lowercase, and
-                      numbers
+                      At least 8 characters, with an uppercase letter, a
+                      lowercase letter, a number and a symbol
                     </p>
                     {step1Form.formState.errors.password && (
                       <p className="text-sm text-error">

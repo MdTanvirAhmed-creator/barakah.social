@@ -23,9 +23,13 @@ const signupStep1BaseSchema = z.object({
     .string()
     .min(8, "Password must be at least 8 characters")
     .max(100, "Password is too long")
+    // Mirrors the password policy enforced by Supabase itself (min 8, with
+    // lowercase, uppercase, a digit and a symbol). The server is the real
+    // gate; this exists so the rule is learned while typing rather than
+    // discovered at the end of a four-step signup.
     .regex(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-      "Password must contain at least one uppercase letter, one lowercase letter, and one number"
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?`~])/,
+      "Password must contain an uppercase letter, a lowercase letter, a number and a symbol"
     ),
   confirmPassword: z.string().min(1, "Please confirm your password"),
 });
