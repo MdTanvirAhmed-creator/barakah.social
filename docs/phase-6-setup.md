@@ -112,8 +112,15 @@ that lives only inside the thing it protects is not a backup.
    Key**.
 3. Note your **Account ID** from the R2 page.
 4. Get your database connection string: Supabase → Project → Settings →
-   **Database** → Connection string → URI. It looks like
-   `postgresql://postgres:PASSWORD@db.wklgjqasbzwzoldgoyoh.supabase.co:5432/postgres`.
+   **Database** → Connection string. Take the **session-mode pooler** URI, not
+   the direct one:
+   `postgresql://postgres.wklgjqasbzwzoldgoyoh:PASSWORD@aws-0-<region>.pooler.supabase.com:5432/postgres`
+
+   > GitHub's runners are IPv4-only and the direct `db.<ref>.supabase.co` host
+   > is IPv6-only, so a direct URI cannot connect from Actions at all. Use port
+   > **5432** on the pooler (session mode) — port 6543 is transaction mode and
+   > `pg_dump` cannot use it.
+
    If you do not know the password, reset it on that page.
 5. Invent a long random **backup passphrase** and store it somewhere you will
    still have if the laptop dies — a password manager, not a note file.
@@ -122,9 +129,9 @@ that lives only inside the thing it protects is not a backup.
 
 | Secret | Value |
 |---|---|
-| `SUPABASE_DB_URL` | the connection URI from step 4 |
+| `SUPABASE_DB_URI` | the connection URI from step 4 |
 | `BACKUP_PASSPHRASE` | your long random string |
-| `R2_ACCOUNT_ID` | Cloudflare account id |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account id |
 | `R2_ACCESS_KEY_ID` | from step 2 |
 | `R2_SECRET_ACCESS_KEY` | from step 2 |
 | `R2_BUCKET` | `barakah-backups` |

@@ -4,16 +4,21 @@ name: Encrypted database backup
 # point-in-time recovery only exists on paid plans, and a backup that lives
 # solely inside the thing it is protecting is not a backup.
 #
-# Runs daily and on demand. Every step is skipped cleanly when the secrets
-# are absent, so the workflow is safe to merge before the credentials exist.
-#
 # Required repository secrets (see docs/phase-6-setup.md):
-#   SUPABASE_DB_URL      postgresql://postgres:PASSWORD@db.<ref>.supabase.co:5432/postgres
-#   BACKUP_PASSPHRASE    long random string; without it the archive cannot be read
-#   R2_ACCOUNT_ID        Cloudflare account id
-#   R2_ACCESS_KEY_ID     R2 API token access key
-#   R2_SECRET_ACCESS_KEY R2 API token secret
-#   R2_BUCKET            bucket name, e.g. barakah-backups
+#   SUPABASE_DB_URI       postgres connection URI; see the note on pooling below
+#   BACKUP_PASSPHRASE     long random string; without it the archive cannot be read
+#   CLOUDFLARE_ACCOUNT_ID Cloudflare account id
+#   R2_ACCESS_KEY_ID      R2 API token access key
+#   R2_SECRET_ACCESS_KEY  R2 API token secret
+#   R2_BUCKET             bucket name, e.g. barakah-backups
+#
+# On the connection URI: GitHub's runners are IPv4-only, and Supabase's direct
+# db.<ref>.supabase.co host resolves to IPv6 only. Use the session-mode pooler
+# (port 5432 on the pooler host), not the direct host and not transaction mode
+# — pg_dump needs a session, so port 6543 will not work.
+#
+# Secrets are passed through env rather than interpolated into the scripts, so
+# a value containing a quote or backtick cannot break or inject into the shell.
 
 on:
   schedule:
@@ -31,10 +36,32 @@ jobs:
     steps:
       - name: Check credentials
         id: creds
+        env:
+          DB_URI: ${{ secrets.SUPABASE_DB_URI }}
+          PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+          BUCKET: ${{ secrets.R2_BUCKET }}
+          ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          KEY_SECRET: ${{ secrets.R2_SECRET_ACCESS_KEY }}
         run: |
-          if [ -z "${{ secrets.SUPABASE_DB_URL }}" ] || [ -z "${{ secrets.BACKUP_PASSPHRASE }}" ] || [ -z "${{ secrets.R2_BUCKET }}" ]; then
+          missing=""
+          [ -z "$DB_URI" ]     && missing="$missing SUPABASE_DB_URI"
+          [ -z "$PASSPHRASE" ] && missing="$missing BACKUP_PASSPHRASE"
+          [ -z "$BUCKET" ]     && missing="$missing R2_BUCKET"
+          [ -z "$ACCOUNT_ID" ] && missing="$missing CLOUDFLARE_ACCOUNT_ID"
+          [ -z "$KEY_ID" ]     && missing="$missing R2_ACCESS_KEY_ID"
+          [ -z "$KEY_SECRET" ] && missing="$missing R2_SECRET_ACCESS_KEY"
+
+          if [ -n "$missing" ]; then
+            # A backup that quietly does nothing is worse than one that fails,
+            # so only the scheduled run is allowed to skip. Asking for a backup
+            # by hand and getting silence is how a gap goes unnoticed.
+            if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+              echo "::error::Missing secret(s):$missing — see docs/phase-6-setup.md."
+              exit 1
+            fi
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Backup secrets are not configured yet — skipping. See docs/phase-6-setup.md."
+            echo "::notice::Backup secrets are not configured yet — skipping.$missing"
           else
             echo "ready=true" >> "$GITHUB_OUTPUT"
           fi
@@ -51,23 +78,28 @@ jobs:
         if: steps.creds.outputs.ready == 'true'
         env:
           PGSSLMODE: require
+          DB_URI: ${{ secrets.SUPABASE_DB_URI }}
         run: |
           STAMP="$(date -u +%Y-%m-%dT%H-%M-%SZ)"
           echo "STAMP=$STAMP" >> "$GITHUB_ENV"
           # Roles and tablespaces belong to the platform, not to us; --no-owner
           # keeps the dump restorable into a fresh project.
           pg_dump --no-owner --no-privileges --format=custom \
-            --file="barakah-$STAMP.dump" "${{ secrets.SUPABASE_DB_URL }}"
+            --file="barakah-$STAMP.dump" "$DB_URI"
           ls -lh "barakah-$STAMP.dump"
 
       - name: Encrypt
         if: steps.creds.outputs.ready == 'true'
+        env:
+          PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
         run: |
           # Symmetric AES-256. The passphrase never touches the archive, and
           # without it the file is inert — including to whoever holds the bucket.
+          printf '%s' "$PASSPHRASE" > /tmp/pp
           gpg --batch --yes --symmetric --cipher-algo AES256 \
-            --passphrase "${{ secrets.BACKUP_PASSPHRASE }}" \
+            --passphrase-file /tmp/pp \
             --output "barakah-$STAMP.dump.gpg" "barakah-$STAMP.dump"
+          shred -u /tmp/pp
           rm -f "barakah-$STAMP.dump"
           ls -lh "barakah-$STAMP.dump.gpg"
 
@@ -77,10 +109,16 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: auto
+          BUCKET: ${{ secrets.R2_BUCKET }}
+          ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # R2 does not implement the streaming checksum trailers the AWS CLI
+          # started sending by default; without these it rejects the upload.
+          AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+          AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
         run: |
           aws s3 cp "barakah-$STAMP.dump.gpg" \
-            "s3://${{ secrets.R2_BUCKET }}/daily/barakah-$STAMP.dump.gpg" \
-            --endpoint-url "https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com"
+            "s3://$BUCKET/daily/barakah-$STAMP.dump.gpg" \
+            --endpoint-url "https://$ACCOUNT_ID.r2.cloudflarestorage.com"
 
       - name: Prune backups older than 30 days
         if: steps.creds.outputs.ready == 'true'
@@ -88,18 +126,22 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: auto
+          BUCKET: ${{ secrets.R2_BUCKET }}
+          ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+          AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
         run: |
           CUTOFF="$(date -u -d '30 days ago' +%Y-%m-%d)"
-          aws s3 ls "s3://${{ secrets.R2_BUCKET }}/daily/" \
-            --endpoint-url "https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com" \
+          aws s3 ls "s3://$BUCKET/daily/" \
+            --endpoint-url "https://$ACCOUNT_ID.r2.cloudflarestorage.com" \
           | awk '{print $4}' | while read -r key; do
               [ -z "$key" ] && continue
               day="$(echo "$key" | sed -n 's/^barakah-\([0-9-]\{10\}\)T.*/\1/p')"
               [ -z "$day" ] && continue
               if [ "$day" \< "$CUTOFF" ]; then
                 echo "pruning $key"
-                aws s3 rm "s3://${{ secrets.R2_BUCKET }}/daily/$key" \
-                  --endpoint-url "https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com"
+                aws s3 rm "s3://$BUCKET/daily/$key" \
+                  --endpoint-url "https://$ACCOUNT_ID.r2.cloudflarestorage.com"
               fi
             done
 
