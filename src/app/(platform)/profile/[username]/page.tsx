@@ -22,6 +22,7 @@ import { EditProfile } from "@/components/profile/EditProfile";
 import { formatRelativeTime } from "@/lib/date";
 import { createClient } from "@/lib/supabase/client";
 import { signPostMedia } from "@/lib/supabase/storage";
+import { loadAuthors, authorFrom } from "@/lib/supabase/authors";
 
 interface ProfileData {
   id: string;
@@ -32,7 +33,8 @@ interface ProfileData {
   is_verified_scholar: boolean;
   madhab_preference?: string | null;
   interests: string[];
-  joined_at: string;
+  /** Absent for a profile seen only through public_profiles. */
+  joined_at: string | null;
   beneficial_count: number;
 }
 
@@ -103,13 +105,47 @@ export default function UserProfilePage() {
         supabase.auth.getUser(),
       ]);
 
-      if (profileError || !profileData) {
+      // `profiles` is readable to companions and to yourself. Since the
+      // minbar opened, a reader can meet a stranger's name on a public post
+      // and click it — and sending them to a 404 would say the person does
+      // not exist, when the truth is only that they are not close to you.
+      // public_profiles carries the part anyone may see.
+      let p: ProfileData | null = (profileData as ProfileData) ?? null;
+      if (!p) {
+        const { data: limited } = await sb
+          .from("public_profiles")
+          .select("id, username, display_name, avatar_url, is_verified_scholar")
+          .eq("username", username)
+          .maybeSingle();
+        if (limited) {
+          const l = limited as {
+            id: string;
+            username: string;
+            display_name: string | null;
+            avatar_url: string | null;
+            is_verified_scholar: boolean | null;
+          };
+          p = {
+            id: l.id,
+            username: l.username,
+            full_name: l.display_name ?? l.username,
+            avatar_url: l.avatar_url,
+            is_verified_scholar: l.is_verified_scholar ?? false,
+            // Not ours to show: these belong to people who know them.
+            bio: null,
+            madhab_preference: null,
+            interests: [],
+            joined_at: null,
+            beneficial_count: 0,
+          };
+        }
+      }
+
+      if (!p) {
         console.error("Profile not found:", profileError);
         router.push("/404");
         return;
       }
-
-      const p = profileData as ProfileData;
       setProfile(p);
       setIsOwnProfile(user?.id === p.id);
 
@@ -118,8 +154,7 @@ export default function UserProfilePage() {
         sb
           .from("posts")
           .select(
-            `id, content, tags, media_urls, created_at,
-             profiles!posts_author_id_fkey(id, username, full_name, avatar_url, is_verified_scholar),
+            `id, content, tags, media_urls, created_at, author_id,
              comments!comments_post_id_fkey(count)`
           )
           .eq("author_id", p.id)
@@ -168,16 +203,17 @@ export default function UserProfilePage() {
       const urlByPath = new Map<string, string>();
       allPaths.forEach((path, i) => urlByPath.set(path, signed[i]));
 
+      // Viewing someone who is not your companion: their profiles row is not
+      // readable, so the author comes from public_profiles.
+      const authorById = await loadAuthors(
+        sb,
+        (postsResult.data as any[]).map((post) => post.author_id)
+      );
+
       const transformed: PostData[] = (postsResult.data as any[]).map((post) => ({
         id: post.id,
         content: post.content,
-        author: {
-          id: post.profiles.id,
-          username: post.profiles.username,
-          full_name: post.profiles.full_name,
-          avatar_url: post.profiles.avatar_url,
-          is_verified_scholar: post.profiles.is_verified_scholar,
-        },
+        author: authorFrom(authorById, post.author_id),
         created_at: post.created_at,
         is_own_post: viewingOwn,
         beneficial_count: viewingOwn ? ownCounts.get(post.id) ?? 0 : undefined,
@@ -253,10 +289,12 @@ export default function UserProfilePage() {
 
                 {/* Meta */}
                 <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-4">
-                  <div className="flex items-center gap-1">
-                    <Calendar className="w-4 h-4" />
-                    <span>Joined {formatRelativeTime(profile.joined_at)}</span>
-                  </div>
+                  {profile.joined_at && (
+                    <div className="flex items-center gap-1">
+                      <Calendar className="w-4 h-4" />
+                      <span>Joined {formatRelativeTime(profile.joined_at)}</span>
+                    </div>
+                  )}
                   {profile.madhab_preference && (
                     <div className="flex items-center gap-1">
                       <BookOpen className="w-4 h-4" />
@@ -371,11 +409,13 @@ export default function UserProfilePage() {
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Member Since</label>
                 <p className="text-foreground-secondary mt-1">
-                  {new Date(profile.joined_at).toLocaleDateString("en-US", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
+                  {profile.joined_at
+                    ? new Date(profile.joined_at).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })
+                    : "Known to their companions"}
                 </p>
               </div>
             </div>

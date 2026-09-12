@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/girih";
 import { createClient } from "@/lib/supabase/client";
 import { signPostMedia } from "@/lib/supabase/storage";
+import { loadAuthors, authorFrom } from "@/lib/supabase/authors";
 
 const PAGE_SIZE = 20;
 
@@ -274,19 +275,8 @@ export function FeedList({ feedType = "for-you", onRefresh }: FeedListProps) {
     const rows = postsData as any[];
     const postIds = rows.map((p) => p.id);
 
-    // Authors come from public_profiles, not profiles. On the minbar the
-    // author is usually a stranger, and profiles is readable only to
-    // companions — embedding it returned null for precisely the posts this
-    // feed exists to show, and reading .id off that null emptied the feed.
-    const postAuthorIds = Array.from(new Set(rows.map((p) => p.author_id)));
-    const authorById = new Map<string, any>();
-    if (postAuthorIds.length > 0) {
-      const { data: authors } = await (supabase as any)
-        .from("public_profiles")
-        .select("id, username, display_name, avatar_url, is_verified_scholar")
-        .in("id", postAuthorIds);
-      (authors as any[] | null)?.forEach((a) => authorById.set(a.id, a));
-    }
+    // Authors resolve through public_profiles; see lib/supabase/authors.
+    const authorById = await loadAuthors(supabase, rows.map((p) => p.author_id));
     const ownPostIds = user ? rows.filter((p) => p.author_id === user.id).map((p) => p.id) : [];
 
     const markedIds = new Set<string>();
@@ -328,20 +318,10 @@ export function FeedList({ feedType = "for-you", onRefresh }: FeedListProps) {
 
     const transformed: Post[] = rows.map((post: any) => {
       const isOwn = !!user && post.author_id === user.id;
-      // Blocked authors are absent from public_profiles by design, and RLS
-      // already keeps their posts out of this result — the fallbacks are
-      // belt and braces so a missing author can never blank the feed.
-      const author = authorById.get(post.author_id);
       return {
         id: post.id,
         content: post.content,
-        author: {
-          id: post.author_id,
-          username: author?.username ?? "someone",
-          full_name: author?.display_name ?? "Someone",
-          avatar_url: author?.avatar_url ?? null,
-          is_verified_scholar: author?.is_verified_scholar ?? false,
-        },
+        author: authorFrom(authorById, post.author_id),
         created_at: post.created_at,
         is_own_post: isOwn,
         beneficial_count: isOwn ? ownCounts.get(post.id) ?? 0 : undefined,

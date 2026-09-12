@@ -18,16 +18,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatRelativeTime } from "@/lib/date";
 import { useToast } from "@/hooks/useToast";
 import { CommentComposer } from "./CommentComposer";
+import { type Author } from "@/lib/supabase/authors";
 
 interface Comment {
   id: string;
-  author: {
-    id: string;
-    username: string;
-    full_name: string;
-    avatar_url: string | null;
-    is_verified_scholar: boolean;
-  };
+  author: Author;
   content: string;
   beneficial_count: number;
   is_beneficial: boolean;

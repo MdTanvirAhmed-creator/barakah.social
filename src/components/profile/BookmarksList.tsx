@@ -16,8 +16,10 @@ import { Button } from "@/components/ui/button";
 import { PostCard } from "@/components/feed/PostCard";
 import { useToast } from "@/hooks/useToast";
 import { createClient } from "@/lib/supabase/client";
+import { loadAuthors, authorFrom } from "@/lib/supabase/authors";
 
 interface BookmarkedPost {
+  /** bookmarks has no id of its own — it is keyed by (user_id, post_id). */
   bookmarkId: string;
   post: {
     id: string;
@@ -30,7 +32,8 @@ interface BookmarkedPost {
       is_verified_scholar: boolean;
     };
     created_at: string;
-    beneficial_count: number;
+    /** Only ever set for your own posts — marks are private to the author. */
+    beneficial_count?: number;
     comment_count: number;
     tags: string[];
     media_urls: string[];
@@ -61,10 +64,9 @@ export function BookmarksList() {
       const { data, error } = await (supabase as any)
         .from("bookmarks")
         .select(
-          `id, post_id, created_at,
+          `post_id, created_at,
            posts!bookmarks_post_id_fkey(
-             id, content, tags, media_urls, beneficial_count, created_at, is_deleted,
-             profiles!posts_author_id_fkey(id, username, full_name, avatar_url, is_verified_scholar),
+             id, content, tags, media_urls, created_at, is_deleted, author_id,
              comments!comments_post_id_fkey(count)
            )`
         )
@@ -91,20 +93,24 @@ export function BookmarksList() {
         (marks as { post_id: string }[] | null)?.forEach((m) => markedIds.add(m.post_id));
       }
 
+      // A bookmarked post can be a public one by someone you never became
+      // companions with. See lib/supabase/authors.
+      const authorById = await loadAuthors(
+        supabase,
+        active.map((b: any) => b.posts?.author_id)
+      );
+
       const transformed: BookmarkedPost[] = active.map((b: any) => ({
-        bookmarkId: b.id,
+        bookmarkId: b.post_id,
         post: {
           id: b.posts.id,
           content: b.posts.content,
-          author: {
-            id: b.posts.profiles.id,
-            username: b.posts.profiles.username,
-            full_name: b.posts.profiles.full_name,
-            avatar_url: b.posts.profiles.avatar_url,
-            is_verified_scholar: b.posts.profiles.is_verified_scholar,
-          },
+          author: authorFrom(authorById, b.posts.author_id),
           created_at: b.posts.created_at,
-          beneficial_count: b.posts.beneficial_count ?? 0,
+          // posts.beneficial_count was dropped in migration 20, when marks
+          // became private to the author. Selecting it failed the whole
+          // query, which is why bookmarks had been empty ever since.
+          beneficial_count: undefined,
           comment_count: b.posts.comments?.[0]?.count ?? 0,
           tags: b.posts.tags ?? [],
           media_urls: b.posts.media_urls ?? [],

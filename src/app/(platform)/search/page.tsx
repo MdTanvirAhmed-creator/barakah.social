@@ -23,6 +23,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { signPostMedia } from "@/lib/supabase/storage";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
+import { loadAuthors, authorFrom } from "@/lib/supabase/authors";
 
 type TabType = "all" | "posts" | "people" | "halaqas" | "knowledge";
 
@@ -174,7 +175,6 @@ function SearchPageContent() {
       .from("posts")
       .select(
         `id, content, tags, media_urls, created_at, author_id,
-         profiles!posts_author_id_fkey(id, username, full_name, avatar_url, is_verified_scholar),
          comments!comments_post_id_fkey(count)`
       )
       .ilike("content", `%${q}%`)
@@ -208,16 +208,14 @@ function SearchPageContent() {
     const urlByPath = new Map<string, string>();
     allPaths.forEach((path, i) => urlByPath.set(path, signed[i]));
 
+    // Search can surface a public post by someone you have no companionship
+    // with, whose profiles row you cannot read. See lib/supabase/authors.
+    const authorById = await loadAuthors(sb, (data as any[]).map((p) => p.author_id));
+
     return (data as any[]).map((post) => ({
       id: post.id,
       content: post.content,
-      author: {
-        id: post.profiles.id,
-        username: post.profiles.username,
-        full_name: post.profiles.full_name,
-        avatar_url: post.profiles.avatar_url,
-        is_verified_scholar: post.profiles.is_verified_scholar,
-      },
+      author: authorFrom(authorById, post.author_id),
       created_at: post.created_at,
       is_own_post: !!user && post.author_id === user.id,
       beneficial_count: undefined,

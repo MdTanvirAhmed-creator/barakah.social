@@ -8,16 +8,11 @@ import { CommentCard } from "./CommentCard";
 import { CommentComposer } from "./CommentComposer";
 import { createClient } from "@/lib/supabase/client";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
+import { loadAuthors, authorFrom, type Author } from "@/lib/supabase/authors";
 
 interface Comment {
   id: string;
-  author: {
-    id: string;
-    username: string;
-    full_name: string;
-    avatar_url: string | null;
-    is_verified_scholar: boolean;
-  };
+  author: Author;
   content: string;
   beneficial_count: number;
   is_beneficial: boolean;
@@ -35,16 +30,14 @@ interface CommentSectionProps {
 
 type SortOption = "newest" | "beneficial";
 
-function transformRow(row: any, replies: Comment[] = []): Comment {
+function transformRow(
+  row: any,
+  authorById: Map<string, Author>,
+  replies: Comment[] = []
+): Comment {
   return {
     id: row.id,
-    author: {
-      id: row.profiles.id,
-      username: row.profiles.username,
-      full_name: row.profiles.full_name,
-      avatar_url: row.profiles.avatar_url,
-      is_verified_scholar: row.profiles.is_verified_scholar ?? false,
-    },
+    author: authorFrom(authorById, row.author_id),
     content: row.content,
     beneficial_count: row.beneficial_count ?? 0,
     is_beneficial: false,
@@ -77,8 +70,7 @@ export function CommentSection({ postId, commentCount, isExpanded = false }: Com
       const { data: topLevel, error } = await (supabase as any)
         .from("comments")
         .select(`
-          id, content, beneficial_count, created_at, parent_comment_id,
-          profiles!comments_author_id_fkey (id, username, full_name, avatar_url, is_verified_scholar)
+          id, content, beneficial_count, created_at, parent_comment_id, author_id
         `)
         .eq("post_id", postId)
         .is("parent_comment_id", null)
@@ -97,23 +89,31 @@ export function CommentSection({ postId, commentCount, isExpanded = false }: Com
         ? await (supabase as any)
             .from("comments")
             .select(`
-              id, content, beneficial_count, created_at, parent_comment_id,
-              profiles!comments_author_id_fkey (id, username, full_name, avatar_url, is_verified_scholar)
+              id, content, beneficial_count, created_at, parent_comment_id, author_id
             `)
             .in("parent_comment_id", topIds)
             .eq("is_deleted", false)
             .order("created_at", { ascending: true })
         : { data: [] };
 
+      // On a public post the repliers are usually strangers, whose profiles
+      // row is unreadable. See lib/supabase/authors.
+      const authorById = await loadAuthors(supabase, [
+        ...(topLevel as any[]).map((c) => c.author_id),
+        ...((replies ?? []) as any[]).map((r) => r.author_id),
+      ]);
+
       // Group replies by parent
       const replyMap: Record<string, Comment[]> = {};
       (replies ?? []).forEach((r: any) => {
         const pid = r.parent_comment_id;
         if (!replyMap[pid]) replyMap[pid] = [];
-        replyMap[pid].push(transformRow(r));
+        replyMap[pid].push(transformRow(r, authorById));
       });
 
-      setComments(topLevel.map((c: any) => transformRow(c, replyMap[c.id] ?? [])));
+      setComments(
+        topLevel.map((c: any) => transformRow(c, authorById, replyMap[c.id] ?? []))
+      );
     } finally {
       setIsLoading(false);
     }
@@ -133,7 +133,7 @@ export function CommentSection({ postId, commentCount, isExpanded = false }: Com
       })
       .select(`
         id, content, beneficial_count, created_at, parent_comment_id,
-        profiles!comments_author_id_fkey (id, username, full_name, avatar_url, is_verified_scholar)
+        author_id
       `)
       .single();
 
@@ -142,7 +142,10 @@ export function CommentSection({ postId, commentCount, isExpanded = false }: Com
       return;
     }
 
-    const newComment = transformRow(data);
+    const newComment = transformRow(
+      data,
+      await loadAuthors(supabase, [data.author_id])
+    );
 
     if (parentId) {
       setComments((prev) =>
