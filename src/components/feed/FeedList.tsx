@@ -47,6 +47,10 @@ function PostSkeleton() {
 }
 
 const EMPTY_STATE_COPY: Record<string, { title: string; body: string; href?: string; cta?: string }> = {
+  everyone: {
+    title: "Nobody has spoken up yet",
+    body: "No one has addressed the whole community today. If you have something worth everyone's time, this is where it goes.",
+  },
   "for-you": {
     title: "Your feed is ready!",
     body: "Start by joining Halaqas, following scholars, or sharing your first post to see content here.",
@@ -147,7 +151,7 @@ interface Post {
 }
 
 interface FeedListProps {
-  feedType?: "for-you" | "halaqas" | "verified" | "companions";
+  feedType?: "for-you" | "halaqas" | "verified" | "companions" | "everyone";
   onRefresh?: () => void;
 }
 
@@ -189,6 +193,10 @@ export function FeedList({ feedType = "for-you", onRefresh }: FeedListProps) {
       return (members as { user_id: string }[] | null)?.map((m) => m.user_id) ?? [];
     }
 
+    // Not an author set — it is every public post, whoever wrote it.
+    // Handled as a visibility filter in fetchPage instead.
+    if (feedType === "everyone") return null;
+
     if (feedType === "companions" && userId) {
       // The privacy relationship is `companionships` (requester_id/addressee_id),
       // accepted only. RLS enforces the same set; this narrows the feed to it.
@@ -205,7 +213,7 @@ export function FeedList({ feedType = "for-you", onRefresh }: FeedListProps) {
       );
     }
 
-    return null; // null = no filter (main feed)
+    return null; // null = no author filter; fetchPage narrows by visibility
   }
 
   async function fetchPage(cursor: Cursor | null): Promise<{ posts: Post[]; hasMore: boolean }> {
@@ -225,7 +233,6 @@ export function FeedList({ feedType = "for-you", onRefresh }: FeedListProps) {
       .select(
         `
           id, content, post_type, media_urls, tags, created_at, author_id,
-          profiles!posts_author_id_fkey (id, username, full_name, avatar_url, is_verified_scholar),
           comments!comments_post_id_fkey(count)
         `
       )
@@ -237,6 +244,16 @@ export function FeedList({ feedType = "for-you", onRefresh }: FeedListProps) {
 
     if (authorIds !== null) {
       query = query.in("author_id", authorIds);
+    }
+
+    // Public posts are readable by every signed-in member, so without this the
+    // main feed would quietly become a global one the day the minbar opened.
+    // Going to the minbar is a choice; it should not arrive uninvited in the
+    // feed someone keeps for the people they know.
+    if (feedType === "everyone") {
+      query = query.eq("visibility", "public");
+    } else {
+      query = query.neq("visibility", "public");
     }
 
     // Keyset seek: strictly older than the cursor. Stable under inserts, no
@@ -256,6 +273,20 @@ export function FeedList({ feedType = "for-you", onRefresh }: FeedListProps) {
 
     const rows = postsData as any[];
     const postIds = rows.map((p) => p.id);
+
+    // Authors come from public_profiles, not profiles. On the minbar the
+    // author is usually a stranger, and profiles is readable only to
+    // companions — embedding it returned null for precisely the posts this
+    // feed exists to show, and reading .id off that null emptied the feed.
+    const postAuthorIds = Array.from(new Set(rows.map((p) => p.author_id)));
+    const authorById = new Map<string, any>();
+    if (postAuthorIds.length > 0) {
+      const { data: authors } = await (supabase as any)
+        .from("public_profiles")
+        .select("id, username, display_name, avatar_url, is_verified_scholar")
+        .in("id", postAuthorIds);
+      (authors as any[] | null)?.forEach((a) => authorById.set(a.id, a));
+    }
     const ownPostIds = user ? rows.filter((p) => p.author_id === user.id).map((p) => p.id) : [];
 
     const markedIds = new Set<string>();
@@ -297,15 +328,19 @@ export function FeedList({ feedType = "for-you", onRefresh }: FeedListProps) {
 
     const transformed: Post[] = rows.map((post: any) => {
       const isOwn = !!user && post.author_id === user.id;
+      // Blocked authors are absent from public_profiles by design, and RLS
+      // already keeps their posts out of this result — the fallbacks are
+      // belt and braces so a missing author can never blank the feed.
+      const author = authorById.get(post.author_id);
       return {
         id: post.id,
         content: post.content,
         author: {
-          id: post.profiles.id,
-          username: post.profiles.username,
-          full_name: post.profiles.full_name,
-          avatar_url: post.profiles.avatar_url,
-          is_verified_scholar: post.profiles.is_verified_scholar,
+          id: post.author_id,
+          username: author?.username ?? "someone",
+          full_name: author?.display_name ?? "Someone",
+          avatar_url: author?.avatar_url ?? null,
+          is_verified_scholar: author?.is_verified_scholar ?? false,
         },
         created_at: post.created_at,
         is_own_post: isOwn,
@@ -406,7 +441,7 @@ export function FeedList({ feedType = "for-you", onRefresh }: FeedListProps) {
               </Button>
             </div>
           ) : (
-            <KhatamEnd />
+            <KhatamEnd feedType={feedType} />
           )}
         </div>
       )}
@@ -419,7 +454,7 @@ export function FeedList({ feedType = "for-you", onRefresh }: FeedListProps) {
  * timeline closes with a quiet mark of completion (khatam) — you have seen
  * everything your companions shared. A deliberate stopping point, not a void.
  */
-function KhatamEnd() {
+function KhatamEnd({ feedType }: { feedType: string }) {
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -429,8 +464,9 @@ function KhatamEnd() {
     >
       <IlluminatedDivider />
       <p className="mt-5 text-foreground-secondary">
-        You&rsquo;ve reached the end — you have seen everything your companions
-        shared.
+        {feedType === "everyone"
+          ? "You\u2019ve reached the end \u2014 that is everything said to the whole community today."
+          : "You\u2019ve reached the end \u2014 you have seen everything your companions shared."}
       </p>
       <p className="mt-1 text-sm text-muted-foreground">
         A good moment to step away, or to share something beneficial yourself.

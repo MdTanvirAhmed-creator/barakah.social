@@ -12,6 +12,7 @@ import {
   Users,
   Lock,
   BookOpen,
+  Megaphone,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -29,10 +30,19 @@ const SUGGESTED_TAGS = [
   "Aqeedah", "Dhikr", "Dua", "Islamic History", "Contemporary Issues",
 ];
 
-type Visibility = "companions" | "halaqa" | "private";
+type Visibility = "public" | "companions" | "halaqa" | "private";
 
-// No "public" option: on Barakah a post reaches your companions, a halaqa you
-// belong to, or no one but you — never the open web.
+// "Everyone" rather than "public", because public is ambiguous about which
+// public. This one reaches everyone signed in to Barakah, not the open web:
+// posts are unreadable without a session and no crawler can index them, so
+// nobody's words become searchable by their name.
+//
+// Not "Minbar" either, however well the metaphor fits addressing a gathering
+// — Al-Minbar is already the name of Home, and two things by one name in the
+// same screen teaches nobody anything.
+//
+// Companions stays first and stays the default: the quieter choice should be
+// the one you fall into, not the one you have to go looking for.
 const VISIBILITY_OPTIONS: {
   value: Visibility;
   label: string;
@@ -40,6 +50,7 @@ const VISIBILITY_OPTIONS: {
   icon: typeof Users;
 }[] = [
   { value: "companions", label: "Companions", hint: "Everyone who has accepted you", icon: Users },
+  { value: "public", label: "Everyone", hint: "Everyone on Barakah, companion or not", icon: Megaphone },
   { value: "halaqa", label: "A halaqa", hint: "One study circle you belong to", icon: BookOpen },
   { value: "private", label: "Only me", hint: "A private note to yourself", icon: Lock },
 ];
@@ -312,6 +323,19 @@ export function PostComposer({ onPostCreated }: PostComposerProps) {
                     );
                   })}
                 </div>
+
+                {/* Say plainly what the minbar is, at the moment of choosing
+                    it. A label alone does not tell anyone that strangers will
+                    read this, or that replies pin the choice in place. */}
+                {visibility === "public" && (
+                  <p className="text-sm text-foreground-secondary border-s-2 border-accent ps-3">
+                    Everyone signed in to Barakah can read this, including
+                    people you have never met. It stays off the open web, so no
+                    search engine can index it. Once someone replies you can
+                    still narrow it back to companions, but you will not be
+                    able to widen it again.
+                  </p>
+                )}
 
                 {visibility === "halaqa" &&
                   (halaqas.length > 0 ? (

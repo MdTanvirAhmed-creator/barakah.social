@@ -7,13 +7,18 @@ import { PostComposer } from "@/components/feed/PostComposer";
 import { WelcomeShamsa } from "@/components/feed/WelcomeShamsa";
 import { FeedList } from "@/components/feed/FeedList";
 
-type FeedTab = "for-you" | "halaqas" | "verified" | "companions";
+type FeedTab = "for-you" | "everyone" | "halaqas" | "verified" | "companions";
 
 const FEED_TABS: { id: FeedTab; label: string; description: string }[] = [
   {
     id: "for-you",
     label: "For You",
     description: "Personalized content based on your interests",
+  },
+  {
+    id: "everyone",
+    label: "Everyone",
+    description: "Posts addressed to everyone on Barakah, not just companions",
   },
   {
     id: "halaqas",
@@ -57,7 +62,7 @@ export default function FeedPage() {
 
           {/* Tabs */}
           <div className="bg-card rounded-lg shadow-md border border-border overflow-hidden w-full">
-            <div className="grid grid-cols-4 border-b border-border relative w-full">
+            <div className="grid grid-cols-5 border-b border-border relative w-full">
               {FEED_TABS.map((tab) => {
                 const isActive = activeTab === tab.id;
                 return (
