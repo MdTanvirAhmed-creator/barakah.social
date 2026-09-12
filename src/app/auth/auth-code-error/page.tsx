@@ -2,7 +2,12 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { AlertCircle } from "lucide-react";
 
-export default function AuthCodeErrorPage() {
+export default async function AuthCodeErrorPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ reason?: string }>;
+}) {
+  const { reason } = await searchParams;
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-background">
       <div className="max-w-md w-full text-center space-y-6">
@@ -15,9 +20,15 @@ export default function AuthCodeErrorPage() {
             Authentication Error
           </h1>
           <p className="text-foreground-secondary">
-            We couldn&apos;t complete the authentication process. This could be due to an
-            expired link or an invalid code.
+            We couldn&apos;t complete the authentication process.
           </p>
+          {/* The specific reason, when there is one. A person who cannot sign
+              in deserves better than a guess about expired links. */}
+          {reason && (
+            <p className="text-sm text-muted-foreground border-s-2 border-border ps-3 text-start">
+              {reason}
+            </p>
+          )}
         </div>
 
         <div className="space-y-3">

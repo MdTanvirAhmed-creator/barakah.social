@@ -7,13 +7,28 @@ export async function GET(request: Request) {
   const code = requestUrl.searchParams.get("code");
   const origin = requestUrl.origin;
 
+  // Providers report their own failures here, before any exchange happens.
+  const providerError =
+    requestUrl.searchParams.get("error_description") ||
+    requestUrl.searchParams.get("error");
+
   if (code) {
     const cookieStore = await cookies();
     const supabase = await createServerSupabaseClient();
     
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    
-    if (!error) {
+
+    if (error) {
+      // Swallowing this was why a sign-in failure said only "expired link or
+      // invalid code" — true of almost nothing and useful for diagnosing
+      // nothing. The reason travels to the error page so it can be read.
+      console.error("[auth/callback] code exchange failed:", error.message);
+      return NextResponse.redirect(
+        `${origin}/auth/auth-code-error?reason=${encodeURIComponent(error.message)}`
+      );
+    }
+
+    {
       // Get user to check if profile exists
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -45,7 +60,13 @@ export async function GET(request: Request) {
     }
   }
 
-  // Return the user to an error page with instructions
-  return NextResponse.redirect(`${origin}/auth/auth-code-error`);
+  // No code at all: either the provider refused, or this route was reached
+  // directly.
+  const reason =
+    providerError ?? (code ? "sign-in could not be completed" : "no authorization code was returned");
+  console.error("[auth/callback] no session created:", reason);
+  return NextResponse.redirect(
+    `${origin}/auth/auth-code-error?reason=${encodeURIComponent(reason)}`
+  );
 }
 
