@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { AdminGate } from '@/components/admin/AdminGate';
 import { 
   BarChart3, 
   Users, 
@@ -29,6 +30,9 @@ const navigation = [
   { name: 'Settings', href: '/admin/settings', icon: Settings },
 ];
 
+/** Only an admin may appoint people, so only an admin is shown the door. */
+const ADMIN_ONLY = [{ name: 'Members & Roles', href: '/admin/members', icon: Users }];
+
 export default function AdminLayout({
   children,
 }: {
@@ -38,7 +42,9 @@ export default function AdminLayout({
   const pathname = usePathname();
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <AdminGate>
+      {(access) => (
+    <div className="min-h-screen bg-gray-50" data-admin-access={access}>
       {/* Mobile sidebar */}
       <div className={`fixed inset-0 z-50 lg:hidden ${sidebarOpen ? 'block' : 'hidden'}`}>
         <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setSidebarOpen(false)} />
@@ -58,7 +64,7 @@ export default function AdminLayout({
                 <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
               </div>
               <nav className="mt-5 px-2 space-y-1">
-                {navigation.map((item) => {
+                {[...navigation, ...(access === 'admin' ? ADMIN_ONLY : [])].map((item) => {
                   const IconComponent = item.icon;
                   const isActive = pathname === item.href;
                   return (
@@ -91,7 +97,7 @@ export default function AdminLayout({
                 <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
               </div>
               <nav className="mt-5 flex-1 px-2 space-y-1">
-                {navigation.map((item) => {
+                {[...navigation, ...(access === 'admin' ? ADMIN_ONLY : [])].map((item) => {
                   const IconComponent = item.icon;
                   const isActive = pathname === item.href;
                   return (
@@ -134,5 +140,7 @@ export default function AdminLayout({
         </main>
       </div>
     </div>
+      )}
+    </AdminGate>
   );
 }
