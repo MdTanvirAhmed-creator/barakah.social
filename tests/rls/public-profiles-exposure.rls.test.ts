@@ -65,6 +65,31 @@ describe("who may read public_profiles", () => {
     expect(data?.length).toBe(1);
   });
 
+  test("nobody can write through the view", async () => {
+    // The view is auto-updatable and SECURITY DEFINER, so a write through it
+    // would run as the owner and bypass RLS on profiles entirely. Only SELECT
+    // should be granted, to anyone.
+    const { error: updateError } = await member.client
+      .from("public_profiles")
+      .update({ display_name: "rewritten" })
+      .eq("id", stranger.id);
+    expect(updateError).not.toBeNull();
+
+    const { error: deleteError } = await member.client
+      .from("public_profiles")
+      .delete()
+      .eq("id", stranger.id);
+    expect(deleteError).not.toBeNull();
+
+    // And the stranger's row is untouched.
+    const { data: after } = await admin
+      .from("profiles")
+      .select("full_name")
+      .eq("id", stranger.id)
+      .single();
+    expect(after?.full_name).not.toBe("rewritten");
+  });
+
   test("the view still exposes only the intended columns", async () => {
     const { data } = await member.client
       .from("public_profiles")
