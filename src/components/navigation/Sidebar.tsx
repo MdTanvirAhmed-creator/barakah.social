@@ -17,6 +17,7 @@ import {
   Lightbulb,
   Eye,
   Settings,
+  Shield,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -91,6 +92,27 @@ const NAVIGATION_ITEMS = [
     description: "Account, privacy & appearance",
   },
 ];
+
+/**
+ * Shown only to the people who carry it.
+ *
+ * Not advertised to everyone: a member who is not a moderator has no reason
+ * to know the tooling exists, and a rank displayed to others is the opposite
+ * of what this is. It sits last, after Settings, because it is a duty rather
+ * than a destination.
+ *
+ * profiles.role is a projection of user_roles, maintained by trigger since
+ * migration 33, and the auth hook already loads the whole profile — so this
+ * costs no extra query. The page itself re-checks against user_roles, and
+ * RLS decides the data regardless of what this sidebar chooses to render.
+ */
+const MODERATION_ITEM = {
+  name: "Moderation",
+  nameEn: "Reported content",
+  href: "/admin/reports",
+  icon: Shield,
+  description: "Act on what members have reported",
+};
 
 interface SidebarProps {
   isCollapsed?: boolean;
@@ -195,7 +217,12 @@ export function Sidebar({ isCollapsed = false, onToggleCollapse }: SidebarProps)
 
       {/* Navigation Items */}
       <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto">
-        {NAVIGATION_ITEMS.map((item) => {
+        {[
+          ...NAVIGATION_ITEMS,
+          ...(profile?.role === "moderator" || profile?.role === "admin"
+            ? [MODERATION_ITEM]
+            : []),
+        ].map((item) => {
           const Icon = item.icon;
           const isActive = pathname?.startsWith(item.href);
 
