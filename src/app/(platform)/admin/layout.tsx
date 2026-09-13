@@ -15,11 +15,13 @@ import {
   GraduationCap,
   Menu,
   X,
-  Home
+  Home,
+  Eye
 } from 'lucide-react';
 
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: Home },
+  { name: 'Review Queue', href: '/admin/queue', icon: Eye },
   { name: 'Content Review', href: '/admin/content-review', icon: FileText },
   { name: 'Publishers', href: '/admin/publishers', icon: Users },
   { name: 'Scholars', href: '/admin/scholars', icon: GraduationCap },
