@@ -22,8 +22,15 @@ Sentry.init({
   // Session Replay is deliberately off. It records what people do on screen,
   // and this platform holds private religious discussion between companions —
   // exactly the material nobody agreed to have replayed to an administrator.
+  //
+  // Sample rates of zero would be enough, but they are a number someone could
+  // change without thinking. Dropping the integration entirely means replay
+  // cannot be switched on from the Sentry dashboard, and the replay code is
+  // not shipped to anyone's browser at all.
   replaysSessionSampleRate: 0,
   replaysOnErrorSampleRate: 0,
+  integrations: (defaults) =>
+    defaults.filter((integration) => !/replay/i.test(integration.name)),
 
   // Keep personal data out of error reports. An error should say what broke,
   // not who was reading what when it broke.
