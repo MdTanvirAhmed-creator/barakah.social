@@ -6,6 +6,10 @@ export const dynamic = "force-dynamic";
  * Health endpoint for uptime monitoring.
  * Returns 200 when the app and Supabase are reachable, 503 otherwise —
  * point an external uptime monitor (UptimeRobot, Better Stack, ...) at this.
+ *
+ * In production, missing Supabase configuration counts as unhealthy too.
+ * Otherwise a deployment that had lost its database credentials would serve
+ * pages, fail every query, and still report itself green.
  */
 export async function GET() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -25,7 +29,11 @@ export async function GET() {
     }
   }
 
-  const healthy = supabase !== "error";
+  // "unconfigured" means the Supabase environment variables are absent. That
+  // is fine locally, and in production it means the deployment cannot reach
+  // its database at all — the one case where a green monitor would be a lie.
+  const inProduction = process.env.VERCEL_ENV === "production";
+  const healthy = supabase === "ok" || (supabase === "unconfigured" && !inProduction);
   return NextResponse.json(
     {
       status: healthy ? "ok" : "degraded",
