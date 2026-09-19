@@ -1,0 +1,167 @@
+name: Restore rehearsal
+
+# A backup nobody has restored is a hope, not a backup.
+#
+# This takes the newest archive out of R2, decrypts it with the stored
+# passphrase, restores it into a throwaway Postgres, and checks that the data
+# is actually there. It touches neither production nor staging: the restore
+# goes into a container that is destroyed with the job.
+#
+# It runs monthly rather than once, because the failure this guards against is
+# gradual — a rotated passphrase, a changed bucket, a dump that silently
+# started coming out empty. A drill performed once proves only that it worked
+# once.
+#
+# What this does NOT prove: that the passphrase in the owner's password
+# manager matches the one in GitHub Secrets. Only a human decrypting a file by
+# hand can establish that, and it matters for the disaster where GitHub itself
+# is unreachable.
+
+on:
+  schedule:
+    - cron: "41 4 1 * *" # 04:41 UTC on the 1st of each month
+  workflow_dispatch:
+
+concurrency:
+  group: backup-verify
+  cancel-in-progress: false
+
+jobs:
+  rehearse:
+    name: Restore the newest backup and check it
+    runs-on: ubuntu-latest
+
+    services:
+      scratch:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: rehearsal
+          POSTGRES_DB: scratch
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Check credentials
+        id: creds
+        env:
+          PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+          BUCKET: ${{ secrets.R2_BUCKET }}
+          ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          KEY_SECRET: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: |
+          missing=""
+          [ -z "$PASSPHRASE" ] && missing="$missing BACKUP_PASSPHRASE"
+          [ -z "$BUCKET" ]     && missing="$missing R2_BUCKET"
+          [ -z "$ACCOUNT_ID" ] && missing="$missing CLOUDFLARE_ACCOUNT_ID"
+          [ -z "$KEY_ID" ]     && missing="$missing R2_ACCESS_KEY_ID"
+          [ -z "$KEY_SECRET" ] && missing="$missing R2_SECRET_ACCESS_KEY"
+          if [ -n "$missing" ]; then
+            echo "::error::Missing secret(s):$missing"
+            exit 1
+          fi
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/pgdg.gpg
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client-17
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+
+      - name: Fetch the newest archive
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          BUCKET: ${{ secrets.R2_BUCKET }}
+          ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+          AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+        run: |
+          ENDPOINT="https://$ACCOUNT_ID.r2.cloudflarestorage.com"
+          LATEST="$(aws s3 ls "s3://$BUCKET/daily/" --endpoint-url "$ENDPOINT" \
+            | sort | tail -1 | awk '{print $4}')"
+          if [ -z "$LATEST" ]; then
+            echo "::error::The bucket has no backups in daily/ at all."
+            exit 1
+          fi
+          echo "LATEST=$LATEST" >> "$GITHUB_ENV"
+          aws s3 cp "s3://$BUCKET/daily/$LATEST" ./archive.gpg --endpoint-url "$ENDPOINT"
+          ls -lh archive.gpg
+
+          # An archive that stopped growing is a dump that stopped containing
+          # anything. Below a floor, treat it as a failure rather than restore
+          # an empty database and call it a success.
+          SIZE=$(stat -c%s archive.gpg)
+          echo "  size: $SIZE bytes"
+          if [ "$SIZE" -lt 1000000 ]; then
+            echo "::error::Archive is only $SIZE bytes — far smaller than a real dump."
+            exit 1
+          fi
+
+      - name: Decrypt
+        env:
+          PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          printf '%s' "$PASSPHRASE" > /tmp/pp
+          if ! gpg --batch --yes --decrypt --passphrase-file /tmp/pp \
+                 --output restored.dump archive.gpg 2>/tmp/gpgerr; then
+            shred -u /tmp/pp
+            echo "::error::Decryption failed. The stored passphrase does not open the newest archive."
+            sed -n '1,5p' /tmp/gpgerr
+            exit 1
+          fi
+          shred -u /tmp/pp
+
+          # A custom-format dump starts with the bytes PGDMP. If it does not,
+          # something other than a database came out.
+          head -c 5 restored.dump | grep -q PGDMP || {
+            echo "::error::Decrypted file is not a PostgreSQL custom-format dump."
+            exit 1
+          }
+          echo "  decrypted, and it is a PostgreSQL dump"
+
+      - name: Restore into a throwaway database
+        env:
+          PGPASSWORD: rehearsal
+        run: |
+          pg_restore --no-owner --no-privileges --clean --if-exists \
+            -h localhost -U postgres -d scratch restored.dump 2>&1 \
+            | grep -vE "does not exist, skipping|already exists" | tail -20 || true
+          echo "  restore finished"
+
+      - name: Check the data actually arrived
+        env:
+          PGPASSWORD: rehearsal
+        run: |
+          q() { psql -h localhost -U postgres -d scratch -tA -c "$1"; }
+
+          TABLES=$(q "select count(*) from information_schema.tables where table_schema='public';")
+          AYAT=$(q "select count(*) from quran_ayahs;" 2>/dev/null || echo 0)
+          PROFILES=$(q "select count(*) from profiles;" 2>/dev/null || echo 0)
+          MIGRATIONS=$(q "select count(*) from supabase_migrations.schema_migrations;" 2>/dev/null || echo 0)
+
+          echo "  public tables : $TABLES"
+          echo "  migrations    : $MIGRATIONS"
+          echo "  quran ayat    : $AYAT"
+          echo "  profiles      : $PROFILES"
+
+          fail=0
+          # The Qur'an is fixed at 6236 ayat. Anything else means the restore
+          # is incomplete, whatever the exit codes said.
+          [ "$AYAT" -ne 6236 ] && { echo "::error::Expected 6236 ayat, restored $AYAT."; fail=1; }
+          [ "$TABLES" -lt 20 ] && { echo "::error::Only $TABLES public tables restored."; fail=1; }
+          [ "$MIGRATIONS" -lt 30 ] && { echo "::error::Only $MIGRATIONS migrations present."; fail=1; }
+          [ "$PROFILES" -lt 1 ] && { echo "::error::No profiles restored."; fail=1; }
+          exit $fail
+
+      - name: Report
+        if: success()
+        run: |
+          echo "::notice::Restore rehearsal passed: $LATEST decrypted and restored intact."
