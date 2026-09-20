@@ -273,6 +273,30 @@ export default function KnowledgePage() {
               <span className="text-sm font-medium text-accent-strong">Read →</span>
             </div>
           </Link>
+
+          {/* Hadith — one collection so far, and the card says so rather than
+              implying a library that is not there yet. */}
+          <Link
+            href="/knowledge/hadith"
+            className="relative block overflow-hidden rounded-lg border border-border bg-card p-8 mt-4 hover:border-primary-600/50 hover:shadow-lg transition-all group"
+          >
+            <GirihPattern subtle />
+            <div className="relative flex flex-col sm:flex-row items-center gap-6">
+              <span className="flex-shrink-0 w-16 h-16 rotate-45 rounded craft-tile-lapis flex items-center justify-center">
+                <ScrollText className="-rotate-45 w-7 h-7 text-accent-strong" />
+              </span>
+              <span className="flex-1 text-center sm:text-start">
+                <span className="block font-display text-2xl font-bold text-foreground group-hover:text-primary-600 transition-colors">
+                  Hadith
+                </span>
+                <span className="block mt-1 text-foreground-secondary">
+                  al-Arba&rsquo;un al-Nawawiyya, forty-two hadith in Arabic, each
+                  shown with the attribution its compiler gave it.
+                </span>
+              </span>
+              <span className="text-sm font-medium text-accent-strong">Read →</span>
+            </div>
+          </Link>
         </div>
 
         {/* Category Grid */}

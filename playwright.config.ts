@@ -42,7 +42,13 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: 'npm run dev',
+    // dev:local, never plain dev. `npm run dev` reads .env.local, which points
+    // at PRODUCTION — so whenever a local dev server happened to be dead,
+    // Playwright would start one of its own and quietly run the whole suite
+    // against the live database. It was caught only because production has a
+    // captcha and refused the sign-in; without that the tests would have been
+    // creating and deleting rows in the real thing.
+    command: 'npm run dev:local',
     url: 'http://localhost:3000',
     // CI starts its own production server before invoking Playwright, so
     // always reuse it. The default (!CI) made Playwright try to bind a
